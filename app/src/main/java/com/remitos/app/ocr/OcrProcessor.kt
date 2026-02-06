@@ -55,6 +55,22 @@ class OcrProcessor {
                 confidence["cant_bultos_total"] = 0.7f
             }
 
+            val remitoClienteMatch = Regex(
+                "(?i)remito\\s*(?:n\\s*[°o])?\\s*cliente\\s*[:\\-]?\\s*([\\w-]+)"
+            ).find(raw)
+            if (remitoClienteMatch != null) {
+                fields["remito_num_cliente"] = remitoClienteMatch.groupValues[1]
+                confidence["remito_num_cliente"] = 0.6f
+            }
+
+            val remitoInternoMatch = Regex(
+                "(?i)remito\\s*(?:n\\s*[°o])?\\s*interno\\s*[:\\-]?\\s*([\\w-]+)"
+            ).find(raw)
+            if (remitoInternoMatch != null) {
+                fields["remito_num_interno"] = remitoInternoMatch.groupValues[1]
+                confidence["remito_num_interno"] = 0.6f
+            }
+
             return fields to confidence
         }
     }

@@ -26,6 +26,26 @@ class OcrProcessorTest {
     }
 
     @Test
+    fun parseFields_extractsRemitoCliente() {
+        val raw = "Remito N° Cliente: RC-123\nOtro texto"
+
+        val (fields, confidence) = OcrProcessor.parseFields(raw)
+
+        assertEquals("RC-123", fields["remito_num_cliente"])
+        assertEquals(0.6f, confidence["remito_num_cliente"])
+    }
+
+    @Test
+    fun parseFields_extractsRemitoInterno() {
+        val raw = "Remito N° Interno - 4567\nOtro texto"
+
+        val (fields, confidence) = OcrProcessor.parseFields(raw)
+
+        assertEquals("4567", fields["remito_num_interno"])
+        assertEquals(0.6f, confidence["remito_num_interno"])
+    }
+
+    @Test
     fun parseFields_ignoresMissingValues() {
         val raw = "Remitente: ACME SA\nDestinatario: Foo Bar"
 

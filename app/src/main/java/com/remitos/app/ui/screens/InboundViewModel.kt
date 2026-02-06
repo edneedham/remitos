@@ -57,7 +57,9 @@ class InboundViewModel(
                 val result = ocrProcessor.processImage(context, uri)
                 draft = draft.copy(
                     senderCuit = result.fields["sender_cuit"] ?: draft.senderCuit,
-                    cantBultosTotal = result.fields["cant_bultos_total"] ?: draft.cantBultosTotal
+                    cantBultosTotal = result.fields["cant_bultos_total"] ?: draft.cantBultosTotal,
+                    remitoNumCliente = result.fields["remito_num_cliente"] ?: draft.remitoNumCliente,
+                    remitoNumInterno = result.fields["remito_num_interno"] ?: draft.remitoNumInterno
                 )
             } catch (error: Exception) {
                 ocrErrorMessage = "No se pudo procesar la imagen. Intentá de nuevo."
