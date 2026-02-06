@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
+import com.remitos.app.data.db.entity.InboundNoteWithAvailable
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -18,6 +19,18 @@ interface InboundDao {
 
     @Query("SELECT * FROM inbound_notes ORDER BY created_at DESC")
     fun observeInboundNotes(): Flow<List<InboundNoteEntity>>
+
+    @Query(
+        """
+        SELECT n.*, COUNT(p.id) AS available_count
+        FROM inbound_notes n
+        LEFT JOIN inbound_packages p
+            ON p.inbound_note_id = n.id AND p.status = 'disponible'
+        GROUP BY n.id
+        ORDER BY n.created_at DESC
+        """
+    )
+    fun observeInboundNotesWithAvailable(): Flow<List<InboundNoteWithAvailable>>
 
     @Query("SELECT * FROM inbound_notes WHERE id = :id")
     suspend fun getInboundNote(id: Long): InboundNoteEntity?

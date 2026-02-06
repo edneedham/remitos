@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.remitos.app.data.db.AppDatabase
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
+import com.remitos.app.data.db.entity.InboundNoteWithAvailable
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.data.db.entity.SequenceEntity
 import kotlinx.coroutines.flow.Flow
@@ -30,6 +31,10 @@ class RemitosRepository(private val db: AppDatabase) {
 
     fun observeInboundNotes(): Flow<List<InboundNoteEntity>> {
         return db.inboundDao().observeInboundNotes()
+    }
+
+    fun observeInboundNotesWithAvailable(): Flow<List<InboundNoteWithAvailable>> {
+        return db.inboundDao().observeInboundNotesWithAvailable()
     }
 
     suspend fun nextOutboundListNumber(): Long {
