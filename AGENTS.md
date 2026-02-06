@@ -26,6 +26,13 @@ Notes:
 - There is no custom lint or formatter configured (no ktlint/detekt yet).
 - If you add new test sources, keep them under `app/src/test` (unit) or `app/src/androidTest` (instrumentation).
 
+## Workflow
+
+- Use git for all changes; keep commits small and focused on one concern.
+- Push each commit to the GitHub remote after it is created.
+- Prefer TDD for new parsing or business logic: write a failing test first, then implement.
+- Avoid committing build artifacts or IDE files; keep `.idea/` untracked.
+
 ## Repo Structure
 
 - `app/src/main/java/com/remitos/app`
