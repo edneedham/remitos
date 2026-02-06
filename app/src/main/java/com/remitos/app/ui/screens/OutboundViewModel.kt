@@ -4,14 +4,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.db.entity.InboundNoteWithAvailable
+import com.remitos.app.data.db.entity.OutboundLineEntity
+import com.remitos.app.data.db.entity.OutboundListEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class OutboundViewModel(
     repository: RemitosRepository
 ) : ViewModel() {
+    private val repository = repository
+
     val inboundOptions: StateFlow<List<InboundOption>> = repository
         .observeInboundNotesWithAvailable()
         .map { notes ->
@@ -24,6 +32,66 @@ class OutboundViewModel(
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val isSaving = MutableStateFlow(false)
+    val saveState = MutableStateFlow<OutboundSaveState?>(null)
+
+    fun save(draft: OutboundDraftState, availableCount: Int) {
+        if (isSaving.value) return
+
+        val error = validateDraft(draft, availableCount)
+        if (error != null) {
+            saveState.value = OutboundSaveState.Error(error)
+            return
+        }
+
+        isSaving.value = true
+        saveState.value = null
+
+        viewModelScope.launch {
+            try {
+                val listNumber = withContext(Dispatchers.IO) {
+                    repository.nextOutboundListNumber()
+                }
+                val now = System.currentTimeMillis()
+                val list = OutboundListEntity(
+                    listNumber = listNumber,
+                    issueDate = now,
+                    driverNombre = draft.driverNombre.trim(),
+                    driverApellido = draft.driverApellido.trim(),
+                    status = "abierta"
+                )
+
+                val line = OutboundLineEntity(
+                    outboundListId = 0,
+                    inboundNoteId = draft.selectedInboundNoteId ?: 0L,
+                    deliveryNumber = draft.deliveryNumber.trim(),
+                    recipientNombre = draft.recipientNombre.trim(),
+                    recipientApellido = draft.recipientApellido.trim(),
+                    recipientDireccion = draft.recipientDireccion.trim(),
+                    recipientTelefono = draft.recipientTelefono.trim(),
+                    packageQty = draft.cantidadBultos.toInt(),
+                    allocatedPackageIds = "",
+                    deliveredQty = 0,
+                    returnedQty = 0
+                )
+
+                withContext(Dispatchers.IO) {
+                    repository.createOutboundWithAllocation(list, line)
+                }
+
+                saveState.value = OutboundSaveState.Success
+            } catch (error: Exception) {
+                saveState.value = OutboundSaveState.Error("No se pudo guardar la lista. Intentá de nuevo.")
+            } finally {
+                isSaving.value = false
+            }
+        }
+    }
+
+    fun clearSaveState() {
+        saveState.value = null
+    }
 
     fun validateDraft(draft: OutboundDraftState, availableCount: Int): String? {
         if (draft.driverNombre.isBlank() || draft.driverApellido.isBlank()) {
@@ -76,3 +144,8 @@ data class InboundOption(
     val label: String,
     val availableCount: Int
 )
+
+sealed interface OutboundSaveState {
+    data object Success : OutboundSaveState
+    data class Error(val message: String) : OutboundSaveState
+}

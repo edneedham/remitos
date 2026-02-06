@@ -37,4 +37,17 @@ interface InboundDao {
 
     @Query("SELECT COUNT(*) FROM inbound_packages WHERE inbound_note_id = :noteId AND status = 'disponible'")
     suspend fun countAvailablePackages(noteId: Long): Int
+
+    @Query(
+        """
+        SELECT id FROM inbound_packages
+        WHERE inbound_note_id = :noteId AND status = 'disponible'
+        ORDER BY package_index
+        LIMIT :limit
+        """
+    )
+    suspend fun getAvailablePackageIds(noteId: Long, limit: Int): List<Long>
+
+    @Query("UPDATE inbound_packages SET status = :status WHERE id IN (:packageIds)")
+    suspend fun updatePackageStatus(packageIds: List<Long>, status: String)
 }

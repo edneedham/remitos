@@ -6,6 +6,7 @@ import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
 import com.remitos.app.data.db.entity.InboundNoteWithAvailable
 import com.remitos.app.data.db.entity.OutboundListEntity
+import com.remitos.app.data.db.entity.OutboundLineEntity
 import com.remitos.app.data.db.entity.SequenceEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -53,5 +54,30 @@ class RemitosRepository(private val db: AppDatabase) {
 
     suspend fun createOutboundList(list: OutboundListEntity): Long {
         return db.outboundDao().insertOutboundList(list)
+    }
+
+    suspend fun createOutboundWithAllocation(
+        list: OutboundListEntity,
+        line: OutboundLineEntity
+    ): Long {
+        return db.withTransaction {
+            val listId = db.outboundDao().insertOutboundList(list)
+            val packageIds = db.inboundDao().getAvailablePackageIds(
+                noteId = line.inboundNoteId,
+                limit = line.packageQty
+            )
+
+            if (packageIds.size < line.packageQty) {
+                throw IllegalStateException("Paquetes insuficientes")
+            }
+
+            db.inboundDao().updatePackageStatus(packageIds, "asignado")
+            val lineWithList = line.copy(
+                outboundListId = listId,
+                allocatedPackageIds = packageIds.joinToString(",")
+            )
+            db.outboundDao().insertOutboundLines(listOf(lineWithList))
+            listId
+        }
     }
 }
