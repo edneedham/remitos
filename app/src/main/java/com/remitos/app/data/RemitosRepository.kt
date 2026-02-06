@@ -6,6 +6,7 @@ import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.data.db.entity.SequenceEntity
+import kotlinx.coroutines.flow.Flow
 
 class RemitosRepository(private val db: AppDatabase) {
     companion object {
@@ -25,6 +26,10 @@ class RemitosRepository(private val db: AppDatabase) {
             db.inboundDao().insertPackages(packages)
             id
         }
+    }
+
+    fun observeInboundNotes(): Flow<List<InboundNoteEntity>> {
+        return db.inboundDao().observeInboundNotes()
     }
 
     suspend fun nextOutboundListNumber(): Long {

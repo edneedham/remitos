@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun DashboardScreen(
     onScan: () -> Unit,
+    onInboundHistory: () -> Unit,
     onNewOutbound: () -> Unit
 ) {
     Scaffold(
@@ -34,6 +35,9 @@ fun DashboardScreen(
         ) {
             Button(onClick = onScan, contentPadding = PaddingValues(16.dp)) {
                 Text("Nuevo ingreso (OCR)")
+            }
+            Button(onClick = onInboundHistory, contentPadding = PaddingValues(16.dp)) {
+                Text("Historial de ingresos")
             }
             Button(onClick = onNewOutbound, contentPadding = PaddingValues(16.dp)) {
                 Text("Nueva lista de reparto")

@@ -13,6 +13,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.remitos.app.ui.screens.DashboardScreen
 import com.remitos.app.ui.screens.InboundCameraScreen
+import com.remitos.app.ui.screens.InboundHistoryScreen
 import com.remitos.app.ui.screens.InboundScanScreen
 import com.remitos.app.ui.screens.OutboundListScreen
 
@@ -30,6 +31,7 @@ private object Routes {
     const val Dashboard = "dashboard"
     const val InboundScan = "inbound_scan"
     const val InboundCamera = "inbound_camera"
+    const val InboundHistory = "inbound_history"
     const val OutboundList = "outbound_list"
 }
 
@@ -39,6 +41,7 @@ private fun AppNavHost(navController: NavHostController) {
         composable(Routes.Dashboard) {
             DashboardScreen(
                 onScan = { navController.navigate(Routes.InboundScan) },
+                onInboundHistory = { navController.navigate(Routes.InboundHistory) },
                 onNewOutbound = { navController.navigate(Routes.OutboundList) }
             )
         }
@@ -72,6 +75,9 @@ private fun AppNavHost(navController: NavHostController) {
         }
         composable(Routes.OutboundList) {
             OutboundListScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.InboundHistory) {
+            InboundHistoryScreen(onBack = { navController.popBackStack() })
         }
     }
 }
