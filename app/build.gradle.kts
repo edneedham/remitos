@@ -63,4 +63,6 @@ dependencies {
     implementation("com.google.mlkit:text-recognition:16.0.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.2")
+
+    testImplementation("junit:junit:4.13.2")
 }
