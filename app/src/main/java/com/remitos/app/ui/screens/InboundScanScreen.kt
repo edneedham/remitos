@@ -163,8 +163,13 @@ fun InboundScanScreen(onBack: () -> Unit) {
 
             Button(
                 onClick = {
-                    showMissingDialog = missing.isNotEmpty()
+                    if (missing.isNotEmpty()) {
+                        showMissingDialog = true
+                    } else {
+                        viewModel.save()
+                    }
                 },
+                enabled = !viewModel.isSaving,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Guardar ingreso")
@@ -190,6 +195,37 @@ fun InboundScanScreen(onBack: () -> Unit) {
             title = { Text("Error de OCR") },
             text = { Text(ocrErrorMessage) }
         )
+    }
+
+    when (val state = viewModel.saveState) {
+        is SaveState.Success -> {
+            AlertDialog(
+                onDismissRequest = {},
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.clearSaveState()
+                            onBack()
+                        }
+                    ) {
+                        Text("Aceptar")
+                    }
+                },
+                title = { Text("Ingreso guardado") },
+                text = { Text("El ingreso se guardó correctamente.") }
+            )
+        }
+        is SaveState.Error -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.clearSaveState() },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.clearSaveState() }) { Text("Aceptar") }
+                },
+                title = { Text("Error al guardar") },
+                text = { Text(state.message) }
+            )
+        }
+        null -> Unit
     }
 }
 

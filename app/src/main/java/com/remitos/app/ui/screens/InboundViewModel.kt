@@ -8,8 +8,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.RemitosRepository
+import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.ocr.OcrProcessor
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val CuitRegex = "\\b\\d{2}-\\d{8}-\\d{1}\\b"
 
@@ -28,6 +31,12 @@ class InboundViewModel(
         private set
 
     var ocrErrorMessage by mutableStateOf<String?>(null)
+        private set
+
+    var isSaving by mutableStateOf(false)
+        private set
+
+    var saveState by mutableStateOf<SaveState?>(null)
         private set
 
     fun updateDraft(value: InboundDraftState) {
@@ -63,8 +72,61 @@ class InboundViewModel(
     }
 
     fun save() {
-        // TODO: validar y persistir el ingreso
+        if (isSaving) return
+
+        val cantBultos = draft.cantBultosTotal.toIntOrNull() ?: 0
+        if (cantBultos <= 0) {
+            saveState = SaveState.Error("La cantidad de bultos debe ser mayor a cero.")
+            return
+        }
+
+        isSaving = true
+        saveState = null
+
+        viewModelScope.launch {
+            try {
+                val now = System.currentTimeMillis()
+                val note = InboundNoteEntity(
+                    senderCuit = draft.senderCuit.trim(),
+                    senderNombre = draft.senderNombre.trim(),
+                    senderApellido = draft.senderApellido.trim(),
+                    destNombre = draft.destNombre.trim(),
+                    destApellido = draft.destApellido.trim(),
+                    destDireccion = draft.destDireccion.trim(),
+                    destTelefono = draft.destTelefono.trim(),
+                    cantBultosTotal = cantBultos,
+                    remitoNumCliente = draft.remitoNumCliente.trim(),
+                    remitoNumInterno = draft.remitoNumInterno.trim(),
+                    scanImagePath = selectedImageUri?.toString(),
+                    ocrTextBlob = null,
+                    ocrConfidenceJson = null,
+                    createdAt = now,
+                    updatedAt = now
+                )
+
+                withContext(Dispatchers.IO) {
+                    repository.createInboundNote(note)
+                }
+
+                draft = InboundDraftState()
+                selectedImageUri = null
+                saveState = SaveState.Success
+            } catch (error: Exception) {
+                saveState = SaveState.Error("No se pudo guardar el ingreso. Intentá de nuevo.")
+            } finally {
+                isSaving = false
+            }
+        }
     }
+
+    fun clearSaveState() {
+        saveState = null
+    }
+}
+
+sealed interface SaveState {
+    data object Success : SaveState
+    data class Error(val message: String) : SaveState
 }
 
 data class InboundDraftState(
