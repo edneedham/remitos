@@ -80,4 +80,12 @@ class RemitosRepository(private val db: AppDatabase) {
             listId
         }
     }
+
+    suspend fun getOutboundList(listId: Long): OutboundListEntity? {
+        return db.outboundDao().getOutboundList(listId)
+    }
+
+    suspend fun getOutboundLines(listId: Long): List<OutboundLineEntity> {
+        return db.outboundDao().getLinesForList(listId)
+    }
 }

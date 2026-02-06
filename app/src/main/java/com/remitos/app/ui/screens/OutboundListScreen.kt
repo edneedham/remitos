@@ -33,6 +33,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.RemitosApplication
+import com.remitos.app.print.OutboundListPrinter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +52,7 @@ fun OutboundListScreen(onBack: () -> Unit) {
     val inboundOptions by viewModel.inboundOptions.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
+    val printPayload by viewModel.printPayload.collectAsStateWithLifecycle()
 
     var draft by remember { mutableStateOf(OutboundDraftState()) }
     var inboundMenuExpanded by remember { mutableStateOf(false) }
@@ -183,12 +185,32 @@ fun OutboundListScreen(onBack: () -> Unit) {
                 confirmButton = {
                     TextButton(
                         onClick = {
+                            val payload = printPayload
+                            if (payload != null) {
+                                OutboundListPrinter(context).print(payload.list, payload.lines)
+                            }
                             viewModel.clearSaveState()
+                            viewModel.clearPrintPayload()
                             onBack()
                         }
                     ) {
-                        Text("Aceptar")
+                        Text(if (printPayload != null) "Imprimir" else "Aceptar")
                     }
+                },
+                dismissButton = if (printPayload != null) {
+                    {
+                        TextButton(
+                            onClick = {
+                                viewModel.clearSaveState()
+                                viewModel.clearPrintPayload()
+                                onBack()
+                            }
+                        ) {
+                            Text("Cerrar")
+                        }
+                    }
+                } else {
+                    null
                 },
                 title = { Text("Lista guardada") },
                 text = { Text("La lista de reparto se guardó correctamente.") }

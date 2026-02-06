@@ -35,6 +35,7 @@ class OutboundViewModel(
 
     val isSaving = MutableStateFlow(false)
     val saveState = MutableStateFlow<OutboundSaveState?>(null)
+    val printPayload = MutableStateFlow<OutboundPrintPayload?>(null)
 
     fun save(draft: OutboundDraftState, availableCount: Int) {
         if (isSaving.value) return
@@ -76,10 +77,21 @@ class OutboundViewModel(
                     returnedQty = 0
                 )
 
-                withContext(Dispatchers.IO) {
+                val listId = withContext(Dispatchers.IO) {
                     repository.createOutboundWithAllocation(list, line)
                 }
 
+                val payload = withContext(Dispatchers.IO) {
+                    val savedList = repository.getOutboundList(listId)
+                    val savedLines = repository.getOutboundLines(listId)
+                    if (savedList != null) {
+                        OutboundPrintPayload(savedList, savedLines)
+                    } else {
+                        null
+                    }
+                }
+
+                printPayload.value = payload
                 saveState.value = OutboundSaveState.Success
             } catch (error: Exception) {
                 saveState.value = OutboundSaveState.Error("No se pudo guardar la lista. Intentá de nuevo.")
@@ -91,6 +103,10 @@ class OutboundViewModel(
 
     fun clearSaveState() {
         saveState.value = null
+    }
+
+    fun clearPrintPayload() {
+        printPayload.value = null
     }
 
     fun validateDraft(draft: OutboundDraftState, availableCount: Int): String? {
@@ -149,3 +165,8 @@ sealed interface OutboundSaveState {
     data object Success : OutboundSaveState
     data class Error(val message: String) : OutboundSaveState
 }
+
+data class OutboundPrintPayload(
+    val list: OutboundListEntity,
+    val lines: List<OutboundLineEntity>
+)

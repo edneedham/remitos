@@ -101,6 +101,16 @@ class OutboundViewModelTest {
             org.mockito.kotlin.any(),
             org.mockito.kotlin.any()
         )).thenReturn(1L)
+        whenever(repository.getOutboundList(1L)).thenReturn(
+            com.remitos.app.data.db.entity.OutboundListEntity(
+                listNumber = 1,
+                issueDate = 123L,
+                driverNombre = "Juan",
+                driverApellido = "Perez",
+                status = "abierta"
+            )
+        )
+        whenever(repository.getOutboundLines(1L)).thenReturn(emptyList())
 
         val draft = OutboundDraftState(
             driverNombre = "Juan",
@@ -118,6 +128,7 @@ class OutboundViewModelTest {
         advanceUntilIdle()
 
         assertEquals(OutboundSaveState.Success, viewModel.saveState.value)
+        assertEquals(1L, viewModel.printPayload.value?.list?.listNumber)
         verify(repository).createOutboundWithAllocation(
             org.mockito.kotlin.any(),
             org.mockito.kotlin.any()

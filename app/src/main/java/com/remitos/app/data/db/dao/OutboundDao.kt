@@ -19,6 +19,9 @@ interface OutboundDao {
     @Query("SELECT * FROM outbound_lists ORDER BY issue_date DESC")
     fun observeOutboundLists(): Flow<List<OutboundListEntity>>
 
+    @Query("SELECT * FROM outbound_lists WHERE id = :listId")
+    suspend fun getOutboundList(listId: Long): OutboundListEntity?
+
     @Query("SELECT * FROM outbound_lines WHERE outbound_list_id = :listId")
     suspend fun getLinesForList(listId: Long): List<OutboundLineEntity>
 }
