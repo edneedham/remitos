@@ -79,7 +79,7 @@ fun InboundScanScreen(onBack: () -> Unit) {
                 Button(onClick = { imagePicker.launch("image/*") }) {
                     Text("Seleccionar imagen")
                 }
-                Button(onClick = { viewModel.processImage() }) {
+                Button(onClick = { viewModel.processImage(context) }) {
                     Text("Procesar OCR")
                 }
             }

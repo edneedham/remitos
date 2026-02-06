@@ -1,21 +1,33 @@
 package com.remitos.app.ui.screens
 
+import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.RemitosRepository
+import com.remitos.app.ocr.OcrProcessor
+import kotlinx.coroutines.launch
 
 private const val CuitRegex = "\\b\\d{2}-\\d{8}-\\d{1}\\b"
 
 class InboundViewModel(
     private val repository: RemitosRepository
 ) : ViewModel() {
+    private val ocrProcessor = OcrProcessor()
+
     var draft by mutableStateOf(InboundDraftState())
         private set
 
     var selectedImageUri by mutableStateOf<Uri?>(null)
+        private set
+
+    var isProcessing by mutableStateOf(false)
+        private set
+
+    var ocrErrorMessage by mutableStateOf<String?>(null)
         private set
 
     fun updateDraft(value: InboundDraftState) {
@@ -26,8 +38,24 @@ class InboundViewModel(
         selectedImageUri = value
     }
 
-    fun processImage() {
-        // TODO: ejecutar OCR con la imagen seleccionada
+    fun processImage(context: Context) {
+        val uri = selectedImageUri ?: return
+        ocrErrorMessage = null
+        isProcessing = true
+
+        viewModelScope.launch {
+            try {
+                val result = ocrProcessor.processImage(context, uri)
+                draft = draft.copy(
+                    senderCuit = result.fields["sender_cuit"] ?: draft.senderCuit,
+                    cantBultosTotal = result.fields["cant_bultos_total"] ?: draft.cantBultosTotal
+                )
+            } catch (error: Exception) {
+                ocrErrorMessage = "No se pudo procesar la imagen. Intentá de nuevo."
+            } finally {
+                isProcessing = false
+            }
+        }
     }
 
     fun save() {
