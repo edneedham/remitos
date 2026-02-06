@@ -5,6 +5,9 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,31 +15,56 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Badge
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.DocumentScanner
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Numbers
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.RemitosApplication
+import com.remitos.app.ui.components.RemitosTextField
+import com.remitos.app.ui.components.RemitosTopBar
+import com.remitos.app.ui.components.SectionCard
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +72,7 @@ fun InboundScanScreen(
     onBack: () -> Unit,
     onOpenCamera: () -> Unit,
     capturedUri: Uri? = null,
-    onCapturedUriHandled: () -> Unit = {}
+    onCapturedUriHandled: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as RemitosApplication
@@ -54,21 +82,24 @@ fun InboundScanScreen(
                 @Suppress("UNCHECKED_CAST")
                 return InboundViewModel(app.repository) as T
             }
-        }
+        },
     )
 
     val draft = viewModel.draft
     var showMissingDialog by remember { mutableStateOf(false) }
     var showCameraPermissionDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     val imagePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.GetContent(),
     ) { uri ->
         viewModel.updateImageUri(uri)
     }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
+        contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) {
             onOpenCamera()
@@ -87,125 +118,192 @@ fun InboundScanScreen(
     val missing = draft.missingFields()
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text("Ingreso por OCR") },
-                navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Volver") }
-                }
+            RemitosTopBar(
+                title = "Ingreso por OCR",
+                onBack = onBack,
+                scrollBehavior = scrollBehavior,
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Escanear documento")
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    onClick = { imagePicker.launch("image/*") },
-                    enabled = !viewModel.isProcessing
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Scan actions section
+            SectionCard(
+                title = "Escanear documento",
+                icon = Icons.Outlined.DocumentScanner,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Seleccionar imagen")
-                }
-                Button(
-                    onClick = {
-                        val permission = Manifest.permission.CAMERA
-                        if (ContextCompat.checkSelfPermission(
-                                context,
-                                permission
-                            ) == PackageManager.PERMISSION_GRANTED
-                        ) {
-                            onOpenCamera()
-                        } else {
-                            cameraPermissionLauncher.launch(permission)
-                        }
-                    },
-                    enabled = !viewModel.isProcessing
-                ) {
-                    Text("Tomar foto")
+                    FilledTonalButton(
+                        onClick = { imagePicker.launch("image/*") },
+                        enabled = !viewModel.isProcessing,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(
+                            Icons.Outlined.PhotoLibrary,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text("Galeria")
+                    }
+                    FilledTonalButton(
+                        onClick = {
+                            val permission = Manifest.permission.CAMERA
+                            if (ContextCompat.checkSelfPermission(
+                                    context,
+                                    permission,
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) {
+                                onOpenCamera()
+                            } else {
+                                cameraPermissionLauncher.launch(permission)
+                            }
+                        },
+                        enabled = !viewModel.isProcessing,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(
+                            Icons.Outlined.CameraAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text("Camara")
+                    }
                 }
                 Button(
                     onClick = { viewModel.processImage(context) },
-                    enabled = viewModel.selectedImageUri != null && !viewModel.isProcessing
+                    enabled = viewModel.selectedImageUri != null && !viewModel.isProcessing,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                    ),
                 ) {
+                    Icon(
+                        Icons.Outlined.DocumentScanner,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
                     Text("Procesar OCR")
+                }
+
+                AnimatedVisibility(
+                    visible = viewModel.isProcessing,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                ) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.secondary,
+                        trackColor = MaterialTheme.colorScheme.secondaryContainer,
+                    )
                 }
             }
 
-            if (viewModel.isProcessing) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            // Sender section
+            SectionCard(
+                title = "Remitente",
+                icon = Icons.Outlined.Person,
+            ) {
+                RemitosTextField(
+                    value = draft.senderCuit,
+                    onValueChange = { viewModel.updateDraft(draft.copy(senderCuit = it)) },
+                    label = "CUIT Remitente",
+                    leadingIcon = Icons.Outlined.Badge,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RemitosTextField(
+                        value = draft.senderNombre,
+                        onValueChange = { viewModel.updateDraft(draft.copy(senderNombre = it)) },
+                        label = "Nombre",
+                        leadingIcon = Icons.Outlined.Person,
+                        modifier = Modifier.weight(1f),
+                    )
+                    RemitosTextField(
+                        value = draft.senderApellido,
+                        onValueChange = { viewModel.updateDraft(draft.copy(senderApellido = it)) },
+                        label = "Apellido",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            // Destination section
+            SectionCard(
+                title = "Destinatario",
+                icon = Icons.Outlined.Home,
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RemitosTextField(
+                        value = draft.destNombre,
+                        onValueChange = { viewModel.updateDraft(draft.copy(destNombre = it)) },
+                        label = "Nombre",
+                        leadingIcon = Icons.Outlined.Person,
+                        modifier = Modifier.weight(1f),
+                    )
+                    RemitosTextField(
+                        value = draft.destApellido,
+                        onValueChange = { viewModel.updateDraft(draft.copy(destApellido = it)) },
+                        label = "Apellido",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                RemitosTextField(
+                    value = draft.destDireccion,
+                    onValueChange = { viewModel.updateDraft(draft.copy(destDireccion = it)) },
+                    label = "Direccion",
+                    leadingIcon = Icons.Outlined.Home,
+                )
+                RemitosTextField(
+                    value = draft.destTelefono,
+                    onValueChange = { viewModel.updateDraft(draft.copy(destTelefono = it)) },
+                    label = "Telefono",
+                    leadingIcon = Icons.Outlined.Phone,
+                    keyboardType = KeyboardType.Phone,
+                )
+            }
 
-            Text("Datos detectados")
-            OutlinedTextField(
-                value = draft.senderCuit,
-                onValueChange = { viewModel.updateDraft(draft.copy(senderCuit = it)) },
-                label = { Text("CUIT Remitente") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = draft.senderNombre,
-                onValueChange = { viewModel.updateDraft(draft.copy(senderNombre = it)) },
-                label = { Text("Nombre Remitente") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = draft.senderApellido,
-                onValueChange = { viewModel.updateDraft(draft.copy(senderApellido = it)) },
-                label = { Text("Apellido Remitente") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = draft.destNombre,
-                onValueChange = { viewModel.updateDraft(draft.copy(destNombre = it)) },
-                label = { Text("Nombre Destinatario") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = draft.destApellido,
-                onValueChange = { viewModel.updateDraft(draft.copy(destApellido = it)) },
-                label = { Text("Apellido Destinatario") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = draft.destDireccion,
-                onValueChange = { viewModel.updateDraft(draft.copy(destDireccion = it)) },
-                label = { Text("Dirección Destinatario") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = draft.destTelefono,
-                onValueChange = { viewModel.updateDraft(draft.copy(destTelefono = it)) },
-                label = { Text("Teléfono Destinatario") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = draft.cantBultosTotal,
-                onValueChange = { viewModel.updateDraft(draft.copy(cantBultosTotal = it)) },
-                label = { Text("Cantidad de bultos") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = draft.remitoNumCliente,
-                onValueChange = { viewModel.updateDraft(draft.copy(remitoNumCliente = it)) },
-                label = { Text("Remito Nº Cliente") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = draft.remitoNumInterno,
-                onValueChange = { viewModel.updateDraft(draft.copy(remitoNumInterno = it)) },
-                label = { Text("Remito Nº Interno") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            // Package & remito section
+            SectionCard(
+                title = "Datos del remito",
+                icon = Icons.Outlined.Description,
+            ) {
+                RemitosTextField(
+                    value = draft.cantBultosTotal,
+                    onValueChange = { viewModel.updateDraft(draft.copy(cantBultosTotal = it)) },
+                    label = "Cantidad de bultos",
+                    leadingIcon = Icons.Outlined.Inventory2,
+                    keyboardType = KeyboardType.Number,
+                )
+                RemitosTextField(
+                    value = draft.remitoNumCliente,
+                    onValueChange = { viewModel.updateDraft(draft.copy(remitoNumCliente = it)) },
+                    label = "Remito N° Cliente",
+                    leadingIcon = Icons.Outlined.Numbers,
+                )
+                RemitosTextField(
+                    value = draft.remitoNumInterno,
+                    onValueChange = { viewModel.updateDraft(draft.copy(remitoNumInterno = it)) },
+                    label = "Remito N° Interno",
+                    leadingIcon = Icons.Outlined.Numbers,
+                )
+            }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
+            // Save button
             Button(
                 onClick = {
                     if (missing.isNotEmpty()) {
@@ -215,18 +313,33 @@ fun InboundScanScreen(
                     }
                 },
                 enabled = !viewModel.isSaving,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = MaterialTheme.shapes.medium,
             ) {
-                Text("Guardar ingreso")
+                Icon(
+                    Icons.Outlined.Save,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(
+                    "Guardar ingreso",
+                    style = MaterialTheme.typography.labelLarge,
+                )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
+    // Dialogs
     if (showMissingDialog) {
         MissingFieldsDialog(
             missing = missing,
             onDismiss = { showMissingDialog = false },
-            onConfirm = { showMissingDialog = false }
+            onConfirm = { showMissingDialog = false },
         )
     }
 
@@ -238,7 +351,7 @@ fun InboundScanScreen(
                 TextButton(onClick = { viewModel.clearOcrError() }) { Text("Aceptar") }
             },
             title = { Text("Error de OCR") },
-            text = { Text(ocrErrorMessage) }
+            text = { Text(ocrErrorMessage) },
         )
     }
 
@@ -248,28 +361,20 @@ fun InboundScanScreen(
             confirmButton = {
                 TextButton(onClick = { showCameraPermissionDialog = false }) { Text("Aceptar") }
             },
-            title = { Text("Permiso de cámara") },
-            text = { Text("Se necesita acceso a la cámara para tomar la foto.") }
+            title = { Text("Permiso de camara") },
+            text = { Text("Se necesita acceso a la camara para tomar la foto.") },
         )
     }
 
     when (val state = viewModel.saveState) {
         is SaveState.Success -> {
-            AlertDialog(
-                onDismissRequest = {},
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            viewModel.clearSaveState()
-                            onBack()
-                        }
-                    ) {
-                        Text("Aceptar")
-                    }
-                },
-                title = { Text("Ingreso guardado") },
-                text = { Text("El ingreso se guardó correctamente.") }
-            )
+            LaunchedEffect(state) {
+                scope.launch {
+                    snackbarHostState.showSnackbar("Ingreso guardado correctamente")
+                }
+                viewModel.clearSaveState()
+                onBack()
+            }
         }
         is SaveState.Error -> {
             AlertDialog(
@@ -278,7 +383,7 @@ fun InboundScanScreen(
                     TextButton(onClick = { viewModel.clearSaveState() }) { Text("Aceptar") }
                 },
                 title = { Text("Error al guardar") },
-                text = { Text(state.message) }
+                text = { Text(state.message) },
             )
         }
         null -> Unit
@@ -289,7 +394,7 @@ fun InboundScanScreen(
 private fun MissingFieldsDialog(
     missing: List<MissingField>,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -303,6 +408,6 @@ private fun MissingFieldsDialog(
                     Text("• ${field.label}")
                 }
             }
-        }
+        },
     )
 }

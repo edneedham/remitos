@@ -7,26 +7,44 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.LocalShipping
+import androidx.compose.material.icons.outlined.Numbers
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Print
+import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -34,6 +52,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.RemitosApplication
 import com.remitos.app.print.OutboundListPrinter
+import com.remitos.app.ui.components.RemitosTextField
+import com.remitos.app.ui.components.RemitosTopBar
+import com.remitos.app.ui.components.SectionCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +67,7 @@ fun OutboundListScreen(onBack: () -> Unit) {
                 @Suppress("UNCHECKED_CAST")
                 return OutboundViewModel(app.repository) as T
             }
-        }
+        },
     )
 
     val inboundOptions by viewModel.inboundOptions.collectAsStateWithLifecycle()
@@ -56,128 +77,175 @@ fun OutboundListScreen(onBack: () -> Unit) {
 
     var draft by remember { mutableStateOf(OutboundDraftState()) }
     var inboundMenuExpanded by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     val selectedInbound = inboundOptions.firstOrNull { it.inboundNoteId == draft.selectedInboundNoteId }
     val availableCount = selectedInbound?.availableCount ?: 0
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text("Nueva lista de reparto") },
-                navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Volver") }
-                }
+            RemitosTopBar(
+                title = "Nueva lista de reparto",
+                onBack = onBack,
+                scrollBehavior = scrollBehavior,
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Datos del chofer")
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = draft.driverNombre,
-                    onValueChange = { draft = draft.copy(driverNombre = it) },
-                    label = { Text("Nombre") },
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = draft.driverApellido,
-                    onValueChange = { draft = draft.copy(driverApellido = it) },
-                    label = { Text("Apellido") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            Spacer(modifier = Modifier.height(4.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text("Entrega")
-            OutlinedTextField(
-                value = draft.deliveryNumber,
-                onValueChange = { draft = draft.copy(deliveryNumber = it) },
-                label = { Text("Nº Entrega") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = draft.recipientNombre,
-                    onValueChange = { draft = draft.copy(recipientNombre = it) },
-                    label = { Text("Nombre destinatario") },
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = draft.recipientApellido,
-                    onValueChange = { draft = draft.copy(recipientApellido = it) },
-                    label = { Text("Apellido destinatario") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            OutlinedTextField(
-                value = draft.recipientDireccion,
-                onValueChange = { draft = draft.copy(recipientDireccion = it) },
-                label = { Text("Dirección") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = draft.recipientTelefono,
-                onValueChange = { draft = draft.copy(recipientTelefono = it) },
-                label = { Text("Teléfono") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = draft.cantidadBultos,
-                onValueChange = { draft = draft.copy(cantidadBultos = it) },
-                label = { Text("Bultos") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Text("Ingreso disponible")
-            ExposedDropdownMenuBox(
-                expanded = inboundMenuExpanded,
-                onExpandedChange = { inboundMenuExpanded = !inboundMenuExpanded }
+            // Driver section
+            SectionCard(
+                title = "Datos del chofer",
+                icon = Icons.Outlined.LocalShipping,
             ) {
-                OutlinedTextField(
-                    value = selectedInbound?.label ?: "",
-                    onValueChange = {},
-                    label = { Text("Seleccionar ingreso") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = inboundMenuExpanded) },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth(),
-                    readOnly = true
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RemitosTextField(
+                        value = draft.driverNombre,
+                        onValueChange = { draft = draft.copy(driverNombre = it) },
+                        label = "Nombre",
+                        leadingIcon = Icons.Outlined.Person,
+                        modifier = Modifier.weight(1f),
+                    )
+                    RemitosTextField(
+                        value = draft.driverApellido,
+                        onValueChange = { draft = draft.copy(driverApellido = it) },
+                        label = "Apellido",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            // Delivery section
+            SectionCard(
+                title = "Entrega",
+                icon = Icons.Outlined.Description,
+            ) {
+                RemitosTextField(
+                    value = draft.deliveryNumber,
+                    onValueChange = { draft = draft.copy(deliveryNumber = it) },
+                    label = "N° Entrega",
+                    leadingIcon = Icons.Outlined.Numbers,
                 )
-                ExposedDropdownMenu(
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RemitosTextField(
+                        value = draft.recipientNombre,
+                        onValueChange = { draft = draft.copy(recipientNombre = it) },
+                        label = "Nombre destinatario",
+                        leadingIcon = Icons.Outlined.Person,
+                        modifier = Modifier.weight(1f),
+                    )
+                    RemitosTextField(
+                        value = draft.recipientApellido,
+                        onValueChange = { draft = draft.copy(recipientApellido = it) },
+                        label = "Apellido",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                RemitosTextField(
+                    value = draft.recipientDireccion,
+                    onValueChange = { draft = draft.copy(recipientDireccion = it) },
+                    label = "Direccion",
+                    leadingIcon = Icons.Outlined.Home,
+                )
+                RemitosTextField(
+                    value = draft.recipientTelefono,
+                    onValueChange = { draft = draft.copy(recipientTelefono = it) },
+                    label = "Telefono",
+                    leadingIcon = Icons.Outlined.Phone,
+                    keyboardType = KeyboardType.Phone,
+                )
+                RemitosTextField(
+                    value = draft.cantidadBultos,
+                    onValueChange = { draft = draft.copy(cantidadBultos = it) },
+                    label = "Bultos",
+                    leadingIcon = Icons.Outlined.Inventory2,
+                    keyboardType = KeyboardType.Number,
+                )
+            }
+
+            // Inbound selection section
+            SectionCard(
+                title = "Ingreso disponible",
+                icon = Icons.Outlined.Inventory2,
+            ) {
+                ExposedDropdownMenuBox(
                     expanded = inboundMenuExpanded,
-                    onDismissRequest = { inboundMenuExpanded = false }
+                    onExpandedChange = { inboundMenuExpanded = !inboundMenuExpanded },
                 ) {
-                    inboundOptions.forEach { option ->
-                        DropdownMenuItem(
-                            text = { Text("${option.label} • ${option.availableCount} disponibles") },
-                            onClick = {
-                                draft = draft.copy(selectedInboundNoteId = option.inboundNoteId)
-                                inboundMenuExpanded = false
-                            }
-                        )
+                    OutlinedTextField(
+                        value = selectedInbound?.label ?: "",
+                        onValueChange = {},
+                        label = { Text("Seleccionar ingreso") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(
+                                expanded = inboundMenuExpanded,
+                            )
+                        },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        readOnly = true,
+                        shape = MaterialTheme.shapes.small,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.secondary,
+                            focusedLabelColor = MaterialTheme.colorScheme.secondary,
+                        ),
+                    )
+                    ExposedDropdownMenu(
+                        expanded = inboundMenuExpanded,
+                        onDismissRequest = { inboundMenuExpanded = false },
+                    ) {
+                        inboundOptions.forEach { option ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text("${option.label} • ${option.availableCount} disponibles")
+                                },
+                                onClick = {
+                                    draft = draft.copy(selectedInboundNoteId = option.inboundNoteId)
+                                    inboundMenuExpanded = false
+                                },
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
+            // Save button
             Button(
                 onClick = { viewModel.save(draft, availableCount) },
                 enabled = !isSaving,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = MaterialTheme.shapes.medium,
             ) {
-                Text("Guardar lista")
+                Icon(
+                    Icons.Outlined.Save,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(
+                    "Guardar lista",
+                    style = MaterialTheme.typography.labelLarge,
+                )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
+    // Dialogs
     when (val state = saveState) {
         is OutboundSaveState.Success -> {
             AlertDialog(
@@ -192,8 +260,16 @@ fun OutboundListScreen(onBack: () -> Unit) {
                             viewModel.clearSaveState()
                             viewModel.clearPrintPayload()
                             onBack()
-                        }
+                        },
                     ) {
+                        if (printPayload != null) {
+                            Icon(
+                                Icons.Outlined.Print,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.size(4.dp))
+                        }
                         Text(if (printPayload != null) "Imprimir" else "Aceptar")
                     }
                 },
@@ -204,7 +280,7 @@ fun OutboundListScreen(onBack: () -> Unit) {
                                 viewModel.clearSaveState()
                                 viewModel.clearPrintPayload()
                                 onBack()
-                            }
+                            },
                         ) {
                             Text("Cerrar")
                         }
@@ -213,7 +289,7 @@ fun OutboundListScreen(onBack: () -> Unit) {
                     null
                 },
                 title = { Text("Lista guardada") },
-                text = { Text("La lista de reparto se guardó correctamente.") }
+                text = { Text("La lista de reparto se guardo correctamente.") },
             )
         }
         is OutboundSaveState.Error -> {
@@ -223,7 +299,7 @@ fun OutboundListScreen(onBack: () -> Unit) {
                     TextButton(onClick = { viewModel.clearSaveState() }) { Text("Aceptar") }
                 },
                 title = { Text("Error al guardar") },
-                text = { Text(state.message) }
+                text = { Text(state.message) },
             )
         }
         null -> Unit
