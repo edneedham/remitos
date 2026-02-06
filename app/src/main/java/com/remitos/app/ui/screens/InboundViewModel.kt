@@ -57,6 +57,12 @@ class InboundViewModel(
                 val result = ocrProcessor.processImage(context, uri)
                 draft = draft.copy(
                     senderCuit = result.fields["sender_cuit"] ?: draft.senderCuit,
+                    senderNombre = result.fields["sender_nombre"] ?: draft.senderNombre,
+                    senderApellido = result.fields["sender_apellido"] ?: draft.senderApellido,
+                    destNombre = result.fields["dest_nombre"] ?: draft.destNombre,
+                    destApellido = result.fields["dest_apellido"] ?: draft.destApellido,
+                    destDireccion = result.fields["dest_direccion"] ?: draft.destDireccion,
+                    destTelefono = result.fields["dest_telefono"] ?: draft.destTelefono,
                     cantBultosTotal = result.fields["cant_bultos_total"] ?: draft.cantBultosTotal,
                     remitoNumCliente = result.fields["remito_num_cliente"] ?: draft.remitoNumCliente,
                     remitoNumInterno = result.fields["remito_num_interno"] ?: draft.remitoNumInterno
