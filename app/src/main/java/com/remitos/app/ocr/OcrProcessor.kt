@@ -35,22 +35,27 @@ class OcrProcessor {
     }
 
     private fun extractFields(text: Text): Pair<Map<String, String>, Map<String, Float>> {
-        val raw = text.text
-        val fields = mutableMapOf<String, String>()
-        val confidence = mutableMapOf<String, Float>()
+        return parseFields(text.text)
+    }
 
-        val cuitMatch = Regex("\\b\\d{2}-\\d{8}-\\d{1}\\b").find(raw)
-        if (cuitMatch != null) {
-            fields["sender_cuit"] = cuitMatch.value
-            confidence["sender_cuit"] = 0.8f
+    companion object {
+        internal fun parseFields(raw: String): Pair<Map<String, String>, Map<String, Float>> {
+            val fields = mutableMapOf<String, String>()
+            val confidence = mutableMapOf<String, Float>()
+
+            val cuitMatch = Regex("\\b\\d{2}-\\d{8}-\\d{1}\\b").find(raw)
+            if (cuitMatch != null) {
+                fields["sender_cuit"] = cuitMatch.value
+                confidence["sender_cuit"] = 0.8f
+            }
+
+            val bultosMatch = Regex("(?i)cantidad\\s+de\\s+bultos\\s*[:\\-]?\\s*(\\d+)").find(raw)
+            if (bultosMatch != null) {
+                fields["cant_bultos_total"] = bultosMatch.groupValues[1]
+                confidence["cant_bultos_total"] = 0.7f
+            }
+
+            return fields to confidence
         }
-
-        val bultosMatch = Regex("(?i)cantidad\\s+de\\s+bultos\\s*[:\\-]?\\s*(\\d+)").find(raw)
-        if (bultosMatch != null) {
-            fields["cant_bultos_total"] = bultosMatch.groupValues[1]
-            confidence["cant_bultos_total"] = 0.7f
-        }
-
-        return fields to confidence
     }
 }
