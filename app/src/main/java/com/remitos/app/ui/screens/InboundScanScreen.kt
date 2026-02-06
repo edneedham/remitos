@@ -25,6 +25,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -47,6 +49,12 @@ fun InboundScanScreen(onBack: () -> Unit) {
     val draft = viewModel.draft
     var showMissingDialog by remember { mutableStateOf(false) }
 
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        viewModel.updateImageUri(uri)
+    }
+
     val missing = draft.missingFields()
 
     Scaffold(
@@ -68,7 +76,7 @@ fun InboundScanScreen(onBack: () -> Unit) {
         ) {
             Text("Escanear documento")
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { /* TODO: selector de imagen */ }) {
+                Button(onClick = { imagePicker.launch("image/*") }) {
                     Text("Seleccionar imagen")
                 }
                 Button(onClick = { viewModel.processImage() }) {

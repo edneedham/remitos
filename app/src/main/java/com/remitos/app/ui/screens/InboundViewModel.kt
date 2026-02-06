@@ -1,5 +1,6 @@
 package com.remitos.app.ui.screens
 
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,8 +15,15 @@ class InboundViewModel(
     var draft by mutableStateOf(InboundDraftState())
         private set
 
+    var selectedImageUri by mutableStateOf<Uri?>(null)
+        private set
+
     fun updateDraft(value: InboundDraftState) {
         draft = value
+    }
+
+    fun updateImageUri(value: Uri?) {
+        selectedImageUri = value
     }
 
     fun processImage() {
