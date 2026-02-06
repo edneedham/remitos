@@ -58,6 +58,10 @@ class InboundViewModel(
         }
     }
 
+    fun clearOcrError() {
+        ocrErrorMessage = null
+    }
+
     fun save() {
         // TODO: validar y persistir el ingreso
     }

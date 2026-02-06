@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -76,12 +77,22 @@ fun InboundScanScreen(onBack: () -> Unit) {
         ) {
             Text("Escanear documento")
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { imagePicker.launch("image/*") }) {
+                Button(
+                    onClick = { imagePicker.launch("image/*") },
+                    enabled = !viewModel.isProcessing
+                ) {
                     Text("Seleccionar imagen")
                 }
-                Button(onClick = { viewModel.processImage(context) }) {
+                Button(
+                    onClick = { viewModel.processImage(context) },
+                    enabled = viewModel.selectedImageUri != null && !viewModel.isProcessing
+                ) {
                     Text("Procesar OCR")
                 }
+            }
+
+            if (viewModel.isProcessing) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -166,6 +177,18 @@ fun InboundScanScreen(onBack: () -> Unit) {
             missing = missing,
             onDismiss = { showMissingDialog = false },
             onConfirm = { showMissingDialog = false }
+        )
+    }
+
+    val ocrErrorMessage = viewModel.ocrErrorMessage
+    if (ocrErrorMessage != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearOcrError() },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearOcrError() }) { Text("Aceptar") }
+            },
+            title = { Text("Error de OCR") },
+            text = { Text(ocrErrorMessage) }
         )
     }
 }
