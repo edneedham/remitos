@@ -1,5 +1,10 @@
 package com.remitos.app.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,8 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,7 +40,12 @@ import com.remitos.app.RemitosApplication
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InboundScanScreen(onBack: () -> Unit) {
+fun InboundScanScreen(
+    onBack: () -> Unit,
+    onOpenCamera: () -> Unit,
+    capturedUri: Uri? = null,
+    onCapturedUriHandled: () -> Unit = {}
+) {
     val context = LocalContext.current
     val app = context.applicationContext as RemitosApplication
     val viewModel: InboundViewModel = viewModel(
@@ -49,11 +59,29 @@ fun InboundScanScreen(onBack: () -> Unit) {
 
     val draft = viewModel.draft
     var showMissingDialog by remember { mutableStateOf(false) }
+    var showCameraPermissionDialog by remember { mutableStateOf(false) }
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         viewModel.updateImageUri(uri)
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            onOpenCamera()
+        } else {
+            showCameraPermissionDialog = true
+        }
+    }
+
+    LaunchedEffect(capturedUri) {
+        if (capturedUri != null) {
+            viewModel.updateImageUri(capturedUri)
+            onCapturedUriHandled()
+        }
     }
 
     val missing = draft.missingFields()
@@ -82,6 +110,23 @@ fun InboundScanScreen(onBack: () -> Unit) {
                     enabled = !viewModel.isProcessing
                 ) {
                     Text("Seleccionar imagen")
+                }
+                Button(
+                    onClick = {
+                        val permission = Manifest.permission.CAMERA
+                        if (ContextCompat.checkSelfPermission(
+                                context,
+                                permission
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            onOpenCamera()
+                        } else {
+                            cameraPermissionLauncher.launch(permission)
+                        }
+                    },
+                    enabled = !viewModel.isProcessing
+                ) {
+                    Text("Tomar foto")
                 }
                 Button(
                     onClick = { viewModel.processImage(context) },
@@ -194,6 +239,17 @@ fun InboundScanScreen(onBack: () -> Unit) {
             },
             title = { Text("Error de OCR") },
             text = { Text(ocrErrorMessage) }
+        )
+    }
+
+    if (showCameraPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showCameraPermissionDialog = false },
+            confirmButton = {
+                TextButton(onClick = { showCameraPermissionDialog = false }) { Text("Aceptar") }
+            },
+            title = { Text("Permiso de cámara") },
+            text = { Text("Se necesita acceso a la cámara para tomar la foto.") }
         )
     }
 
