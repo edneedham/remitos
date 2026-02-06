@@ -15,7 +15,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
+import org.mockito.kotlin.whenever
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class InboundViewModelTest {
@@ -65,6 +68,7 @@ class InboundViewModelTest {
     @Test
     fun save_success_resetsDraftAndClearsImage() = runTest {
         val viewModel = InboundViewModel(repository)
+        whenever(repository.createInboundNote(org.mockito.kotlin.any())).thenReturn(1L)
         viewModel.updateDraft(
             viewModel.draft.copy(
                 senderCuit = "20-12345678-9",
@@ -86,5 +90,34 @@ class InboundViewModelTest {
         assertTrue(viewModel.saveState is SaveState.Success)
         assertEquals(InboundDraftState(), viewModel.draft)
         assertNull(viewModel.selectedImageUri)
+    }
+
+    @Test
+    fun save_persistsOcrMetadata() = runTest {
+        val viewModel = InboundViewModel(repository)
+        whenever(repository.createInboundNote(org.mockito.kotlin.any())).thenReturn(1L)
+        viewModel.updateDraft(
+            viewModel.draft.copy(
+                senderCuit = "20-12345678-9",
+                senderNombre = "ACME",
+                senderApellido = "SA",
+                destNombre = "Juan",
+                destApellido = "Perez",
+                destDireccion = "Calle 123",
+                destTelefono = "111111111",
+                cantBultosTotal = "2",
+                remitoNumCliente = "RC-2",
+                remitoNumInterno = "RI-2"
+            )
+        )
+        viewModel.updateOcrMetadata("texto ocr", mapOf("sender_cuit" to 0.8f))
+
+        viewModel.save()
+        advanceUntilIdle()
+
+        val captor = argumentCaptor<com.remitos.app.data.db.entity.InboundNoteEntity>()
+        verify(repository).createInboundNote(captor.capture())
+        assertEquals("texto ocr", captor.firstValue.ocrTextBlob)
+        assertEquals("{\"sender_cuit\":0.8}", captor.firstValue.ocrConfidenceJson)
     }
 }

@@ -13,6 +13,7 @@ import com.remitos.app.ocr.OcrProcessor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 
 private const val CuitRegex = "\\b\\d{2}-\\d{8}-\\d{1}\\b"
 
@@ -31,6 +32,12 @@ class InboundViewModel(
         private set
 
     var ocrErrorMessage by mutableStateOf<String?>(null)
+        private set
+
+    var ocrTextBlob by mutableStateOf<String?>(null)
+        private set
+
+    var ocrConfidenceJson by mutableStateOf<String?>(null)
         private set
 
     var isSaving by mutableStateOf(false)
@@ -55,6 +62,7 @@ class InboundViewModel(
         viewModelScope.launch {
             try {
                 val result = ocrProcessor.processImage(context, uri)
+                updateOcrMetadata(result.text, result.confidence)
                 draft = draft.copy(
                     senderCuit = result.fields["sender_cuit"] ?: draft.senderCuit,
                     senderNombre = result.fields["sender_nombre"] ?: draft.senderNombre,
@@ -72,6 +80,15 @@ class InboundViewModel(
             } finally {
                 isProcessing = false
             }
+        }
+    }
+
+    fun updateOcrMetadata(text: String?, confidence: Map<String, Float>?) {
+        ocrTextBlob = text
+        ocrConfidenceJson = if (confidence.isNullOrEmpty()) {
+            null
+        } else {
+            JSONObject(confidence).toString()
         }
     }
 
@@ -106,8 +123,8 @@ class InboundViewModel(
                     remitoNumCliente = draft.remitoNumCliente.trim(),
                     remitoNumInterno = draft.remitoNumInterno.trim(),
                     scanImagePath = selectedImageUri?.toString(),
-                    ocrTextBlob = null,
-                    ocrConfidenceJson = null,
+                    ocrTextBlob = ocrTextBlob,
+                    ocrConfidenceJson = ocrConfidenceJson,
                     createdAt = now,
                     updatedAt = now
                 )
@@ -118,6 +135,8 @@ class InboundViewModel(
 
                 draft = InboundDraftState()
                 selectedImageUri = null
+                ocrTextBlob = null
+                ocrConfidenceJson = null
                 saveState = SaveState.Success
             } catch (error: Exception) {
                 saveState = SaveState.Error("No se pudo guardar el ingreso. Intentá de nuevo.")
