@@ -20,6 +20,7 @@ import com.remitos.app.ui.screens.InboundCameraScreen
 import com.remitos.app.ui.screens.InboundHistoryScreen
 import com.remitos.app.ui.screens.InboundScanScreen
 import com.remitos.app.ui.screens.OutboundListScreen
+import com.remitos.app.ui.screens.SplashScreen
 import com.remitos.app.ui.theme.RemitosTheme
 
 @Composable
@@ -33,6 +34,7 @@ fun RemitosApp() {
 }
 
 private object Routes {
+    const val Splash = "splash"
     const val Dashboard = "dashboard"
     const val InboundScan = "inbound_scan"
     const val InboundCamera = "inbound_camera"
@@ -46,7 +48,7 @@ private const val NAV_ANIM_DURATION = 300
 private fun AppNavHost(navController: NavHostController) {
     NavHost(
         navController = navController,
-        startDestination = Routes.Dashboard,
+        startDestination = Routes.Splash,
         enterTransition = {
             slideIntoContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.Start,
@@ -72,6 +74,19 @@ private fun AppNavHost(navController: NavHostController) {
             ) + fadeOut(animationSpec = tween(NAV_ANIM_DURATION))
         },
     ) {
+        composable(
+            route = Routes.Splash,
+            enterTransition = { fadeIn(animationSpec = tween(0)) },
+            exitTransition = { fadeOut(animationSpec = tween(NAV_ANIM_DURATION)) },
+        ) {
+            SplashScreen(
+                onFinished = {
+                    navController.navigate(Routes.Dashboard) {
+                        popUpTo(Routes.Splash) { inclusive = true }
+                    }
+                },
+            )
+        }
         composable(Routes.Dashboard) {
             DashboardScreen(
                 onScan = { navController.navigate(Routes.InboundScan) },

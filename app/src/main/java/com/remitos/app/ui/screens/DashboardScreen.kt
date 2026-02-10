@@ -1,5 +1,6 @@
 package com.remitos.app.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,13 +31,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.remitos.app.ui.theme.Navy800
-import com.remitos.app.ui.theme.Navy900
-import com.remitos.app.ui.theme.Teal400
-import com.remitos.app.ui.theme.Teal500
+import com.remitos.app.R
+import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Blue800
+import com.remitos.app.ui.theme.Blue900
 import java.util.Calendar
 
 @Composable
@@ -52,7 +55,7 @@ fun DashboardScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
-            // Header section with greeting
+            // Header section with greeting and logo
             DashboardHeader()
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -107,29 +110,40 @@ private fun DashboardHeader() {
             .fillMaxWidth()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(Navy900, Navy800),
+                    colors = listOf(Blue900, Blue800),
                 ),
             )
             .padding(horizontal = 24.dp, vertical = 32.dp),
     ) {
-        Column {
-            Text(
-                text = greeting,
-                style = MaterialTheme.typography.bodyLarge,
-                color = Teal400,
-                fontWeight = FontWeight.Medium,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Remitos",
-                style = MaterialTheme.typography.displayMedium,
-                color = MaterialTheme.colorScheme.onPrimary,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Gestion de ingresos y repartos",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = greeting,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Medium,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "en punto",
+                    style = MaterialTheme.typography.displayMedium,
+                    color = Color.White,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Gestion de ingresos y repartos",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.6f),
+                )
+            }
+            Image(
+                painter = painterResource(id = R.drawable.ic_logo_mark),
+                contentDescription = "en punto",
+                modifier = Modifier.size(64.dp),
             )
         }
     }
@@ -169,7 +183,7 @@ private fun ActionCard(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = Teal500,
+                    tint = BrandBlue,
                     modifier = Modifier.size(24.dp),
                 )
             }

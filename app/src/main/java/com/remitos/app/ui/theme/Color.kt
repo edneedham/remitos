@@ -2,19 +2,33 @@ package com.remitos.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary palette – deep navy/slate with teal accents
-val Navy900 = Color(0xFF0D1B2A)
-val Navy800 = Color(0xFF1B2838)
-val Navy700 = Color(0xFF243447)
-val Navy600 = Color(0xFF2E4057)
-val Navy500 = Color(0xFF3A5068)
+// Brand colors from the "en punto" logo
+val BrandBlue = Color(0xFF1A6FEE)
+val BrandRed = Color(0xFFC8102E)
 
-val Teal500 = Color(0xFF00897B)
-val Teal400 = Color(0xFF26A69A)
-val Teal300 = Color(0xFF4DB6AC)
-val Teal200 = Color(0xFF80CBC4)
-val Teal100 = Color(0xFFB2DFDB)
-val Teal50 = Color(0xFFE0F2F1)
+// Blue palette – primary family
+val Blue900 = Color(0xFF0A3A8A)
+val Blue800 = Color(0xFF0F4CB3)
+val Blue700 = Color(0xFF155DD6)
+val Blue600 = Color(0xFF1A6FEE)  // == BrandBlue
+val Blue500 = Color(0xFF3D85F0)
+val Blue400 = Color(0xFF6BA0F4)
+val Blue300 = Color(0xFF99BCF7)
+val Blue200 = Color(0xFFC2D7FB)
+val Blue100 = Color(0xFFDDE9FD)
+val Blue50 = Color(0xFFF0F5FF)
+
+// Red palette – accent family
+val Red900 = Color(0xFF7A0A1C)
+val Red800 = Color(0xFF9B0D23)
+val Red700 = Color(0xFFB01028)
+val Red600 = Color(0xFFC8102E)  // == BrandRed
+val Red500 = Color(0xFFD63B55)
+val Red400 = Color(0xFFE06B7E)
+val Red300 = Color(0xFFEB9BA8)
+val Red200 = Color(0xFFF4C5CC)
+val Red100 = Color(0xFFFBE4E8)
+val Red50 = Color(0xFFFEF2F4)
 
 // Neutral palette
 val Neutral50 = Color(0xFFFAFAFA)
@@ -35,10 +49,7 @@ val Warning500 = Color(0xFFFFA000)
 val Warning100 = Color(0xFFFFECB3)
 val Error500 = Color(0xFFE53935)
 val Error100 = Color(0xFFFFCDD2)
-val Info500 = Color(0xFF1E88E5)
-val Info100 = Color(0xFFBBDEFB)
 
 // Surface & background
 val SurfaceLight = Color(0xFFFCFCFC)
-val SurfaceDim = Color(0xFFF5F6F8)
-val SurfaceCard = Color(0xFFFFFFFF)
+val SurfaceDim = Color(0xFFF4F6FA)

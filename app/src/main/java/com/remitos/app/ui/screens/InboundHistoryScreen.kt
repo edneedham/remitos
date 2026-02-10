@@ -53,7 +53,7 @@ import com.remitos.app.RemitosApplication
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
-import com.remitos.app.ui.theme.Teal500
+import com.remitos.app.ui.theme.BrandBlue
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -219,7 +219,7 @@ private fun InboundHistoryCard(note: InboundNoteEntity) {
                 Icon(
                     imageVector = Icons.Outlined.Inventory2,
                     contentDescription = null,
-                    tint = Teal500,
+                    tint = BrandBlue,
                     modifier = Modifier.size(20.dp),
                 )
             }
