@@ -30,7 +30,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -38,9 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remitos.app.R
 import com.remitos.app.ui.theme.BrandBlue
-import com.remitos.app.ui.theme.Blue800
-import com.remitos.app.ui.theme.Blue900
-import java.util.Calendar
 
 @Composable
 fun DashboardScreen(
@@ -54,42 +50,37 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            // Header section with greeting and logo
             DashboardHeader()
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Action cards
             Column(
                 modifier = Modifier.padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(
-                    text = "Acciones",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                )
-
-                ActionCard(
+                FeaturedActionCard(
                     icon = Icons.Outlined.CameraAlt,
                     title = "Nuevo ingreso",
                     subtitle = "Escanear remito con OCR",
                     onClick = onScan,
                 )
-                ActionCard(
-                    icon = Icons.Outlined.History,
-                    title = "Historial de ingresos",
-                    subtitle = "Consultar remitos anteriores",
-                    onClick = onInboundHistory,
-                )
-                ActionCard(
-                    icon = Icons.Outlined.LocalShipping,
-                    title = "Nueva lista de reparto",
-                    subtitle = "Crear lista de entrega",
-                    onClick = onNewOutbound,
-                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ActionTile(
+                        icon = Icons.Outlined.History,
+                        title = "Historial",
+                        subtitle = "Ver ingresos",
+                        onClick = onInboundHistory,
+                        modifier = Modifier.weight(1f),
+                    )
+                    ActionTile(
+                        icon = Icons.Outlined.LocalShipping,
+                        title = "Reparto",
+                        subtitle = "Nueva lista",
+                        onClick = onNewOutbound,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -99,58 +90,36 @@ fun DashboardScreen(
 
 @Composable
 private fun DashboardHeader() {
-    val greeting = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
-        in 0..11 -> "Buenos dias"
-        in 12..18 -> "Buenas tardes"
-        else -> "Buenas noches"
-    }
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Blue900, Blue800),
-                ),
+                color = Color(0xFFF6F7F9),
             )
             .padding(horizontal = 24.dp, vertical = 32.dp),
     ) {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = greeting,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontWeight = FontWeight.Medium,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "en punto",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = Color.White,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Gestion de ingresos y repartos",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.6f),
-                )
-            }
             Image(
-                painter = painterResource(id = R.drawable.ic_logo_mark),
+                painter = painterResource(id = R.drawable.ic_logo_wordmark),
                 contentDescription = "en punto",
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(width = 200.dp, height = 52.dp),
+            )
+            Text(
+                text = "Remitos",
+                style = MaterialTheme.typography.bodyMedium,
+                color = BrandBlue,
+                fontWeight = FontWeight.Medium,
             )
         }
     }
 }
 
 @Composable
-private fun ActionCard(
+private fun FeaturedActionCard(
     icon: ImageVector,
     title: String,
     subtitle: String,
@@ -162,9 +131,9 @@ private fun ActionCard(
             .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
         shape = MaterialTheme.shapes.medium,
     ) {
         Row(
@@ -200,6 +169,58 @@ private fun ActionCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ActionTile(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .height(120.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = BrandBlue,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
