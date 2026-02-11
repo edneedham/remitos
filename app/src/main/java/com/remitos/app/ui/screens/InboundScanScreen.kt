@@ -79,7 +79,7 @@ fun InboundScanScreen(
         factory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return InboundViewModel(app.repository) as T
+                return InboundViewModel(app.repository, app.settingsStore) as T
             }
         },
     )

@@ -9,4 +9,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+/opencv-*-android-sdk.zip
+/opencv-sdk/
 /todo/

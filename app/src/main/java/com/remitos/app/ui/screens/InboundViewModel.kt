@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.RemitosRepository
+import com.remitos.app.data.SettingsStore
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.ocr.OcrProcessor
 import kotlinx.coroutines.CoroutineDispatcher
@@ -20,6 +21,7 @@ private const val CuitRegex = "\\b\\d{2}-\\d{8}-\\d{1}\\b"
 
 class InboundViewModel(
     private val repository: RemitosRepository,
+    private val settingsStore: SettingsStore? = null,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val ocrProcessor: OcrProcessor = OcrProcessor(),
 ) : ViewModel() {
@@ -62,7 +64,10 @@ class InboundViewModel(
 
         viewModelScope.launch {
             try {
-                val result = ocrProcessor.processImage(context, uri)
+                val enableCorrection = withContext(ioDispatcher) {
+                    settingsStore?.getPerspectiveCorrectionEnabled() ?: true
+                }
+                val result = ocrProcessor.processImage(context, uri, enableCorrection)
                 updateOcrMetadata(result.text, result.confidence)
                 draft = draft.copy(
                     senderCuit = result.fields["sender_cuit"] ?: draft.senderCuit,

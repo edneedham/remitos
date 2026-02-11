@@ -33,6 +33,7 @@ Notes:
 - Always run tests after every change and report results.
 - Prefer TDD for new parsing or business logic: write a failing test first, then implement.
 - Avoid committing build artifacts or IDE files; keep `.idea/` untracked.
+- Do not commit `opencv-sdk/` (use `scripts/fetch-opencv.sh` to download the SDK).
 
 ## Repo Structure
 

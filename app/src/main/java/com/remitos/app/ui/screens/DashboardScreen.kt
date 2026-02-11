@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -45,6 +46,7 @@ fun DashboardScreen(
     onInboundHistory: () -> Unit,
     onNewOutbound: () -> Unit,
     onOutboundHistory: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     Scaffold { padding ->
         Column(
@@ -89,6 +91,14 @@ fun DashboardScreen(
                     title = "Historial de reparto",
                     subtitle = "Reimprimir listas",
                     onClick = onOutboundHistory,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                ActionTile(
+                    icon = Icons.Outlined.Settings,
+                    title = "Ajustes",
+                    subtitle = "Preferencias de lectura",
+                    onClick = onSettings,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
