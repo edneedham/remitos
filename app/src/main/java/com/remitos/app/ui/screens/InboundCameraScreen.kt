@@ -8,6 +8,7 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
@@ -50,6 +51,7 @@ import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlinx.coroutines.delay
 import java.util.concurrent.Executors
 
 @Composable
@@ -67,6 +69,10 @@ fun InboundCameraScreen(
     val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
     val recognizer = remember { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
     val mainExecutor = remember { ContextCompat.getMainExecutor(context) }
+    val focusGate = remember { FocusGate() }
+    var focusReady by remember { mutableStateOf(false) }
+    var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
+    val allowCapture = isDocumentCovered && focusReady
 
     LaunchedEffect(cameraProviderFuture) {
         val cameraProvider = cameraProviderFuture.get()
@@ -94,7 +100,7 @@ fun InboundCameraScreen(
             }
 
         cameraProvider.unbindAll()
-        cameraProvider.bindToLifecycle(
+        val camera = cameraProvider.bindToLifecycle(
             lifecycleOwner,
             CameraSelector.DEFAULT_BACK_CAMERA,
             preview,
@@ -102,6 +108,26 @@ fun InboundCameraScreen(
             analysis,
         )
         imageCapture = capture
+
+        previewView.post {
+            val width = previewView.width.toFloat().coerceAtLeast(1f)
+            val height = previewView.height.toFloat().coerceAtLeast(1f)
+            val meteringPoint = SurfaceOrientedMeteringPointFactory(width, height)
+                .createPoint(width / 2f, height / 2f)
+            focusGate.reset(System.currentTimeMillis())
+            val future = camera.cameraControl.startFocusAndMetering(
+                androidx.camera.core.FocusMeteringAction.Builder(meteringPoint).build()
+            )
+            future.addListener(
+                {
+                    val result = runCatching { future.get() }.getOrNull()
+                    if (result != null) {
+                        focusGate.onFocusResult(result.isFocusSuccessful)
+                    }
+                },
+                mainExecutor,
+            )
+        }
     }
 
     DisposableEffect(lifecycleOwner) {
@@ -109,6 +135,14 @@ fun InboundCameraScreen(
             runCatching { cameraProviderFuture.get().unbindAll() }
             analysisExecutor.shutdown()
             recognizer.close()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            nowMs = System.currentTimeMillis()
+            focusReady = focusGate.isReady(nowMs)
+            delay(200)
         }
     }
 
@@ -135,7 +169,7 @@ fun InboundCameraScreen(
                 .padding(top = 8.dp, bottom = 72.dp)
                 .border(
                     width = 2.dp,
-                    color = if (isDocumentCovered) {
+                    color = if (allowCapture) {
                         Color.White.copy(alpha = 0.7f)
                     } else {
                         Color(0xFFFFC857).copy(alpha = 0.9f)
@@ -146,10 +180,10 @@ fun InboundCameraScreen(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = if (isDocumentCovered) {
-                    "Remito detectado"
-                } else {
-                    "Cubre al menos el 70% del marco"
+                text = when {
+                    !isDocumentCovered -> "Cubre al menos el 70% del marco"
+                    !focusReady -> "Enfocando..."
+                    else -> "Remito detectado"
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.8f),
@@ -189,10 +223,10 @@ fun InboundCameraScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                if (isDocumentCovered) {
-                    "Listo para capturar"
-                } else {
-                    "Asegura que el remito cubra al menos el 70%"
+                when {
+                    !isDocumentCovered -> "Asegura que el remito cubra al menos el 70%"
+                    !focusReady -> "Enfocando..."
+                    else -> "Listo para capturar"
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.8f),
@@ -200,7 +234,7 @@ fun InboundCameraScreen(
 
             // Shutter button
             IconButton(
-                enabled = isDocumentCovered,
+                enabled = allowCapture,
                 onClick = {
                     val capture = imageCapture ?: return@IconButton
                     val file = createImageFile(context.cacheDir)
@@ -223,7 +257,7 @@ fun InboundCameraScreen(
                     .size(72.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isDocumentCovered) {
+                        if (allowCapture) {
                             Color.White.copy(alpha = 0.2f)
                         } else {
                             Color.White.copy(alpha = 0.08f)
@@ -231,7 +265,7 @@ fun InboundCameraScreen(
                     )
                     .border(
                         3.dp,
-                        if (isDocumentCovered) Color.White else Color.White.copy(alpha = 0.5f),
+                        if (allowCapture) Color.White else Color.White.copy(alpha = 0.5f),
                         CircleShape
                     ),
                 colors = IconButtonDefaults.iconButtonColors(
@@ -242,7 +276,7 @@ fun InboundCameraScreen(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(if (isDocumentCovered) Color.White else Color.White.copy(alpha = 0.6f)),
+                        .background(if (allowCapture) Color.White else Color.White.copy(alpha = 0.6f)),
                 )
             }
         }
