@@ -15,11 +15,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
 import com.remitos.app.ui.screens.DashboardScreen
 import com.remitos.app.ui.screens.InboundCameraScreen
 import com.remitos.app.ui.screens.InboundHistoryScreen
 import com.remitos.app.ui.screens.InboundScanScreen
+import com.remitos.app.ui.screens.OutboundHistoryScreen
 import com.remitos.app.ui.screens.OutboundListScreen
+import com.remitos.app.ui.screens.OutboundPreviewScreen
 import com.remitos.app.ui.screens.SplashScreen
 import com.remitos.app.ui.theme.RemitosTheme
 
@@ -40,6 +44,8 @@ private object Routes {
     const val InboundCamera = "inbound_camera"
     const val InboundHistory = "inbound_history"
     const val OutboundList = "outbound_list"
+    const val OutboundHistory = "outbound_history"
+    const val OutboundPreview = "outbound_preview"
 }
 
 private const val NAV_ANIM_DURATION = 300
@@ -92,6 +98,7 @@ private fun AppNavHost(navController: NavHostController) {
                 onScan = { navController.navigate(Routes.InboundScan) },
                 onInboundHistory = { navController.navigate(Routes.InboundHistory) },
                 onNewOutbound = { navController.navigate(Routes.OutboundList) },
+                onOutboundHistory = { navController.navigate(Routes.OutboundHistory) },
             )
         }
         composable(Routes.InboundScan) {
@@ -123,10 +130,33 @@ private fun AppNavHost(navController: NavHostController) {
             )
         }
         composable(Routes.OutboundList) {
-            OutboundListScreen(onBack = { navController.popBackStack() })
+            OutboundListScreen(
+                onBack = { navController.popBackStack() },
+                onPreview = { listId ->
+                    navController.navigate("${Routes.OutboundPreview}/$listId")
+                },
+            )
+        }
+        composable(
+            route = "${Routes.OutboundPreview}/{listId}",
+            arguments = listOf(
+                navArgument("listId") {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                }
+            ),
+        ) { entry ->
+            val listId = entry.arguments?.getLong("listId") ?: 0L
+            OutboundPreviewScreen(
+                listId = listId,
+                onBack = { navController.popBackStack() },
+            )
         }
         composable(Routes.InboundHistory) {
             InboundHistoryScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.OutboundHistory) {
+            OutboundHistoryScreen(onBack = { navController.popBackStack() })
         }
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LocalShipping
+import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -43,6 +44,7 @@ fun DashboardScreen(
     onScan: () -> Unit,
     onInboundHistory: () -> Unit,
     onNewOutbound: () -> Unit,
+    onOutboundHistory: () -> Unit,
 ) {
     Scaffold { padding ->
         Column(
@@ -81,6 +83,14 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f),
                     )
                 }
+
+                ActionTile(
+                    icon = Icons.Outlined.ReceiptLong,
+                    title = "Historial de reparto",
+                    subtitle = "Reimprimir listas",
+                    onClick = onOutboundHistory,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             Spacer(modifier = Modifier.height(32.dp))

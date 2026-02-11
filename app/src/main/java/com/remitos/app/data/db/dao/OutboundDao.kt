@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.remitos.app.data.db.entity.OutboundLineEntity
+import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.OutboundListEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -24,4 +25,14 @@ interface OutboundDao {
 
     @Query("SELECT * FROM outbound_lines WHERE outbound_list_id = :listId")
     suspend fun getLinesForList(listId: Long): List<OutboundLineEntity>
+
+    @Query(
+        """
+        SELECT l.*, n.remito_num_cliente AS remito_num_cliente
+        FROM outbound_lines l
+        INNER JOIN inbound_notes n ON n.id = l.inbound_note_id
+        WHERE l.outbound_list_id = :listId
+        """
+    )
+    suspend fun getLinesForListWithRemito(listId: Long): List<OutboundLineWithRemito>
 }

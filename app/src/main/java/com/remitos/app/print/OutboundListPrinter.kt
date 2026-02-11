@@ -11,7 +11,7 @@ import android.print.PrintDocumentAdapter
 import android.print.PrintDocumentInfo
 import android.print.PrintManager
 import android.print.pdf.PrintedPdfDocument
-import com.remitos.app.data.db.entity.OutboundLineEntity
+import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.OutboundListEntity
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -19,7 +19,7 @@ import java.util.Date
 import java.util.Locale
 
 class OutboundListPrinter(private val context: Context) {
-    fun print(list: OutboundListEntity, lines: List<OutboundLineEntity>) {
+    fun print(list: OutboundListEntity, lines: List<OutboundLineWithRemito>) {
         val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
         val jobName = "Lista ${list.listNumber}"
         printManager.print(jobName, OutboundListPrintAdapter(context, list, lines), null)
@@ -29,7 +29,7 @@ class OutboundListPrinter(private val context: Context) {
 private class OutboundListPrintAdapter(
     private val context: Context,
     private val list: OutboundListEntity,
-    private val lines: List<OutboundLineEntity>
+    private val lines: List<OutboundLineWithRemito>
 ) : PrintDocumentAdapter() {
     private var pdfDocument: PrintedPdfDocument? = null
 
@@ -90,11 +90,11 @@ private class OutboundListPrintAdapter(
         canvas.drawText("Chofer: ${list.driverNombre} ${list.driverApellido}", 40f, y, paint)
         y += 30f
 
-        canvas.drawText("Nº Entrega | Destinatario | Dirección | Teléfono | Bultos", 40f, y, paint)
+        canvas.drawText("Remito | Nº Entrega | Destinatario | Dirección | Teléfono | Bultos", 40f, y, paint)
         y += 20f
 
         lines.forEach { line ->
-            val row = "${line.deliveryNumber} | ${line.recipientNombre} ${line.recipientApellido} | ${line.recipientDireccion} | ${line.recipientTelefono} | ${line.packageQty}"
+            val row = "${line.remitoNumCliente} | ${line.deliveryNumber} | ${line.recipientNombre} ${line.recipientApellido} | ${line.recipientDireccion} | ${line.recipientTelefono} | ${line.packageQty}"
             canvas.drawText(row, 40f, y, paint)
             y += 18f
             if (y > 760f) return

@@ -32,7 +32,6 @@ import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -96,6 +95,9 @@ fun InboundScanScreen(
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
         viewModel.updateImageUri(uri)
+        if (uri != null) {
+            viewModel.processImage(context)
+        }
     }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
@@ -111,11 +113,22 @@ fun InboundScanScreen(
     LaunchedEffect(capturedUri) {
         if (capturedUri != null) {
             viewModel.updateImageUri(capturedUri)
+            viewModel.processImage(context)
             onCapturedUriHandled()
         }
     }
 
     val missing = draft.missingFields()
+    val missingForDisplay = if (viewModel.showMissingErrors) missing else emptyList()
+
+    fun errorMessage(field: MissingField): String? {
+        if (!missingForDisplay.contains(field)) return null
+        return when (field) {
+            MissingField.Cuit -> "Ingresá un CUIT válido (NN-NNNNNNNN-N)."
+            MissingField.CantBultos -> "Ingresá una cantidad mayor a cero."
+            else -> "Completar ${field.label}."
+        }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -184,23 +197,6 @@ fun InboundScanScreen(
                         Text("Camara")
                     }
                 }
-                Button(
-                    onClick = { viewModel.processImage(context) },
-                    enabled = viewModel.selectedImageUri != null && !viewModel.isProcessing,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                    ),
-                ) {
-                    Icon(
-                        Icons.Outlined.DocumentScanner,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.size(6.dp))
-                    Text("Procesar OCR")
-                }
-
                 AnimatedVisibility(
                     visible = viewModel.isProcessing,
                     enter = fadeIn(),
@@ -224,6 +220,8 @@ fun InboundScanScreen(
                     onValueChange = { viewModel.updateDraft(draft.copy(senderCuit = it)) },
                     label = "CUIT Remitente",
                     leadingIcon = Icons.Outlined.Badge,
+                    isError = errorMessage(MissingField.Cuit) != null,
+                    errorMessage = errorMessage(MissingField.Cuit),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RemitosTextField(
@@ -232,12 +230,16 @@ fun InboundScanScreen(
                         label = "Nombre",
                         leadingIcon = Icons.Outlined.Person,
                         modifier = Modifier.weight(1f),
+                        isError = errorMessage(MissingField.SenderNombre) != null,
+                        errorMessage = errorMessage(MissingField.SenderNombre),
                     )
                     RemitosTextField(
                         value = draft.senderApellido,
                         onValueChange = { viewModel.updateDraft(draft.copy(senderApellido = it)) },
                         label = "Apellido",
                         modifier = Modifier.weight(1f),
+                        isError = errorMessage(MissingField.SenderApellido) != null,
+                        errorMessage = errorMessage(MissingField.SenderApellido),
                     )
                 }
             }
@@ -254,12 +256,16 @@ fun InboundScanScreen(
                         label = "Nombre",
                         leadingIcon = Icons.Outlined.Person,
                         modifier = Modifier.weight(1f),
+                        isError = errorMessage(MissingField.DestNombre) != null,
+                        errorMessage = errorMessage(MissingField.DestNombre),
                     )
                     RemitosTextField(
                         value = draft.destApellido,
                         onValueChange = { viewModel.updateDraft(draft.copy(destApellido = it)) },
                         label = "Apellido",
                         modifier = Modifier.weight(1f),
+                        isError = errorMessage(MissingField.DestApellido) != null,
+                        errorMessage = errorMessage(MissingField.DestApellido),
                     )
                 }
                 RemitosTextField(
@@ -267,6 +273,8 @@ fun InboundScanScreen(
                     onValueChange = { viewModel.updateDraft(draft.copy(destDireccion = it)) },
                     label = "Direccion",
                     leadingIcon = Icons.Outlined.Home,
+                    isError = errorMessage(MissingField.DestDireccion) != null,
+                    errorMessage = errorMessage(MissingField.DestDireccion),
                 )
                 RemitosTextField(
                     value = draft.destTelefono,
@@ -274,6 +282,8 @@ fun InboundScanScreen(
                     label = "Telefono",
                     leadingIcon = Icons.Outlined.Phone,
                     keyboardType = KeyboardType.Phone,
+                    isError = errorMessage(MissingField.DestTelefono) != null,
+                    errorMessage = errorMessage(MissingField.DestTelefono),
                 )
             }
 
@@ -288,18 +298,24 @@ fun InboundScanScreen(
                     label = "Cantidad de bultos",
                     leadingIcon = Icons.Outlined.Inventory2,
                     keyboardType = KeyboardType.Number,
+                    isError = errorMessage(MissingField.CantBultos) != null,
+                    errorMessage = errorMessage(MissingField.CantBultos),
                 )
                 RemitosTextField(
                     value = draft.remitoNumCliente,
                     onValueChange = { viewModel.updateDraft(draft.copy(remitoNumCliente = it)) },
                     label = "Remito N° Cliente",
                     leadingIcon = Icons.Outlined.Numbers,
+                    isError = errorMessage(MissingField.RemitoCliente) != null,
+                    errorMessage = errorMessage(MissingField.RemitoCliente),
                 )
                 RemitosTextField(
                     value = draft.remitoNumInterno,
                     onValueChange = { viewModel.updateDraft(draft.copy(remitoNumInterno = it)) },
                     label = "Remito N° Interno",
                     leadingIcon = Icons.Outlined.Numbers,
+                    isError = errorMessage(MissingField.RemitoInterno) != null,
+                    errorMessage = errorMessage(MissingField.RemitoInterno),
                 )
             }
 
@@ -340,18 +356,6 @@ fun InboundScanScreen(
             missing = missing,
             onDismiss = { showMissingDialog = false },
             onConfirm = { showMissingDialog = false },
-        )
-    }
-
-    val ocrErrorMessage = viewModel.ocrErrorMessage
-    if (ocrErrorMessage != null) {
-        AlertDialog(
-            onDismissRequest = { viewModel.clearOcrError() },
-            confirmButton = {
-                TextButton(onClick = { viewModel.clearOcrError() }) { Text("Aceptar") }
-            },
-            title = { Text("Error de OCR") },
-            text = { Text(ocrErrorMessage) },
         )
     }
 
