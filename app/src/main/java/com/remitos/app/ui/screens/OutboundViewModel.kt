@@ -6,6 +6,8 @@ import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.db.entity.InboundNoteWithAvailable
 import com.remitos.app.data.db.entity.OutboundLineEntity
 import com.remitos.app.data.db.entity.OutboundListEntity
+import com.remitos.app.data.db.entity.OutboundLineWithRemito
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,7 +18,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class OutboundViewModel(
-    repository: RemitosRepository
+    repository: RemitosRepository,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
     private val repository = repository
 
@@ -27,7 +30,8 @@ class OutboundViewModel(
                 InboundOption(
                     inboundNoteId = note.note.id,
                     label = buildInboundLabel(note),
-                    availableCount = note.availableCount
+                    availableCount = note.availableCount,
+                    remitoNumCliente = note.note.remitoNumCliente
                 )
             }
         }
@@ -37,10 +41,10 @@ class OutboundViewModel(
     val saveState = MutableStateFlow<OutboundSaveState?>(null)
     val printPayload = MutableStateFlow<OutboundPrintPayload?>(null)
 
-    fun save(draft: OutboundDraftState, availableCount: Int) {
+    fun save(draft: OutboundDraftState, inboundOptions: List<InboundOption>) {
         if (isSaving.value) return
 
-        val error = validateDraft(draft, availableCount)
+        val error = validateDraft(draft, inboundOptions)
         if (error != null) {
             saveState.value = OutboundSaveState.Error(error)
             return
@@ -51,7 +55,7 @@ class OutboundViewModel(
 
         viewModelScope.launch {
             try {
-                val listNumber = withContext(Dispatchers.IO) {
+                val listNumber = withContext(ioDispatcher) {
                     repository.nextOutboundListNumber()
                 }
                 val now = System.currentTimeMillis()
@@ -63,27 +67,29 @@ class OutboundViewModel(
                     status = "abierta"
                 )
 
-                val line = OutboundLineEntity(
-                    outboundListId = 0,
-                    inboundNoteId = draft.selectedInboundNoteId ?: 0L,
-                    deliveryNumber = draft.deliveryNumber.trim(),
-                    recipientNombre = draft.recipientNombre.trim(),
-                    recipientApellido = draft.recipientApellido.trim(),
-                    recipientDireccion = draft.recipientDireccion.trim(),
-                    recipientTelefono = draft.recipientTelefono.trim(),
-                    packageQty = draft.cantidadBultos.toInt(),
-                    allocatedPackageIds = "",
-                    deliveredQty = 0,
-                    returnedQty = 0
-                )
-
-                val listId = withContext(Dispatchers.IO) {
-                    repository.createOutboundWithAllocation(list, line)
+                val lines = draft.lines.map { lineDraft ->
+                    OutboundLineEntity(
+                        outboundListId = 0,
+                        inboundNoteId = lineDraft.selectedInboundNoteId ?: 0L,
+                        deliveryNumber = lineDraft.deliveryNumber.trim(),
+                        recipientNombre = lineDraft.recipientNombre.trim(),
+                        recipientApellido = lineDraft.recipientApellido.trim(),
+                        recipientDireccion = lineDraft.recipientDireccion.trim(),
+                        recipientTelefono = lineDraft.recipientTelefono.trim(),
+                        packageQty = lineDraft.cantidadBultos.toInt(),
+                        allocatedPackageIds = "",
+                        deliveredQty = 0,
+                        returnedQty = 0
+                    )
                 }
 
-                val payload = withContext(Dispatchers.IO) {
+                val listId = withContext(ioDispatcher) {
+                    repository.createOutboundWithAllocations(list, lines)
+                }
+
+                val payload = withContext(ioDispatcher) {
                     val savedList = repository.getOutboundList(listId)
-                    val savedLines = repository.getOutboundLines(listId)
+                    val savedLines = repository.getOutboundLinesWithRemito(listId)
                     if (savedList != null) {
                         OutboundPrintPayload(savedList, savedLines)
                     } else {
@@ -109,43 +115,61 @@ class OutboundViewModel(
         printPayload.value = null
     }
 
-    fun validateDraft(draft: OutboundDraftState, availableCount: Int): String? {
+    fun validateDraft(draft: OutboundDraftState, inboundOptions: List<InboundOption>): String? {
         if (draft.driverNombre.isBlank() || draft.driverApellido.isBlank()) {
             return "Completá el nombre y apellido del chofer."
         }
-        if (draft.deliveryNumber.isBlank()) {
-            return "Completá el número de entrega."
+        if (draft.lines.isEmpty()) {
+            return "Agregá al menos un remito."
         }
-        if (draft.recipientNombre.isBlank() || draft.recipientApellido.isBlank()) {
-            return "Completá el nombre y apellido del destinatario."
-        }
-        if (draft.recipientDireccion.isBlank()) {
-            return "Completá la dirección del destinatario."
-        }
-        if (draft.recipientTelefono.isBlank()) {
-            return "Completá el teléfono del destinatario."
-        }
-        val qty = draft.cantidadBultos.toIntOrNull() ?: 0
-        if (qty <= 0) {
-            return "La cantidad de bultos debe ser mayor a cero."
-        }
-        if (draft.selectedInboundNoteId == null) {
-            return "Seleccioná un ingreso disponible."
-        }
-        if (availableCount < qty) {
-            return "No hay suficientes bultos disponibles para este ingreso."
+
+        val availableByNote = inboundOptions.associateBy({ it.inboundNoteId }, { it.availableCount })
+        val seenInboundNotes = mutableSetOf<Long>()
+
+        draft.lines.forEachIndexed { index, line ->
+            val lineNumber = index + 1
+            if (line.deliveryNumber.isBlank()) {
+                return "Completá el número de entrega en el remito $lineNumber."
+            }
+            if (line.recipientNombre.isBlank() || line.recipientApellido.isBlank()) {
+                return "Completá el nombre y apellido del destinatario en el remito $lineNumber."
+            }
+            if (line.recipientDireccion.isBlank()) {
+                return "Completá la dirección del destinatario en el remito $lineNumber."
+            }
+            if (line.recipientTelefono.isBlank()) {
+                return "Completá el teléfono del destinatario en el remito $lineNumber."
+            }
+            val qty = line.cantidadBultos.toIntOrNull() ?: 0
+            if (qty <= 0) {
+                return "La cantidad de bultos debe ser mayor a cero en el remito $lineNumber."
+            }
+            val inboundId = line.selectedInboundNoteId
+                ?: return "Seleccioná un remito en la línea $lineNumber."
+            if (!seenInboundNotes.add(inboundId)) {
+                return "El remito de la línea $lineNumber ya fue seleccionado."
+            }
+            val available = availableByNote[inboundId] ?: 0
+            if (available < qty) {
+                return "No hay suficientes bultos disponibles para el remito $lineNumber."
+            }
         }
         return null
     }
 
     private fun buildInboundLabel(note: InboundNoteWithAvailable): String {
-        return "${note.note.senderApellido} ${note.note.senderNombre} • ${note.note.senderCuit}"
+        return "Remito ${note.note.remitoNumCliente} • ${note.note.senderApellido} ${note.note.senderNombre}"
     }
 }
 
 data class OutboundDraftState(
     val driverNombre: String = "",
     val driverApellido: String = "",
+    val lines: List<OutboundLineDraft> = emptyList()
+)
+
+data class OutboundLineDraft(
+    val id: Long,
     val deliveryNumber: String = "",
     val recipientNombre: String = "",
     val recipientApellido: String = "",
@@ -158,7 +182,8 @@ data class OutboundDraftState(
 data class InboundOption(
     val inboundNoteId: Long,
     val label: String,
-    val availableCount: Int
+    val availableCount: Int,
+    val remitoNumCliente: String
 )
 
 sealed interface OutboundSaveState {
@@ -168,5 +193,5 @@ sealed interface OutboundSaveState {
 
 data class OutboundPrintPayload(
     val list: OutboundListEntity,
-    val lines: List<OutboundLineEntity>
+    val lines: List<OutboundLineWithRemito>
 )

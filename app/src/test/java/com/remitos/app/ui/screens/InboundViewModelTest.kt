@@ -38,7 +38,7 @@ class InboundViewModelTest {
 
     @Test
     fun save_withInvalidBultos_setsErrorState() {
-        val viewModel = InboundViewModel(repository)
+        val viewModel = InboundViewModel(repository, ioDispatcher = testDispatcher)
         viewModel.updateDraft(
             viewModel.draft.copy(
                 senderCuit = "20-12345678-9",
@@ -67,7 +67,7 @@ class InboundViewModelTest {
 
     @Test
     fun save_success_resetsDraftAndClearsImage() = runTest {
-        val viewModel = InboundViewModel(repository)
+        val viewModel = InboundViewModel(repository, ioDispatcher = testDispatcher)
         whenever(repository.createInboundNote(org.mockito.kotlin.any())).thenReturn(1L)
         viewModel.updateDraft(
             viewModel.draft.copy(
@@ -94,7 +94,7 @@ class InboundViewModelTest {
 
     @Test
     fun save_persistsOcrMetadata() = runTest {
-        val viewModel = InboundViewModel(repository)
+        val viewModel = InboundViewModel(repository, ioDispatcher = testDispatcher)
         whenever(repository.createInboundNote(org.mockito.kotlin.any())).thenReturn(1L)
         viewModel.updateDraft(
             viewModel.draft.copy(

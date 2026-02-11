@@ -24,7 +24,9 @@ data class OcrResult(
 )
 
 class OcrProcessor {
-    private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private val recognizer by lazy {
+        TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    }
 
     suspend fun processImage(context: Context, uri: Uri): OcrResult {
         val image = withContext(Dispatchers.IO) {

@@ -2,6 +2,7 @@ package com.remitos.app.ui.screens
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -10,18 +11,18 @@ import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.ocr.OcrProcessor
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 
 private const val CuitRegex = "\\b\\d{2}-\\d{8}-\\d{1}\\b"
 
 class InboundViewModel(
-    private val repository: RemitosRepository
+    private val repository: RemitosRepository,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val ocrProcessor: OcrProcessor = OcrProcessor(),
 ) : ViewModel() {
-    private val ocrProcessor = OcrProcessor()
-
     var draft by mutableStateOf(InboundDraftState())
         private set
 
@@ -29,9 +30,6 @@ class InboundViewModel(
         private set
 
     var isProcessing by mutableStateOf(false)
-        private set
-
-    var ocrErrorMessage by mutableStateOf<String?>(null)
         private set
 
     var ocrTextBlob by mutableStateOf<String?>(null)
@@ -46,17 +44,20 @@ class InboundViewModel(
     var saveState by mutableStateOf<SaveState?>(null)
         private set
 
+    var showMissingErrors by mutableStateOf(false)
+        private set
+
     fun updateDraft(value: InboundDraftState) {
         draft = value
     }
 
     fun updateImageUri(value: Uri?) {
         selectedImageUri = value
+        showMissingErrors = false
     }
 
     fun processImage(context: Context) {
         val uri = selectedImageUri ?: return
-        ocrErrorMessage = null
         isProcessing = true
 
         viewModelScope.launch {
@@ -76,9 +77,10 @@ class InboundViewModel(
                     remitoNumInterno = result.fields["remito_num_interno"] ?: draft.remitoNumInterno
                 )
             } catch (error: Exception) {
-                ocrErrorMessage = "No se pudo procesar la imagen. Intentá de nuevo."
+                Log.e("InboundViewModel", "Error al procesar OCR", error)
             } finally {
                 isProcessing = false
+                showMissingErrors = true
             }
         }
     }
@@ -88,12 +90,10 @@ class InboundViewModel(
         ocrConfidenceJson = if (confidence.isNullOrEmpty()) {
             null
         } else {
-            JSONObject(confidence).toString()
+            confidence.entries.joinToString(prefix = "{", postfix = "}") { (key, value) ->
+                "\"$key\":$value"
+            }
         }
-    }
-
-    fun clearOcrError() {
-        ocrErrorMessage = null
     }
 
     fun save() {
@@ -129,7 +129,7 @@ class InboundViewModel(
                     updatedAt = now
                 )
 
-                withContext(Dispatchers.IO) {
+                withContext(ioDispatcher) {
                     repository.createInboundNote(note)
                 }
 
@@ -138,6 +138,7 @@ class InboundViewModel(
                 ocrTextBlob = null
                 ocrConfidenceJson = null
                 saveState = SaveState.Success
+                showMissingErrors = false
             } catch (error: Exception) {
                 saveState = SaveState.Error("No se pudo guardar el ingreso. Intentá de nuevo.")
             } finally {
