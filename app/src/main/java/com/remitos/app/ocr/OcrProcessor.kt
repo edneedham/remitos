@@ -24,6 +24,8 @@ data class OcrResult(
 )
 
 class OcrProcessor {
+    private val minTargetEdgePx = 1200
+    private val maxTargetEdgePx = 1800
     private val recognizer by lazy {
         TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     }
@@ -61,13 +63,64 @@ class OcrProcessor {
         } else {
             decoded.copy(Bitmap.Config.ARGB_8888, true)
         }
-        val grayscale = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+        val normalized = normalizeBitmap(bitmap)
+        val grayscale = Bitmap.createBitmap(normalized.width, normalized.height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(grayscale)
         val paint = android.graphics.Paint().apply {
             colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
         }
-        canvas.drawBitmap(bitmap, 0f, 0f, paint)
-        return grayscale
+        canvas.drawBitmap(normalized, 0f, 0f, paint)
+        return reduceNoise(grayscale)
+    }
+
+    private fun normalizeBitmap(bitmap: Bitmap): Bitmap {
+        val maxEdge = maxOf(bitmap.width, bitmap.height)
+        val targetMaxEdge = when {
+            maxEdge > maxTargetEdgePx -> maxTargetEdgePx
+            maxEdge < minTargetEdgePx -> minTargetEdgePx
+            else -> return bitmap
+        }
+        val scale = targetMaxEdge.toFloat() / maxEdge.toFloat()
+        val targetWidth = (bitmap.width * scale).toInt().coerceAtLeast(1)
+        val targetHeight = (bitmap.height * scale).toInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
+    }
+
+    private fun reduceNoise(bitmap: Bitmap): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+        if (width < 3 || height < 3) return bitmap
+
+        val input = IntArray(width * height)
+        val output = IntArray(width * height)
+        bitmap.getPixels(input, 0, width, 0, 0, width, height)
+
+        for (y in 1 until height - 1) {
+            val rowOffset = y * width
+            for (x in 1 until width - 1) {
+                var sum = 0
+                for (dy in -1..1) {
+                    val offset = (y + dy) * width
+                    for (dx in -1..1) {
+                        val color = input[offset + x + dx]
+                        sum += color and 0xFF
+                    }
+                }
+                val avg = (sum / 9).coerceIn(0, 255)
+                output[rowOffset + x] = (0xFF shl 24) or (avg shl 16) or (avg shl 8) or avg
+            }
+        }
+
+        for (x in 0 until width) {
+            output[x] = input[x]
+            output[(height - 1) * width + x] = input[(height - 1) * width + x]
+        }
+        for (y in 1 until height - 1) {
+            output[y * width] = input[y * width]
+            output[y * width + (width - 1)] = input[y * width + (width - 1)]
+        }
+
+        return Bitmap.createBitmap(output, width, height, Bitmap.Config.ARGB_8888)
     }
 
     companion object {
