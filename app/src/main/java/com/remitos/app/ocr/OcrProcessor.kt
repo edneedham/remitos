@@ -1,12 +1,19 @@
 package com.remitos.app.ocr
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.ImageDecoder
 import android.net.Uri
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -20,7 +27,10 @@ class OcrProcessor {
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
     suspend fun processImage(context: Context, uri: Uri): OcrResult {
-        val image = InputImage.fromFilePath(context, uri)
+        val image = withContext(Dispatchers.IO) {
+            val grayscale = toGrayscaleBitmap(context, uri)
+            InputImage.fromBitmap(grayscale, 0)
+        }
         val text = recognizeText(image)
         val fields = extractFields(text)
         return OcrResult(text.text, fields.first, fields.second)
@@ -36,6 +46,26 @@ class OcrProcessor {
 
     private fun extractFields(text: Text): Pair<Map<String, String>, Map<String, Float>> {
         return parseFields(text.text)
+    }
+
+    private fun toGrayscaleBitmap(context: Context, uri: Uri): Bitmap {
+        val source = ImageDecoder.createSource(context.contentResolver, uri)
+        val decoded = ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+            decoder.isMutableRequired = true
+            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+        }
+        val bitmap = if (decoded.config == Bitmap.Config.ARGB_8888) {
+            decoded
+        } else {
+            decoded.copy(Bitmap.Config.ARGB_8888, true)
+        }
+        val grayscale = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(grayscale)
+        val paint = android.graphics.Paint().apply {
+            colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
+        }
+        canvas.drawBitmap(bitmap, 0f, 0f, paint)
+        return grayscale
     }
 
     companion object {
