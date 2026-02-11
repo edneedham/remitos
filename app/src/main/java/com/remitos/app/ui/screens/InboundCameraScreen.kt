@@ -45,6 +45,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -73,6 +75,7 @@ fun InboundCameraScreen(
     var focusReady by remember { mutableStateOf(false) }
     var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
     val allowCapture = isDocumentCovered && focusReady
+    var cameraControl by remember { mutableStateOf<androidx.camera.core.CameraControl?>(null) }
 
     LaunchedEffect(cameraProviderFuture) {
         val cameraProvider = cameraProviderFuture.get()
@@ -107,6 +110,7 @@ fun InboundCameraScreen(
             capture,
             analysis,
         )
+        cameraControl = camera.cameraControl
         imageCapture = capture
 
         previewView.post {
@@ -150,7 +154,30 @@ fun InboundCameraScreen(
         // Camera preview
         AndroidView(
             factory = { previewView },
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        val control = cameraControl ?: return@detectTapGestures
+                        val width = previewView.width.toFloat().coerceAtLeast(1f)
+                        val height = previewView.height.toFloat().coerceAtLeast(1f)
+                        val meteringPoint = SurfaceOrientedMeteringPointFactory(width, height)
+                            .createPoint(offset.x, offset.y)
+                        focusGate.reset(System.currentTimeMillis())
+                        val future = control.startFocusAndMetering(
+                            androidx.camera.core.FocusMeteringAction.Builder(meteringPoint).build()
+                        )
+                        future.addListener(
+                            {
+                                val result = runCatching { future.get() }.getOrNull()
+                                if (result != null) {
+                                    focusGate.onFocusResult(result.isFocusSuccessful)
+                                }
+                            },
+                            mainExecutor,
+                        )
+                    }
+                },
         )
 
         // Dim overlay

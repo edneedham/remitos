@@ -30,6 +30,7 @@ Notes:
 
 - Use git for all changes; keep commits small and focused on one concern.
 - Push each commit to the GitHub remote after it is created.
+- Always run relevant tests after changes and report results.
 - Prefer TDD for new parsing or business logic: write a failing test first, then implement.
 - Avoid committing build artifacts or IDE files; keep `.idea/` untracked.
 
