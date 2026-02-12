@@ -1,5 +1,8 @@
 package com.remitos.app.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +19,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -30,8 +34,11 @@ import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.components.SectionCard
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
-fun SettingsScreen(onBack: () -> Unit) {
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+fun SettingsScreen(
+    onBack: () -> Unit,
+    onOpenDebug: () -> Unit,
+) {
     val context = LocalContext.current
     val app = context.applicationContext as RemitosApplication
     val viewModel: SettingsViewModel = viewModel(
@@ -93,14 +100,24 @@ fun SettingsScreen(onBack: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = "Versión ${BuildConfig.VERSION_NAME}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-            )
+                    .padding(bottom = 8.dp)
+                    .combinedClickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {},
+                        onLongClick = onOpenDebug,
+                    ),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = "Versión ${BuildConfig.VERSION_NAME}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

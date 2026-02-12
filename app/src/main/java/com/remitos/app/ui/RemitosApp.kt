@@ -18,6 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.remitos.app.ui.screens.DashboardScreen
+import com.remitos.app.ui.screens.DebugScreen
 import com.remitos.app.ui.screens.InboundCameraScreen
 import com.remitos.app.ui.screens.InboundHistoryScreen
 import com.remitos.app.ui.screens.InboundScanScreen
@@ -50,6 +51,7 @@ private object Routes {
     const val OutboundPreview = "outbound_preview"
     const val Activity = "activity"
     const val Settings = "settings"
+    const val Debug = "debug"
 }
 
 private const val NAV_ANIM_DURATION = 300
@@ -165,10 +167,16 @@ private fun AppNavHost(navController: NavHostController) {
             OutboundHistoryScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.Settings) {
-            SettingsScreen(onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenDebug = { navController.navigate(Routes.Debug) },
+            )
         }
         composable(Routes.Activity) {
             ActivityScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.Debug) {
+            DebugScreen(onBack = { navController.popBackStack() })
         }
     }
 }

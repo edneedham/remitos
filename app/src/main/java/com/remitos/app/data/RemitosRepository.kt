@@ -2,6 +2,7 @@ package com.remitos.app.data
 
 import androidx.room.withTransaction
 import com.remitos.app.data.db.AppDatabase
+import com.remitos.app.data.db.entity.DebugLogEntity
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
 import com.remitos.app.data.db.entity.InboundNoteWithAvailable
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 class RemitosRepository(private val db: AppDatabase) {
     companion object {
         private const val ListSequenceName = "outbound_list"
+        private const val MaxDebugLogs = 200
     }
 
     suspend fun createInboundNote(note: InboundNoteEntity): Long {
@@ -23,7 +25,7 @@ class RemitosRepository(private val db: AppDatabase) {
                 InboundPackageEntity(
                     inboundNoteId = id,
                     packageIndex = index,
-                    status = "disponible"
+                    status = InboundPackageStatus.Disponible
                 )
             }
             db.inboundDao().insertPackages(packages)
@@ -41,6 +43,10 @@ class RemitosRepository(private val db: AppDatabase) {
 
     fun observeOutboundLists(): Flow<List<OutboundListEntity>> {
         return db.outboundDao().observeOutboundLists()
+    }
+
+    fun observeDebugLogs(limit: Int = MaxDebugLogs): Flow<List<DebugLogEntity>> {
+        return db.debugLogDao().observeRecent(limit)
     }
 
     suspend fun nextOutboundListNumber(): Long {
@@ -76,7 +82,7 @@ class RemitosRepository(private val db: AppDatabase) {
                 throw IllegalStateException("Paquetes insuficientes")
             }
 
-            db.inboundDao().updatePackageStatus(packageIds, "asignado")
+            db.inboundDao().updatePackageStatus(packageIds, InboundPackageStatus.Asignado)
             val lineWithList = line.copy(
                 outboundListId = listId,
                 allocatedPackageIds = packageIds.joinToString(",")
@@ -102,7 +108,7 @@ class RemitosRepository(private val db: AppDatabase) {
                     throw IllegalStateException("Paquetes insuficientes")
                 }
 
-                db.inboundDao().updatePackageStatus(packageIds, "asignado")
+                db.inboundDao().updatePackageStatus(packageIds, InboundPackageStatus.Asignado)
                 val lineWithList = line.copy(
                     outboundListId = listId,
                     allocatedPackageIds = packageIds.joinToString(",")
@@ -110,6 +116,17 @@ class RemitosRepository(private val db: AppDatabase) {
                 db.outboundDao().insertOutboundLines(listOf(lineWithList))
             }
             listId
+        }
+    }
+
+    suspend fun insertDebugLog(log: DebugLogEntity) {
+        db.withTransaction {
+            db.debugLogDao().insertLog(log)
+            val total = db.debugLogDao().countLogs()
+            val excess = calculateExcessLogs(total, MaxDebugLogs)
+            if (excess > 0) {
+                db.debugLogDao().deleteOldest(excess)
+            }
         }
     }
 
