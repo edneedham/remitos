@@ -41,7 +41,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.remitos.app.BuildConfig
 import com.remitos.app.R
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.Blue100
@@ -95,8 +94,7 @@ fun DashboardScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
-            VersionFooter()
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
@@ -146,7 +144,7 @@ private fun PrimaryActionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp)
+            .height(120.dp)
             .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
@@ -257,7 +255,7 @@ private fun ActionTile(
 ) {
     Card(
         modifier = modifier
-            .aspectRatio(1.2f)
+            .aspectRatio(1.35f)
             .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
@@ -296,21 +294,5 @@ private fun ActionTile(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-    }
-}
-
-@Composable
-private fun VersionFooter() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = "Versión ${BuildConfig.VERSION_NAME}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }

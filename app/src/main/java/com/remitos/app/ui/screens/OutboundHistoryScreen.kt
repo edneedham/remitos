@@ -15,7 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Print
-import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -204,7 +204,7 @@ private fun OutboundHistoryCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.ReceiptLong,
+                                imageVector = Icons.AutoMirrored.Outlined.ReceiptLong,
                     contentDescription = null,
                     tint = BrandBlue,
                     modifier = Modifier.size(20.dp),

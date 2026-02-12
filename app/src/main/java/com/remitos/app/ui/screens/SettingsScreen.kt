@@ -3,6 +3,7 @@ package com.remitos.app.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -23,6 +24,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.remitos.app.BuildConfig
 import com.remitos.app.RemitosApplication
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.components.SectionCard
@@ -89,6 +91,16 @@ fun SettingsScreen(onBack: () -> Unit) {
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "Versión ${BuildConfig.VERSION_NAME}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+            )
         }
     }
 }
