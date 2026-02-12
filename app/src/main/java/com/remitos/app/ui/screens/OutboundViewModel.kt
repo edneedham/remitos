@@ -2,6 +2,7 @@ package com.remitos.app.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.db.entity.InboundNoteWithAvailable
 import com.remitos.app.data.db.entity.OutboundLineEntity
@@ -64,7 +65,7 @@ class OutboundViewModel(
                     issueDate = now,
                     driverNombre = draft.driverNombre.trim(),
                     driverApellido = draft.driverApellido.trim(),
-                    status = "abierta"
+                    status = OutboundListStatus.Abierta
                 )
 
                 val lines = draft.lines.map { lineDraft ->

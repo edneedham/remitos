@@ -7,6 +7,7 @@ import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.ImageDecoder
 import android.net.Uri
+import android.os.SystemClock
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
@@ -29,8 +30,23 @@ import kotlin.coroutines.resumeWithException
 data class OcrResult(
     val text: String,
     val fields: Map<String, String>,
-    val confidence: Map<String, Float>
+    val confidence: Map<String, Float>,
+    val preprocessTimeMs: Long,
+    val imageWidth: Int,
+    val imageHeight: Int,
+    val parsingErrorSummary: String?
 )
+
+data class OcrDebugInfo(
+    val preprocessTimeMs: Long,
+    val imageWidth: Int,
+    val imageHeight: Int
+)
+
+class OcrProcessingException(
+    val debugInfo: OcrDebugInfo,
+    cause: Throwable,
+) : Exception(cause)
 
 class OcrProcessor {
     private val minTargetEdgePx = 1200
@@ -47,15 +63,37 @@ class OcrProcessor {
         uri: Uri,
         enableCorrection: Boolean = true,
     ): OcrResult {
-        val image = withContext(Dispatchers.IO) {
+        val preprocessStart = SystemClock.elapsedRealtime()
+        val preprocessResult = withContext(Dispatchers.IO) {
             val grayscale = toGrayscaleBitmap(context, uri)
             val enhanced = if (enableCorrection) applyClaheIfNeeded(grayscale) else grayscale
             val corrected = if (enableCorrection) correctPerspectiveOrDeskew(enhanced) else enhanced
-            InputImage.fromBitmap(corrected, 0)
+            val inputImage = InputImage.fromBitmap(corrected, 0)
+            Triple(inputImage, corrected.width, corrected.height)
         }
-        val text = recognizeText(image)
+        val preprocessTimeMs = SystemClock.elapsedRealtime() - preprocessStart
+        val image = preprocessResult.first
+        val width = preprocessResult.second
+        val height = preprocessResult.third
+        val text = try {
+            recognizeText(image)
+        } catch (error: Exception) {
+            throw OcrProcessingException(
+                debugInfo = OcrDebugInfo(preprocessTimeMs, width, height),
+                cause = error
+            )
+        }
         val fields = extractFields(text)
-        return OcrResult(text.text, fields.first, fields.second)
+        val parsingSummary = buildParsingErrorSummary(fields.first)
+        return OcrResult(
+            text = text.text,
+            fields = fields.first,
+            confidence = fields.second,
+            preprocessTimeMs = preprocessTimeMs,
+            imageWidth = width,
+            imageHeight = height,
+            parsingErrorSummary = parsingSummary
+        )
     }
 
     private suspend fun recognizeText(image: InputImage): Text {
@@ -385,65 +423,84 @@ class OcrProcessor {
 
             val cuitMatch = Regex("\\b\\d{2}-\\d{8}-\\d{1}\\b").find(raw)
             if (cuitMatch != null) {
-                fields["sender_cuit"] = cuitMatch.value
-                confidence["sender_cuit"] = 0.8f
+                fields[OcrFieldKeys.SenderCuit] = cuitMatch.value
+                confidence[OcrFieldKeys.SenderCuit] = 0.8f
             }
 
             val bultosMatch = Regex("(?i)cantidad\\s+de\\s+bultos\\s*[:\\-]?\\s*(\\d+)").find(raw)
             if (bultosMatch != null) {
-                fields["cant_bultos_total"] = bultosMatch.groupValues[1]
-                confidence["cant_bultos_total"] = 0.7f
+                fields[OcrFieldKeys.CantBultosTotal] = bultosMatch.groupValues[1]
+                confidence[OcrFieldKeys.CantBultosTotal] = 0.7f
             }
 
             val remitoClienteMatch = Regex(
                 "(?i)remito\\s*(?:n\\s*[°o])?\\s*cliente\\s*[:\\-]?\\s*([\\w-]+)"
             ).find(raw)
             if (remitoClienteMatch != null) {
-                fields["remito_num_cliente"] = remitoClienteMatch.groupValues[1]
-                confidence["remito_num_cliente"] = 0.6f
+                fields[OcrFieldKeys.RemitoNumCliente] = remitoClienteMatch.groupValues[1]
+                confidence[OcrFieldKeys.RemitoNumCliente] = 0.6f
             }
 
             val remitoInternoMatch = Regex(
                 "(?i)remito\\s*(?:n\\s*[°o])?\\s*interno\\s*[:\\-]?\\s*([\\w-]+)"
             ).find(raw)
             if (remitoInternoMatch != null) {
-                fields["remito_num_interno"] = remitoInternoMatch.groupValues[1]
-                confidence["remito_num_interno"] = 0.6f
+                fields[OcrFieldKeys.RemitoNumInterno] = remitoInternoMatch.groupValues[1]
+                confidence[OcrFieldKeys.RemitoNumInterno] = 0.6f
             }
 
             val remitenteMatch = Regex("(?i)remitente\\s*[:\\-]?\\s*([A-Za-zÁÉÍÓÚÑáéíóúñ]+)\\s+([A-Za-zÁÉÍÓÚÑáéíóúñ]+)")
                 .find(raw)
             if (remitenteMatch != null) {
-                fields["sender_nombre"] = remitenteMatch.groupValues[1]
-                fields["sender_apellido"] = remitenteMatch.groupValues[2]
-                confidence["sender_nombre"] = 0.6f
-                confidence["sender_apellido"] = 0.6f
+                fields[OcrFieldKeys.SenderNombre] = remitenteMatch.groupValues[1]
+                fields[OcrFieldKeys.SenderApellido] = remitenteMatch.groupValues[2]
+                confidence[OcrFieldKeys.SenderNombre] = 0.6f
+                confidence[OcrFieldKeys.SenderApellido] = 0.6f
             }
 
             val destinatarioMatch = Regex("(?i)destinatario\\s*[:\\-]?\\s*([A-Za-zÁÉÍÓÚÑáéíóúñ]+)\\s+([A-Za-zÁÉÍÓÚÑáéíóúñ]+)")
                 .find(raw)
             if (destinatarioMatch != null) {
-                fields["dest_nombre"] = destinatarioMatch.groupValues[1]
-                fields["dest_apellido"] = destinatarioMatch.groupValues[2]
-                confidence["dest_nombre"] = 0.6f
-                confidence["dest_apellido"] = 0.6f
+                fields[OcrFieldKeys.DestNombre] = destinatarioMatch.groupValues[1]
+                fields[OcrFieldKeys.DestApellido] = destinatarioMatch.groupValues[2]
+                confidence[OcrFieldKeys.DestNombre] = 0.6f
+                confidence[OcrFieldKeys.DestApellido] = 0.6f
             }
 
             val direccionMatch = Regex("(?i)direcci[oó]n\\s*destinatario\\s*[:\\-]?\\s*(.+)")
                 .find(raw)
             if (direccionMatch != null) {
-                fields["dest_direccion"] = direccionMatch.groupValues[1].trim()
-                confidence["dest_direccion"] = 0.6f
+                fields[OcrFieldKeys.DestDireccion] = direccionMatch.groupValues[1].trim()
+                confidence[OcrFieldKeys.DestDireccion] = 0.6f
             }
 
             val telefonoMatch = Regex("(?i)tel[eé]fono\\s*destinatario\\s*[:\\-]?\\s*([+\\d][\\d\\s-]+)")
                 .find(raw)
             if (telefonoMatch != null) {
-                fields["dest_telefono"] = telefonoMatch.groupValues[1].replace(" ", "").trim()
-                confidence["dest_telefono"] = 0.6f
+                fields[OcrFieldKeys.DestTelefono] = telefonoMatch.groupValues[1].replace(" ", "").trim()
+                confidence[OcrFieldKeys.DestTelefono] = 0.6f
             }
 
             return fields to confidence
+        }
+
+        internal fun buildParsingErrorSummary(fields: Map<String, String>): String? {
+            val missing = mutableListOf<String>()
+            if (!fields.containsKey(OcrFieldKeys.SenderCuit)) missing.add("CUIT")
+            if (!fields.containsKey(OcrFieldKeys.SenderNombre) || !fields.containsKey(OcrFieldKeys.SenderApellido)) {
+                missing.add("Remitente")
+            }
+            if (!fields.containsKey(OcrFieldKeys.DestNombre) || !fields.containsKey(OcrFieldKeys.DestApellido)) {
+                missing.add("Destinatario")
+            }
+            if (!fields.containsKey(OcrFieldKeys.DestDireccion)) missing.add("Dirección")
+            if (!fields.containsKey(OcrFieldKeys.DestTelefono)) missing.add("Teléfono")
+            if (!fields.containsKey(OcrFieldKeys.CantBultosTotal)) missing.add("Cantidad de bultos")
+            if (!fields.containsKey(OcrFieldKeys.RemitoNumCliente)) missing.add("Remito cliente")
+            if (!fields.containsKey(OcrFieldKeys.RemitoNumInterno)) missing.add("Remito interno")
+
+            if (missing.isEmpty()) return null
+            return "Faltan: ${missing.joinToString(", ")}"
         }
     }
 }

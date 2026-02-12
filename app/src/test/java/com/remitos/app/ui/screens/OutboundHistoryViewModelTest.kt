@@ -1,5 +1,6 @@
 package com.remitos.app.ui.screens
 
+import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.db.entity.OutboundListEntity
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +45,7 @@ class OutboundHistoryViewModelTest {
             issueDate = 123L,
             driverNombre = "Ana",
             driverApellido = "Lopez",
-            status = "abierta"
+            status = OutboundListStatus.Abierta
         )
         whenever(repository.getOutboundList(4L)).thenReturn(list)
         whenever(repository.getOutboundLinesWithRemito(4L)).thenReturn(emptyList())

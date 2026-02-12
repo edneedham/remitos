@@ -1,5 +1,7 @@
 package com.remitos.app.ui.screens
 
+import com.remitos.app.ocr.OcrFieldKeys
+
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -8,7 +10,7 @@ class UsageMetricsTest {
     @Test
     fun `parse success requires fields`() {
         assertFalse(isParseSuccessful(emptyMap()))
-        assertTrue(isParseSuccessful(mapOf("sender_cuit" to "20-12345678-9")))
+        assertTrue(isParseSuccessful(mapOf(OcrFieldKeys.SenderCuit to "20-12345678-9")))
     }
 
     @Test
@@ -25,9 +27,9 @@ class UsageMetricsTest {
             senderApellido = "Perez",
         )
         val ocrFields = mapOf(
-            "sender_cuit" to "20-12345678-9",
-            "sender_nombre" to "Juan",
-            "sender_apellido" to "Perez",
+            OcrFieldKeys.SenderCuit to "20-12345678-9",
+            OcrFieldKeys.SenderNombre to "Juan",
+            OcrFieldKeys.SenderApellido to "Perez",
         )
 
         assertFalse(hasManualCorrections(ocrFields, draft))
@@ -41,8 +43,8 @@ class UsageMetricsTest {
             senderApellido = "Gomez",
         )
         val ocrFields = mapOf(
-            "sender_cuit" to "20-12345678-9",
-            "sender_apellido" to "Perez",
+            OcrFieldKeys.SenderCuit to "20-12345678-9",
+            OcrFieldKeys.SenderApellido to "Perez",
         )
 
         assertTrue(hasManualCorrections(ocrFields, draft))
@@ -51,7 +53,7 @@ class UsageMetricsTest {
     @Test
     fun `manual correction ignores whitespace differences`() {
         val draft = InboundDraftState(senderCuit = "20-12345678-9 ")
-        val ocrFields = mapOf("sender_cuit" to "20-12345678-9")
+        val ocrFields = mapOf(OcrFieldKeys.SenderCuit to "20-12345678-9")
 
         assertFalse(hasManualCorrections(ocrFields, draft))
     }

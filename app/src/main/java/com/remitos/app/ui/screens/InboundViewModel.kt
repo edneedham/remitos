@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
+import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,8 +12,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.SettingsStore
+import com.remitos.app.data.db.entity.DebugLogEntity
 import com.remitos.app.data.db.entity.InboundNoteEntity
+import com.remitos.app.ocr.OcrFieldKeys
 import com.remitos.app.ocr.OcrProcessor
+import com.remitos.app.ocr.OcrProcessingException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -65,9 +69,11 @@ class InboundViewModel(
         val uri = selectedImageUri ?: return
         isProcessing = true
         val startTimeMs = SystemClock.elapsedRealtime()
+        val scanId = startTimeMs
 
         viewModelScope.launch {
             var parseSuccess = false
+            var debugLog: DebugLogEntity? = null
             try {
                 withContext(ioDispatcher) {
                     settingsStore?.recordScanStarted()
@@ -78,25 +84,62 @@ class InboundViewModel(
                 val result = ocrProcessor.processImage(context, uri, enableCorrection)
                 parseSuccess = isParseSuccessful(result.fields)
                 lastOcrFields = result.fields
+                val confidenceJson = confidenceToJson(result.confidence)
                 updateOcrMetadata(result.text, result.confidence)
                 draft = draft.copy(
-                    senderCuit = result.fields["sender_cuit"] ?: draft.senderCuit,
-                    senderNombre = result.fields["sender_nombre"] ?: draft.senderNombre,
-                    senderApellido = result.fields["sender_apellido"] ?: draft.senderApellido,
-                    destNombre = result.fields["dest_nombre"] ?: draft.destNombre,
-                    destApellido = result.fields["dest_apellido"] ?: draft.destApellido,
-                    destDireccion = result.fields["dest_direccion"] ?: draft.destDireccion,
-                    destTelefono = result.fields["dest_telefono"] ?: draft.destTelefono,
-                    cantBultosTotal = result.fields["cant_bultos_total"] ?: draft.cantBultosTotal,
-                    remitoNumCliente = result.fields["remito_num_cliente"] ?: draft.remitoNumCliente,
-                    remitoNumInterno = result.fields["remito_num_interno"] ?: draft.remitoNumInterno
+                    senderCuit = result.fields[OcrFieldKeys.SenderCuit] ?: draft.senderCuit,
+                    senderNombre = result.fields[OcrFieldKeys.SenderNombre] ?: draft.senderNombre,
+                    senderApellido = result.fields[OcrFieldKeys.SenderApellido] ?: draft.senderApellido,
+                    destNombre = result.fields[OcrFieldKeys.DestNombre] ?: draft.destNombre,
+                    destApellido = result.fields[OcrFieldKeys.DestApellido] ?: draft.destApellido,
+                    destDireccion = result.fields[OcrFieldKeys.DestDireccion] ?: draft.destDireccion,
+                    destTelefono = result.fields[OcrFieldKeys.DestTelefono] ?: draft.destTelefono,
+                    cantBultosTotal = result.fields[OcrFieldKeys.CantBultosTotal] ?: draft.cantBultosTotal,
+                    remitoNumCliente = result.fields[OcrFieldKeys.RemitoNumCliente] ?: draft.remitoNumCliente,
+                    remitoNumInterno = result.fields[OcrFieldKeys.RemitoNumInterno] ?: draft.remitoNumInterno
+                )
+                debugLog = DebugLogEntity(
+                    createdAt = System.currentTimeMillis(),
+                    scanId = scanId,
+                    ocrConfidenceJson = confidenceJson,
+                    preprocessTimeMs = result.preprocessTimeMs,
+                    failureReason = null,
+                    imageWidth = result.imageWidth,
+                    imageHeight = result.imageHeight,
+                    deviceModel = Build.MODEL,
+                    parsingErrorSummary = result.parsingErrorSummary,
+                )
+            } catch (error: OcrProcessingException) {
+                Log.e("InboundViewModel", "Error al procesar OCR", error)
+                debugLog = DebugLogEntity(
+                    createdAt = System.currentTimeMillis(),
+                    scanId = scanId,
+                    ocrConfidenceJson = null,
+                    preprocessTimeMs = error.debugInfo.preprocessTimeMs,
+                    failureReason = error.cause?.message ?: "Error de OCR",
+                    imageWidth = error.debugInfo.imageWidth,
+                    imageHeight = error.debugInfo.imageHeight,
+                    deviceModel = Build.MODEL,
+                    parsingErrorSummary = null,
                 )
             } catch (error: Exception) {
                 Log.e("InboundViewModel", "Error al procesar OCR", error)
+                debugLog = DebugLogEntity(
+                    createdAt = System.currentTimeMillis(),
+                    scanId = scanId,
+                    ocrConfidenceJson = null,
+                    preprocessTimeMs = null,
+                    failureReason = error.message ?: "Error de OCR",
+                    imageWidth = null,
+                    imageHeight = null,
+                    deviceModel = Build.MODEL,
+                    parsingErrorSummary = null,
+                )
             } finally {
                 val durationMs = SystemClock.elapsedRealtime() - startTimeMs
                 withContext(ioDispatcher) {
                     settingsStore?.recordScanResult(durationMs, parseSuccess)
+                    debugLog?.let { repository.insertDebugLog(it) }
                 }
                 isProcessing = false
                 showMissingErrors = true
@@ -106,12 +149,13 @@ class InboundViewModel(
 
     fun updateOcrMetadata(text: String?, confidence: Map<String, Float>?) {
         ocrTextBlob = text
-        ocrConfidenceJson = if (confidence.isNullOrEmpty()) {
-            null
-        } else {
-            confidence.entries.joinToString(prefix = "{", postfix = "}") { (key, value) ->
-                "\"$key\":$value"
-            }
+        ocrConfidenceJson = confidenceToJson(confidence)
+    }
+
+    private fun confidenceToJson(confidence: Map<String, Float>?): String? {
+        if (confidence.isNullOrEmpty()) return null
+        return confidence.entries.joinToString(prefix = "{", postfix = "}") { (key, value) ->
+            "\"$key\":$value"
         }
     }
 

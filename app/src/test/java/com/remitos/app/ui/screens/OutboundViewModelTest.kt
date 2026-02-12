@@ -1,5 +1,6 @@
 package com.remitos.app.ui.screens
 
+import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.RemitosRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -154,7 +155,7 @@ class OutboundViewModelTest {
                 issueDate = 123L,
                 driverNombre = "Juan",
                 driverApellido = "Perez",
-                status = "abierta"
+                status = OutboundListStatus.Abierta
             )
         )
         whenever(repository.getOutboundLinesWithRemito(1L)).thenReturn(emptyList())

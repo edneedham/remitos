@@ -1,6 +1,7 @@
 package com.remitos.app.ui.screens
 
 import com.remitos.app.data.RemitosRepository
+import com.remitos.app.ocr.OcrFieldKeys
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -110,7 +111,7 @@ class InboundViewModelTest {
                 remitoNumInterno = "RI-2"
             )
         )
-        viewModel.updateOcrMetadata("texto ocr", mapOf("sender_cuit" to 0.8f))
+        viewModel.updateOcrMetadata("texto ocr", mapOf(OcrFieldKeys.SenderCuit to 0.8f))
 
         viewModel.save()
         advanceUntilIdle()
@@ -118,6 +119,6 @@ class InboundViewModelTest {
         val captor = argumentCaptor<com.remitos.app.data.db.entity.InboundNoteEntity>()
         verify(repository).createInboundNote(captor.capture())
         assertEquals("texto ocr", captor.firstValue.ocrTextBlob)
-        assertEquals("{\"sender_cuit\":0.8}", captor.firstValue.ocrConfidenceJson)
+        assertEquals("{\"${OcrFieldKeys.SenderCuit}\":0.8}", captor.firstValue.ocrConfidenceJson)
     }
 }
