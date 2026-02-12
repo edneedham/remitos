@@ -20,6 +20,7 @@ import androidx.navigation.NavType
 import com.remitos.app.ui.screens.DashboardScreen
 import com.remitos.app.ui.screens.DebugScreen
 import com.remitos.app.ui.screens.InboundCameraScreen
+import com.remitos.app.ui.screens.InboundDetailScreen
 import com.remitos.app.ui.screens.InboundHistoryScreen
 import com.remitos.app.ui.screens.InboundScanScreen
 import com.remitos.app.ui.screens.ActivityScreen
@@ -46,6 +47,7 @@ private object Routes {
     const val InboundScan = "inbound_scan"
     const val InboundCamera = "inbound_camera"
     const val InboundHistory = "inbound_history"
+    const val InboundDetail = "inbound_detail"
     const val OutboundList = "outbound_list"
     const val OutboundHistory = "outbound_history"
     const val OutboundPreview = "outbound_preview"
@@ -161,7 +163,20 @@ private fun AppNavHost(navController: NavHostController) {
             )
         }
         composable(Routes.InboundHistory) {
-            InboundHistoryScreen(onBack = { navController.popBackStack() })
+            InboundHistoryScreen(
+                onBack = { navController.popBackStack() },
+                onOpenDetail = { noteId -> navController.navigate("${Routes.InboundDetail}/$noteId") },
+            )
+        }
+        composable(
+            route = "${Routes.InboundDetail}/{noteId}",
+            arguments = listOf(navArgument("noteId") { type = NavType.LongType }),
+        ) { entry ->
+            val noteId = entry.arguments?.getLong("noteId") ?: 0L
+            InboundDetailScreen(
+                noteId = noteId,
+                onBack = { navController.popBackStack() },
+            )
         }
         composable(Routes.OutboundHistory) {
             OutboundHistoryScreen(onBack = { navController.popBackStack() })

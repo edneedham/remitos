@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
 import com.remitos.app.data.db.entity.InboundNoteWithAvailable
@@ -35,8 +36,20 @@ interface InboundDao {
     @Query("SELECT * FROM inbound_notes WHERE id = :id")
     suspend fun getInboundNote(id: Long): InboundNoteEntity?
 
+    @Update
+    suspend fun updateInbound(note: InboundNoteEntity)
+
     @Query("SELECT COUNT(*) FROM inbound_packages WHERE inbound_note_id = :noteId AND status = 'disponible'")
     suspend fun countAvailablePackages(noteId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM inbound_packages WHERE inbound_note_id = :noteId")
+    suspend fun countPackages(noteId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM inbound_packages WHERE inbound_note_id = :noteId AND status = :status")
+    suspend fun countPackagesByStatus(noteId: Long, status: String): Int
+
+    @Query("SELECT MAX(package_index) FROM inbound_packages WHERE inbound_note_id = :noteId")
+    suspend fun getMaxPackageIndex(noteId: Long): Int?
 
     @Query(
         """
@@ -48,6 +61,22 @@ interface InboundDao {
     )
     suspend fun getAvailablePackageIds(noteId: Long, limit: Int): List<Long>
 
+    @Query(
+        """
+        SELECT id FROM inbound_packages
+        WHERE inbound_note_id = :noteId AND status = :status
+        ORDER BY package_index DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun getPackageIdsForTrim(noteId: Long, status: String, limit: Int): List<Long>
+
+    @Query("DELETE FROM inbound_packages WHERE id IN (:packageIds)")
+    suspend fun deletePackages(packageIds: List<Long>)
+
     @Query("UPDATE inbound_packages SET status = :status WHERE id IN (:packageIds)")
     suspend fun updatePackageStatus(packageIds: List<Long>, status: String)
+
+    @Query("UPDATE inbound_packages SET status = :status WHERE inbound_note_id = :noteId")
+    suspend fun updatePackageStatusForNote(noteId: Long, status: String)
 }

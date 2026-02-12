@@ -28,6 +28,8 @@ data class InboundNoteEntity(
     val remitoNumCliente: String,
     @ColumnInfo(name = "remito_num_interno")
     val remitoNumInterno: String,
+    @ColumnInfo(name = "status")
+    val status: String,
     @ColumnInfo(name = "scan_image_path")
     val scanImagePath: String?,
     @ColumnInfo(name = "ocr_text_blob")

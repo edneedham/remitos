@@ -50,6 +50,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.remitos.app.RemitosApplication
+import com.remitos.app.data.InboundNoteStatus
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
@@ -60,7 +61,10 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InboundHistoryScreen(onBack: () -> Unit) {
+fun InboundHistoryScreen(
+    onBack: () -> Unit,
+    onOpenDetail: (Long) -> Unit,
+) {
     val context = LocalContext.current
     val app = context.applicationContext as RemitosApplication
     val viewModel: InboundHistoryViewModel = viewModel(
@@ -178,7 +182,10 @@ fun InboundHistoryScreen(onBack: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(notes) { note ->
-                        InboundHistoryCard(note = note)
+                        InboundHistoryCard(
+                            note = note,
+                            onOpenDetail = { onOpenDetail(note.id) },
+                        )
                     }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
@@ -188,13 +195,17 @@ fun InboundHistoryScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun InboundHistoryCard(note: InboundNoteEntity) {
+private fun InboundHistoryCard(
+    note: InboundNoteEntity,
+    onOpenDetail: () -> Unit,
+) {
     val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     val date = Instant.ofEpochMilli(note.createdAt)
         .atZone(ZoneId.systemDefault())
         .toLocalDate()
 
     Card(
+        onClick = onOpenDetail,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
@@ -230,13 +241,29 @@ private fun InboundHistoryCard(note: InboundNoteEntity) {
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text(
-                    text = "${note.senderApellido} ${note.senderNombre}",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "${note.senderApellido} ${note.senderNombre}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (note.status == InboundNoteStatus.Anulada) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Anulado",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
                 Text(
                     text = note.senderCuit,
                     style = MaterialTheme.typography.bodySmall,

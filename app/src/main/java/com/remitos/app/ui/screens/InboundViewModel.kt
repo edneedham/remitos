@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.remitos.app.data.InboundNoteStatus
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.SettingsStore
 import com.remitos.app.data.db.entity.DebugLogEntity
@@ -186,6 +187,7 @@ class InboundViewModel(
                     cantBultosTotal = cantBultos,
                     remitoNumCliente = draft.remitoNumCliente.trim(),
                     remitoNumInterno = draft.remitoNumInterno.trim(),
+                    status = InboundNoteStatus.Activa,
                     scanImagePath = selectedImageUri?.toString(),
                     ocrTextBlob = ocrTextBlob,
                     ocrConfidenceJson = ocrConfidenceJson,

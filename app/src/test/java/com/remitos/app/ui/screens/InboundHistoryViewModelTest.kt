@@ -1,5 +1,6 @@
 package com.remitos.app.ui.screens
 
+import com.remitos.app.data.InboundNoteStatus
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -69,6 +70,7 @@ class InboundHistoryViewModelTest {
             cantBultosTotal = 1,
             remitoNumCliente = remitoNumCliente,
             remitoNumInterno = "",
+            status = InboundNoteStatus.Activa,
             scanImagePath = null,
             ocrTextBlob = null,
             ocrConfidenceJson = null,
