@@ -3,6 +3,7 @@ package com.remitos.app.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -33,12 +35,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remitos.app.R
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Blue100
+import com.remitos.app.ui.theme.Blue50
 
 @Composable
 fun DashboardScreen(
@@ -60,46 +65,22 @@ fun DashboardScreen(
 
             Column(
                 modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                FeaturedActionCard(
+                PrimaryActionCard(
                     icon = Icons.Outlined.CameraAlt,
                     title = "Nuevo ingreso",
-                    subtitle = "Escanear remito con OCR",
+                    subtitle = "Escanear remito",
                     onClick = onScan,
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ActionTile(
-                        icon = Icons.Outlined.History,
-                        title = "Historial",
-                        subtitle = "Ver ingresos",
-                        onClick = onInboundHistory,
-                        modifier = Modifier.weight(1f),
-                    )
-                    ActionTile(
-                        icon = Icons.Outlined.LocalShipping,
-                        title = "Reparto",
-                        subtitle = "Nueva lista",
-                        onClick = onNewOutbound,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                SectionLabel(text = "Acciones")
 
-                ActionTile(
-                    icon = Icons.Outlined.ReceiptLong,
-                    title = "Historial de reparto",
-                    subtitle = "Reimprimir listas",
-                    onClick = onOutboundHistory,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                ActionTile(
-                    icon = Icons.Outlined.Settings,
-                    title = "Ajustes",
-                    subtitle = "Preferencias de lectura",
-                    onClick = onSettings,
-                    modifier = Modifier.fillMaxWidth(),
+                ActionGrid(
+                    onInboundHistory = onInboundHistory,
+                    onNewOutbound = onNewOutbound,
+                    onOutboundHistory = onOutboundHistory,
+                    onSettings = onSettings,
                 )
             }
 
@@ -114,7 +95,12 @@ private fun DashboardHeader() {
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = Color(0xFFF6F7F9),
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Blue50,
+                        Color(0xFFF6F7F9),
+                    ),
+                ),
             )
             .padding(horizontal = 24.dp, vertical = 32.dp),
     ) {
@@ -139,7 +125,7 @@ private fun DashboardHeader() {
 }
 
 @Composable
-private fun FeaturedActionCard(
+private fun PrimaryActionCard(
     icon: ImageVector,
     title: String,
     subtitle: String,
@@ -148,12 +134,13 @@ private fun FeaturedActionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .height(140.dp)
             .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = MaterialTheme.shapes.medium,
     ) {
         Row(
@@ -164,31 +151,86 @@ private fun FeaturedActionCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(56.dp)
                     .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                    .background(Blue100),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = BrandBlue,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(28.dp),
                 )
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Spacer(modifier = Modifier.width(18.dp))
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Divider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+@Composable
+private fun ActionGrid(
+    onInboundHistory: () -> Unit,
+    onNewOutbound: () -> Unit,
+    onOutboundHistory: () -> Unit,
+    onSettings: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ActionTile(
+                icon = Icons.Outlined.History,
+                title = "Historial",
+                subtitle = "Ver ingresos",
+                onClick = onInboundHistory,
+                modifier = Modifier.weight(1f),
+            )
+            ActionTile(
+                icon = Icons.Outlined.LocalShipping,
+                title = "Reparto",
+                subtitle = "Nueva lista",
+                onClick = onNewOutbound,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ActionTile(
+                icon = Icons.Outlined.ReceiptLong,
+                title = "Historial de reparto",
+                subtitle = "Reimprimir listas",
+                onClick = onOutboundHistory,
+                modifier = Modifier.weight(1f),
+            )
+            ActionTile(
+                icon = Icons.Outlined.Settings,
+                title = "Ajustes",
+                subtitle = "Preferencias de lectura",
+                onClick = onSettings,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
@@ -203,7 +245,7 @@ private fun ActionTile(
 ) {
     Card(
         modifier = modifier
-            .height(120.dp)
+            .aspectRatio(1.2f)
             .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
