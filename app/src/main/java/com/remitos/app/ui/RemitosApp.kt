@@ -21,6 +21,7 @@ import com.remitos.app.ui.screens.DashboardScreen
 import com.remitos.app.ui.screens.InboundCameraScreen
 import com.remitos.app.ui.screens.InboundHistoryScreen
 import com.remitos.app.ui.screens.InboundScanScreen
+import com.remitos.app.ui.screens.ActivityScreen
 import com.remitos.app.ui.screens.OutboundHistoryScreen
 import com.remitos.app.ui.screens.OutboundListScreen
 import com.remitos.app.ui.screens.OutboundPreviewScreen
@@ -47,6 +48,7 @@ private object Routes {
     const val OutboundList = "outbound_list"
     const val OutboundHistory = "outbound_history"
     const val OutboundPreview = "outbound_preview"
+    const val Activity = "activity"
     const val Settings = "settings"
 }
 
@@ -101,6 +103,7 @@ private fun AppNavHost(navController: NavHostController) {
                 onInboundHistory = { navController.navigate(Routes.InboundHistory) },
                 onNewOutbound = { navController.navigate(Routes.OutboundList) },
                 onOutboundHistory = { navController.navigate(Routes.OutboundHistory) },
+                onActivity = { navController.navigate(Routes.Activity) },
                 onSettings = { navController.navigate(Routes.Settings) },
             )
         }
@@ -163,6 +166,9 @@ private fun AppNavHost(navController: NavHostController) {
         }
         composable(Routes.Settings) {
             SettingsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.Activity) {
+            ActivityScreen(onBack = { navController.popBackStack() })
         }
     }
 }

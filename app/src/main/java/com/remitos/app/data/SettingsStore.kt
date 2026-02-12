@@ -3,6 +3,7 @@ package com.remitos.app.data
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -12,9 +13,24 @@ private val Context.dataStore by preferencesDataStore(name = "settings")
 
 class SettingsStore(private val context: Context) {
     private val perspectiveCorrectionKey = booleanPreferencesKey("perspective_correction_enabled")
+    private val totalScansKey = longPreferencesKey("usage_total_scans")
+    private val successfulParsesKey = longPreferencesKey("usage_successful_parses")
+    private val manualCorrectionsKey = longPreferencesKey("usage_manual_corrections")
+    private val totalScanTimeMsKey = longPreferencesKey("usage_total_scan_time_ms")
+    private val lastScanTimeMsKey = longPreferencesKey("usage_last_scan_time_ms")
 
     val perspectiveCorrectionEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[perspectiveCorrectionKey] ?: true
+    }
+
+    val usageStats: Flow<UsageStats> = context.dataStore.data.map { prefs ->
+        UsageStats(
+            totalScans = prefs[totalScansKey] ?: 0L,
+            successfulParses = prefs[successfulParsesKey] ?: 0L,
+            manualCorrections = prefs[manualCorrectionsKey] ?: 0L,
+            totalScanTimeMs = prefs[totalScanTimeMsKey] ?: 0L,
+            lastScanTimeMs = prefs[lastScanTimeMsKey] ?: 0L,
+        )
     }
 
     suspend fun getPerspectiveCorrectionEnabled(): Boolean {
@@ -26,4 +42,38 @@ class SettingsStore(private val context: Context) {
             prefs[perspectiveCorrectionKey] = enabled
         }
     }
+
+    suspend fun recordScanStarted() {
+        context.dataStore.edit { prefs ->
+            val current = prefs[totalScansKey] ?: 0L
+            prefs[totalScansKey] = current + 1
+        }
+    }
+
+    suspend fun recordScanResult(durationMs: Long, parseSuccess: Boolean) {
+        context.dataStore.edit { prefs ->
+            val totalTime = (prefs[totalScanTimeMsKey] ?: 0L) + durationMs
+            prefs[totalScanTimeMsKey] = totalTime
+            prefs[lastScanTimeMsKey] = durationMs
+            if (parseSuccess) {
+                val current = prefs[successfulParsesKey] ?: 0L
+                prefs[successfulParsesKey] = current + 1
+            }
+        }
+    }
+
+    suspend fun recordManualCorrection() {
+        context.dataStore.edit { prefs ->
+            val current = prefs[manualCorrectionsKey] ?: 0L
+            prefs[manualCorrectionsKey] = current + 1
+        }
+    }
 }
+
+data class UsageStats(
+    val totalScans: Long,
+    val successfulParses: Long,
+    val manualCorrections: Long,
+    val totalScanTimeMs: Long,
+    val lastScanTimeMs: Long,
+)

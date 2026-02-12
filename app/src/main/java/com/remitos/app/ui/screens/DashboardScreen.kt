@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LocalShipping
+import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Card
@@ -51,6 +52,7 @@ fun DashboardScreen(
     onInboundHistory: () -> Unit,
     onNewOutbound: () -> Unit,
     onOutboundHistory: () -> Unit,
+    onActivity: () -> Unit,
     onSettings: () -> Unit,
 ) {
     Scaffold { padding ->
@@ -80,7 +82,15 @@ fun DashboardScreen(
                     onInboundHistory = onInboundHistory,
                     onNewOutbound = onNewOutbound,
                     onOutboundHistory = onOutboundHistory,
-                    onSettings = onSettings,
+                    onActivity = onActivity,
+                )
+
+                ActionTile(
+                    icon = Icons.Outlined.Settings,
+                    title = "Ajustes",
+                    subtitle = "Preferencias de lectura",
+                    onClick = onSettings,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
 
@@ -197,7 +207,7 @@ private fun ActionGrid(
     onInboundHistory: () -> Unit,
     onNewOutbound: () -> Unit,
     onOutboundHistory: () -> Unit,
-    onSettings: () -> Unit,
+    onActivity: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -225,10 +235,10 @@ private fun ActionGrid(
                 modifier = Modifier.weight(1f),
             )
             ActionTile(
-                icon = Icons.Outlined.Settings,
-                title = "Ajustes",
-                subtitle = "Preferencias de lectura",
-                onClick = onSettings,
+                icon = Icons.Outlined.QueryStats,
+                title = "Actividad",
+                subtitle = "Ver métricas",
+                onClick = onActivity,
                 modifier = Modifier.weight(1f),
             )
         }

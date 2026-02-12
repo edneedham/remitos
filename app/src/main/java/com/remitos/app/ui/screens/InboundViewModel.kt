@@ -2,6 +2,7 @@ package com.remitos.app.ui.screens
 
 import android.content.Context
 import android.net.Uri
+import android.os.SystemClock
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +26,8 @@ class InboundViewModel(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val ocrProcessor: OcrProcessor = OcrProcessor(),
 ) : ViewModel() {
+    private var lastOcrFields: Map<String, String> = emptyMap()
+
     var draft by mutableStateOf(InboundDraftState())
         private set
 
@@ -61,13 +64,20 @@ class InboundViewModel(
     fun processImage(context: Context) {
         val uri = selectedImageUri ?: return
         isProcessing = true
+        val startTimeMs = SystemClock.elapsedRealtime()
 
         viewModelScope.launch {
+            var parseSuccess = false
             try {
+                withContext(ioDispatcher) {
+                    settingsStore?.recordScanStarted()
+                }
                 val enableCorrection = withContext(ioDispatcher) {
                     settingsStore?.getPerspectiveCorrectionEnabled() ?: true
                 }
                 val result = ocrProcessor.processImage(context, uri, enableCorrection)
+                parseSuccess = isParseSuccessful(result.fields)
+                lastOcrFields = result.fields
                 updateOcrMetadata(result.text, result.confidence)
                 draft = draft.copy(
                     senderCuit = result.fields["sender_cuit"] ?: draft.senderCuit,
@@ -84,6 +94,10 @@ class InboundViewModel(
             } catch (error: Exception) {
                 Log.e("InboundViewModel", "Error al procesar OCR", error)
             } finally {
+                val durationMs = SystemClock.elapsedRealtime() - startTimeMs
+                withContext(ioDispatcher) {
+                    settingsStore?.recordScanResult(durationMs, parseSuccess)
+                }
                 isProcessing = false
                 showMissingErrors = true
             }
@@ -116,6 +130,7 @@ class InboundViewModel(
         viewModelScope.launch {
             try {
                 val now = System.currentTimeMillis()
+                val manualCorrection = hasManualCorrections(lastOcrFields, draft)
                 val note = InboundNoteEntity(
                     senderCuit = draft.senderCuit.trim(),
                     senderNombre = draft.senderNombre.trim(),
@@ -136,12 +151,16 @@ class InboundViewModel(
 
                 withContext(ioDispatcher) {
                     repository.createInboundNote(note)
+                    if (manualCorrection) {
+                        settingsStore?.recordManualCorrection()
+                    }
                 }
 
                 draft = InboundDraftState()
                 selectedImageUri = null
                 ocrTextBlob = null
                 ocrConfidenceJson = null
+                lastOcrFields = emptyMap()
                 saveState = SaveState.Success
                 showMissingErrors = false
             } catch (error: Exception) {
