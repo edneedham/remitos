@@ -3,7 +3,6 @@ package com.remitos.app.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,19 +60,22 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             DashboardHeader()
 
             Column(
                 modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 PrimaryActionCard(
                     icon = Icons.Outlined.CameraAlt,
                     title = "Nuevo ingreso",
                     subtitle = "Escanear remito",
                     onClick = onScan,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(116.dp),
                 )
 
                 SectionLabel(text = "Acciones")
@@ -92,9 +94,10 @@ fun DashboardScreen(
                     onClick = onSettings,
                     modifier = Modifier.fillMaxWidth(),
                 )
+
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -112,7 +115,7 @@ private fun DashboardHeader() {
                     ),
                 ),
             )
-            .padding(horizontal = 24.dp, vertical = 32.dp),
+            .padding(horizontal = 24.dp, vertical = 24.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -140,11 +143,10 @@ private fun PrimaryActionCard(
     title: String,
     subtitle: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp)
+        modifier = modifier
             .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
@@ -156,12 +158,12 @@ private fun PrimaryActionCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(52.dp)
                     .clip(MaterialTheme.shapes.small)
                     .background(Blue100),
                 contentAlignment = Alignment.Center,
@@ -170,19 +172,19 @@ private fun PrimaryActionCard(
                     imageVector = icon,
                     contentDescription = null,
                     tint = BrandBlue,
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(26.dp),
                 )
             }
-            Spacer(modifier = Modifier.width(18.dp))
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -192,7 +194,7 @@ private fun PrimaryActionCard(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
@@ -209,8 +211,8 @@ private fun ActionGrid(
     onOutboundHistory: () -> Unit,
     onActivity: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ActionTile(
                 icon = Icons.Outlined.History,
                 title = "Historial",
@@ -226,7 +228,7 @@ private fun ActionGrid(
                 modifier = Modifier.weight(1f),
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ActionTile(
                 icon = Icons.AutoMirrored.Outlined.ReceiptLong,
                 title = "Historial de reparto",
@@ -255,7 +257,7 @@ private fun ActionTile(
 ) {
     Card(
         modifier = modifier
-            .aspectRatio(1.35f)
+            .height(104.dp)
             .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
@@ -265,12 +267,12 @@ private fun ActionTile(
         shape = MaterialTheme.shapes.medium,
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(32.dp)
                     .clip(MaterialTheme.shapes.small)
                     .background(MaterialTheme.colorScheme.secondaryContainer),
                 contentAlignment = Alignment.Center,
@@ -279,7 +281,7 @@ private fun ActionTile(
                     imageVector = icon,
                     contentDescription = null,
                     tint = BrandBlue,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(16.dp),
                 )
             }
             Text(
@@ -287,11 +289,13 @@ private fun ActionTile(
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
             )
         }
     }
