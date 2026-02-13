@@ -46,33 +46,23 @@ class OutboundPreviewViewModel(
         }
     }
 
-    fun signChecklist(listId: Long, signaturePath: String, signedAt: Long) {
+    fun markInTransit(listId: Long) {
         val current = _state.value as? OutboundPreviewState.Ready ?: return
-        if (current.isSigning) return
-        _state.value = current.copy(isSigning = true, message = null)
+        if (current.isUpdating) return
+        _state.value = current.copy(isUpdating = true, message = null)
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    val lineIds = current.lines.map { it.id }
-                    repository.signOutboundChecklist(listId, lineIds, signaturePath, signedAt)
+                    repository.markOutboundInTransit(listId)
                 }
-                val updatedList = current.list.copy(
-                    checklistSignaturePath = signaturePath,
-                    checklistSignedAt = signedAt,
-                )
                 val updatedLines = current.lines.map { line ->
-                    line.copy(status = OutboundLineStatus.EnTransito)
+                    if (isFinalStatus(line.status)) line else line.copy(status = OutboundLineStatus.EnTransito)
                 }
-                _state.value = current.copy(
-                    list = updatedList,
-                    lines = updatedLines,
-                    isSigning = false,
-                    message = "Checklist firmada."
-                )
+                _state.value = current.copy(lines = updatedLines, isUpdating = false)
             } catch (error: Exception) {
                 _state.value = current.copy(
-                    isSigning = false,
-                    message = "No se pudo guardar la firma. Intentá de nuevo."
+                    isUpdating = false,
+                    message = "No se pudo marcar en tránsito. Intentá de nuevo."
                 )
             }
         }
@@ -137,7 +127,6 @@ sealed interface OutboundPreviewState {
     data class Ready(
         val list: OutboundListEntity,
         val lines: List<OutboundLineWithRemito>,
-        val isSigning: Boolean = false,
         val isUpdating: Boolean = false,
         val isClosing: Boolean = false,
         val message: String? = null,

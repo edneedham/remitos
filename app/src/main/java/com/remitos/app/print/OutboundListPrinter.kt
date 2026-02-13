@@ -3,8 +3,6 @@ package com.remitos.app.print
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.RectF
-import android.graphics.BitmapFactory
 import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
 import android.print.PageRange
@@ -24,7 +22,11 @@ class OutboundListPrinter(private val context: Context) {
     fun print(list: OutboundListEntity, lines: List<OutboundLineWithRemito>) {
         val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
         val jobName = "Lista ${list.listNumber}"
-        printManager.print(jobName, OutboundListPrintAdapter(context, list, lines), null)
+        val attributes = PrintAttributes.Builder()
+            .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape())
+            .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+            .build()
+        printManager.print(jobName, OutboundListPrintAdapter(context, list, lines), attributes)
     }
 }
 
@@ -42,7 +44,11 @@ private class OutboundListPrintAdapter(
         callback: LayoutResultCallback,
         extras: android.os.Bundle?
     ) {
-        pdfDocument = PrintedPdfDocument(context, newAttributes)
+        val attributes = PrintAttributes.Builder()
+            .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape())
+            .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+            .build()
+        pdfDocument = PrintedPdfDocument(context, attributes)
         if (cancellationSignal.isCanceled) {
             callback.onLayoutCancelled()
             return
@@ -81,43 +87,176 @@ private class OutboundListPrintAdapter(
     }
 
     private fun drawPage(canvas: Canvas) {
-        val paint = Paint().apply { textSize = 14f }
+        val paint = Paint().apply { textSize = 12f; color = android.graphics.Color.BLACK }
+        val boldPaint = Paint().apply { textSize = 12f; isFakeBoldText = true; color = android.graphics.Color.BLACK }
+        val linePaint = Paint().apply {
+            strokeWidth = 1.2f
+            style = Paint.Style.STROKE
+            color = android.graphics.Color.BLACK
+        }
         val formatter = SimpleDateFormat("dd/MM/yyyy", Locale("es", "AR"))
         val issueDate = formatter.format(Date(list.issueDate))
-        var y = 40f
-        canvas.drawText("Lista Nº ${list.listNumber}", 40f, y, paint)
-        y += 20f
-        canvas.drawText("Fecha de emisión: $issueDate", 40f, y, paint)
-        y += 20f
-        canvas.drawText("Chofer: ${list.driverNombre} ${list.driverApellido}", 40f, y, paint)
-        y += 30f
+        var y = 26f
+        val left = 24f
+        val right = 818f
+        val rowHeight = 20f
 
-        canvas.drawText("Remito | Nº Entrega | Destinatario | Dirección | Teléfono | Bultos", 40f, y, paint)
-        y += 20f
+        val titleLeft = left + 160f
+        val titleRight = right
+        val titleTop = y - 10f
+        val titleHeight = 26f
+        canvas.drawRect(left, titleTop, titleLeft, titleTop + titleHeight * 2, linePaint)
+        canvas.drawRect(titleLeft, titleTop, titleRight, titleTop + titleHeight * 2, linePaint)
+        val titleCenter = (left + right) / 2f
+        canvas.drawText("Reparto", titleCenter - 26f, titleTop + 17f, boldPaint)
+        canvas.drawText("Nro. de Documento:", titleRight - 190f, titleTop + 17f, paint)
 
-        lines.forEach { line ->
-            val row = "${line.remitoNumCliente} | ${line.deliveryNumber} | ${line.recipientNombre} ${line.recipientApellido} | ${line.recipientDireccion} | ${line.recipientTelefono} | ${line.packageQty}"
-            canvas.drawText(row, 40f, y, paint)
-            y += 18f
-            if (y > 760f) return
+        val issueTop = titleTop + titleHeight
+        canvas.drawRect(titleLeft, issueTop, titleRight, issueTop + titleHeight, linePaint)
+        canvas.drawText("Fecha De Emision:", titleLeft + 10f, issueTop + 17f, paint)
+        canvas.drawText(issueDate, titleLeft + 120f, issueTop + 17f, paint)
+
+        val headerRowTop = issueTop + titleHeight
+        val fullHeaderWidth = right - left
+        val choferLabelWidth = 64f
+        val patenteLabelWidth = 74f
+        val patenteValueWidth = 180f
+        val choferValueWidth = fullHeaderWidth - choferLabelWidth - patenteLabelWidth - patenteValueWidth
+        drawHeaderField(
+            canvas,
+            "Chofer",
+            "${list.driverApellido} ${list.driverNombre}",
+            left,
+            headerRowTop,
+            choferLabelWidth,
+            choferValueWidth,
+            titleHeight,
+            linePaint,
+            paint,
+            boldPaint,
+        )
+        drawHeaderField(
+            canvas,
+            "Patente",
+            "",
+            left + choferLabelWidth + choferValueWidth,
+            headerRowTop,
+            patenteLabelWidth,
+            patenteValueWidth,
+            titleHeight,
+            linePaint,
+            paint,
+            boldPaint,
+        )
+
+        val tableTop = headerRowTop + titleHeight + 8f
+        val columns = listOf(
+            Column("Nro. Cliente", 76f),
+            Column("Nro. Interno", 76f),
+            Column("Destinatario", 118f),
+            Column("Direccion", 150f),
+            Column("Localidad", 80f),
+            Column("Bultos", 54f),
+            Column("Peso", 54f),
+            Column("Volumen", 68f),
+            Column("Observaciones", 110f),
+        )
+        val availableWidth = right - left
+        val baseWidth = columns.sumOf { it.width.toDouble() }.toFloat()
+        val scale = if (baseWidth > 0f) availableWidth / baseWidth else 1f
+        val scaledColumns = columns.map { col ->
+            col.copy(width = col.width * scale)
+        }
+        val tableRight = right
+
+        canvas.drawRect(left, tableTop, tableRight, tableTop + rowHeight, linePaint)
+        var x = left
+        scaledColumns.forEach { col ->
+            canvas.drawRect(x, tableTop, x + col.width, tableTop + rowHeight, linePaint)
+            canvas.drawText(col.title, x + 4f, tableTop + 14f, boldPaint)
+            x += col.width
         }
 
-        val signaturePath = list.checklistSignaturePath
-        if (signaturePath != null) {
-            y += 20f
-            canvas.drawText("Firma del chofer:", 40f, y, paint)
-            val bitmap = BitmapFactory.decodeFile(signaturePath)
-            if (bitmap != null) {
-                val targetWidth = 320f
-                val ratio = bitmap.height.toFloat() / bitmap.width.toFloat().coerceAtLeast(1f)
-                val targetHeight = targetWidth * ratio
-                canvas.drawBitmap(
-                    bitmap,
-                    null,
-                    RectF(40f, y + 10f, 40f + targetWidth, y + 10f + targetHeight),
-                    null
-                )
+        var rowTop = tableTop + rowHeight
+        val signatureBoxHeight = 28f
+        val signatureGap = 18f
+        val tableBottomLimit = 560f - signatureBoxHeight - signatureGap
+        val maxRows = ((tableBottomLimit - rowTop) / rowHeight).toInt().coerceAtLeast(8)
+        lines.take(maxRows).forEach { line ->
+            x = left
+            canvas.drawRect(left, rowTop, tableRight, rowTop + rowHeight, linePaint)
+            val values = listOf(
+                line.remitoNumCliente,
+                line.deliveryNumber,
+                "${line.recipientApellido} ${line.recipientNombre}",
+                line.recipientDireccion,
+                "",
+                line.packageQty.toString(),
+                "",
+                "",
+                "",
+            )
+            values.forEachIndexed { index, value ->
+                val col = scaledColumns[index]
+                canvas.drawRect(x, rowTop, x + col.width, rowTop + rowHeight, linePaint)
+                canvas.drawText(value, x + 3f, rowTop + 14f, paint)
+                x += col.width
             }
+            rowTop += rowHeight
         }
+
+        val signatureTop = rowTop + signatureGap
+        val signatureBoxWidth = 160f
+        canvas.drawText("Firma:", right - signatureBoxWidth - 60f, signatureTop, paint)
+        canvas.drawRect(
+            right - signatureBoxWidth,
+            signatureTop - 14f,
+            right,
+            signatureTop - 14f + signatureBoxHeight,
+            linePaint
+        )
+
+        // Firma manual sobre la caja impresa.
+
+        val aclaracionTop = signatureTop + 26f
+        canvas.drawText("Aclaración:", right - 200f, aclaracionTop, paint)
+        canvas.drawLine(right - 130f, aclaracionTop + 6f, right, aclaracionTop + 6f, linePaint)
+
+        val totalsTop = aclaracionTop + 22f
+        canvas.drawRect(left, totalsTop - 14f, left + 70f, totalsTop + 6f, linePaint)
+        canvas.drawText("Totales", left + 8f, totalsTop, boldPaint)
+
+        val totalBultos = lines.sumOf { it.packageQty }
+        val totalPedidos = lines.size
+        canvas.drawText("Cantidad de Bultos: $totalBultos", left, totalsTop + 26f, paint)
+        canvas.drawText("Cantidad de Pedidos: $totalPedidos", left + 180f, totalsTop + 26f, paint)
+        canvas.drawText("Volument Total M³:", left + 380f, totalsTop + 26f, paint)
+        canvas.drawText("Peso Total Kgs:", left + 560f, totalsTop + 26f, paint)
+    }
+}
+
+private data class Column(
+    val title: String,
+    val width: Float,
+)
+
+private fun drawHeaderField(
+    canvas: Canvas,
+    label: String,
+    value: String,
+    left: Float,
+    top: Float,
+    labelWidth: Float,
+    valueWidth: Float,
+    height: Float,
+    linePaint: Paint,
+    paint: Paint,
+    boldPaint: Paint,
+) {
+    canvas.drawRect(left, top, left + labelWidth, top + height, linePaint)
+    canvas.drawRect(left + labelWidth, top, left + labelWidth + valueWidth, top + height, linePaint)
+    canvas.drawText(label, left + 4f, top + 15f, boldPaint)
+    if (value.isNotBlank()) {
+        canvas.drawText(value, left + labelWidth + 4f, top + 15f, paint)
     }
 }

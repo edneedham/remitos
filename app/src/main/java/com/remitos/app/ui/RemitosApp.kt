@@ -23,6 +23,7 @@ import com.remitos.app.ui.screens.InboundCameraScreen
 import com.remitos.app.ui.screens.InboundDetailScreen
 import com.remitos.app.ui.screens.InboundHistoryScreen
 import com.remitos.app.ui.screens.InboundScanScreen
+import com.remitos.app.ui.screens.OutboundPreviewSampleScreen
 import com.remitos.app.ui.screens.ActivityScreen
 import com.remitos.app.ui.screens.OutboundHistoryScreen
 import com.remitos.app.ui.screens.OutboundListScreen
@@ -48,6 +49,7 @@ private object Routes {
     const val InboundCamera = "inbound_camera"
     const val InboundHistory = "inbound_history"
     const val InboundDetail = "inbound_detail"
+    const val ChecklistSample = "checklist_sample"
     const val OutboundList = "outbound_list"
     const val OutboundHistory = "outbound_history"
     const val OutboundPreview = "outbound_preview"
@@ -191,7 +193,13 @@ private fun AppNavHost(navController: NavHostController) {
             ActivityScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.Debug) {
-            DebugScreen(onBack = { navController.popBackStack() })
+            DebugScreen(
+                onBack = { navController.popBackStack() },
+                onOpenChecklistSample = { navController.navigate(Routes.ChecklistSample) },
+            )
+        }
+        composable(Routes.ChecklistSample) {
+            OutboundPreviewSampleScreen(onBack = { navController.popBackStack() })
         }
     }
 }

@@ -40,7 +40,10 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DebugScreen(onBack: () -> Unit) {
+fun DebugScreen(
+    onBack: () -> Unit,
+    onOpenChecklistSample: () -> Unit,
+) {
     val context = LocalContext.current
     val app = context.applicationContext as RemitosApplication
     val viewModel: DebugViewModel = viewModel(
@@ -72,6 +75,25 @@ fun DebugScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item { Spacer(modifier = Modifier.height(4.dp)) }
+            item {
+                SectionCard(
+                    title = "Checklist de muestra",
+                    icon = Icons.Outlined.BugReport,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onOpenChecklistSample),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = "Ver plantilla sin datos reales.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
             items(logs) { log ->
                 DebugLogCard(
                     log = log,

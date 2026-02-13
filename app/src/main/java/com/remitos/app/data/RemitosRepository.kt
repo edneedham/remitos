@@ -188,18 +188,8 @@ class RemitosRepository(private val db: AppDatabase) {
         return db.outboundDao().getLinesForListWithRemito(listId)
     }
 
-    suspend fun signOutboundChecklist(
-        listId: Long,
-        lineIds: List<Long>,
-        signaturePath: String,
-        signedAt: Long,
-    ) {
-        db.withTransaction {
-            db.outboundDao().updateChecklistSignature(listId, signaturePath, signedAt)
-            if (lineIds.isNotEmpty()) {
-                db.outboundDao().updateLineStatus(lineIds, OutboundLineStatus.EnTransito)
-            }
-        }
+    suspend fun markOutboundInTransit(listId: Long) {
+        db.outboundDao().updateLineStatusForList(listId, OutboundLineStatus.EnTransito)
     }
 
     suspend fun updateOutboundLineOutcome(
