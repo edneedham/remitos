@@ -12,8 +12,8 @@ android {
         applicationId = "com.remitos.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 10
-        versionName = "0.1.8"
+        versionCode = 11
+        versionName = "0.1.9"
     }
 
     buildTypes {
