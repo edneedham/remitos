@@ -1,6 +1,7 @@
 package com.remitos.app.data.db.entity
 
 import androidx.room.ColumnInfo
+import com.remitos.app.ocr.OcrFieldKeys
 
 data class OutboundLineWithRemito(
     val id: Long,
@@ -28,6 +29,6 @@ data class OutboundLineWithRemito(
     val deliveredQty: Int,
     @ColumnInfo(name = "returned_qty")
     val returnedQty: Int,
-    @ColumnInfo(name = "remito_num_cliente")
+    @ColumnInfo(name = OcrFieldKeys.RemitoNumCliente)
     val remitoNumCliente: String
 )

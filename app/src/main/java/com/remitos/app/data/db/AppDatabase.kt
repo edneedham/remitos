@@ -6,6 +6,8 @@ import androidx.room.migration.Migration
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.remitos.app.data.InboundNoteStatus
+import com.remitos.app.data.OutboundLineStatus
 import com.remitos.app.data.db.dao.DebugLogDao
 import com.remitos.app.data.db.dao.InboundDao
 import com.remitos.app.data.db.dao.OutboundDao
@@ -59,7 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
-                    "ALTER TABLE inbound_notes ADD COLUMN status TEXT NOT NULL DEFAULT 'activa'"
+                    "ALTER TABLE inbound_notes ADD COLUMN status TEXT NOT NULL DEFAULT '${InboundNoteStatus.Activa}'"
                 )
             }
         }
@@ -67,7 +69,7 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
-                    "ALTER TABLE outbound_lines ADD COLUMN status TEXT NOT NULL DEFAULT 'pendiente'"
+                    "ALTER TABLE outbound_lines ADD COLUMN status TEXT NOT NULL DEFAULT '${OutboundLineStatus.Pendiente}'"
                 )
                 db.execSQL(
                     "ALTER TABLE outbound_lists ADD COLUMN checklist_signature_path TEXT"
