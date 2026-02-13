@@ -154,15 +154,15 @@ class RemitosRepository(private val db: AppDatabase) {
                     throw IllegalStateException("Paquetes insuficientes")
                 }
 
-                db.inboundDao().updatePackageStatus(packageIds, InboundPackageStatus.Asignado)
-                val lineWithList = line.copy(
-                    outboundListId = listId,
-                    allocatedPackageIds = packageIds.joinToString(",")
-                )
-                db.outboundDao().insertOutboundLines(listOf(lineWithList))
-            }
-            listId
+            db.inboundDao().updatePackageStatus(packageIds, InboundPackageStatus.Asignado)
+            val lineWithList = line.copy(
+                outboundListId = listId,
+                allocatedPackageIds = packageIds.joinToString(",")
+            )
+            db.outboundDao().insertOutboundLines(listOf(lineWithList))
         }
+        listId
+    }
     }
 
     suspend fun insertDebugLog(log: DebugLogEntity) {
@@ -186,5 +186,32 @@ class RemitosRepository(private val db: AppDatabase) {
 
     suspend fun getOutboundLinesWithRemito(listId: Long): List<OutboundLineWithRemito> {
         return db.outboundDao().getLinesForListWithRemito(listId)
+    }
+
+    suspend fun signOutboundChecklist(
+        listId: Long,
+        lineIds: List<Long>,
+        signaturePath: String,
+        signedAt: Long,
+    ) {
+        db.withTransaction {
+            db.outboundDao().updateChecklistSignature(listId, signaturePath, signedAt)
+            if (lineIds.isNotEmpty()) {
+                db.outboundDao().updateLineStatus(lineIds, OutboundLineStatus.EnTransito)
+            }
+        }
+    }
+
+    suspend fun updateOutboundLineOutcome(
+        lineId: Long,
+        status: String,
+        deliveredQty: Int,
+        returnedQty: Int,
+    ) {
+        db.outboundDao().updateLineOutcome(lineId, status, deliveredQty, returnedQty)
+    }
+
+    suspend fun closeOutboundList(listId: Long) {
+        db.outboundDao().updateOutboundListStatus(listId, OutboundListStatus.Cerrada)
     }
 }

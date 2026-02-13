@@ -16,6 +16,10 @@ data class OutboundListEntity(
     val driverNombre: String,
     @ColumnInfo(name = "driver_apellido")
     val driverApellido: String,
+    @ColumnInfo(name = "checklist_signature_path")
+    val checklistSignaturePath: String?,
+    @ColumnInfo(name = "checklist_signed_at")
+    val checklistSignedAt: Long?,
     @ColumnInfo(name = "status")
     val status: String
 )

@@ -23,8 +23,43 @@ interface OutboundDao {
     @Query("SELECT * FROM outbound_lists WHERE id = :listId")
     suspend fun getOutboundList(listId: Long): OutboundListEntity?
 
+    @Query(
+        """
+        UPDATE outbound_lists
+        SET checklist_signature_path = :signaturePath,
+            checklist_signed_at = :signedAt
+        WHERE id = :listId
+        """
+    )
+    suspend fun updateChecklistSignature(listId: Long, signaturePath: String, signedAt: Long)
+
+    @Query("UPDATE outbound_lists SET status = :status WHERE id = :listId")
+    suspend fun updateOutboundListStatus(listId: Long, status: String)
+
     @Query("SELECT * FROM outbound_lines WHERE outbound_list_id = :listId")
     suspend fun getLinesForList(listId: Long): List<OutboundLineEntity>
+
+    @Query("UPDATE outbound_lines SET status = :status WHERE outbound_list_id = :listId")
+    suspend fun updateLineStatusForList(listId: Long, status: String)
+
+    @Query("UPDATE outbound_lines SET status = :status WHERE id IN (:lineIds)")
+    suspend fun updateLineStatus(lineIds: List<Long>, status: String)
+
+    @Query(
+        """
+        UPDATE outbound_lines
+        SET status = :status,
+            delivered_qty = :deliveredQty,
+            returned_qty = :returnedQty
+        WHERE id = :lineId
+        """
+    )
+    suspend fun updateLineOutcome(
+        lineId: Long,
+        status: String,
+        deliveredQty: Int,
+        returnedQty: Int,
+    )
 
     @Query(
         """

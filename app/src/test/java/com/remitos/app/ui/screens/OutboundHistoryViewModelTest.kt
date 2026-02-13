@@ -45,6 +45,8 @@ class OutboundHistoryViewModelTest {
             issueDate = 123L,
             driverNombre = "Ana",
             driverApellido = "Lopez",
+            checklistSignaturePath = null,
+            checklistSignedAt = null,
             status = OutboundListStatus.Abierta
         )
         whenever(repository.getOutboundList(4L)).thenReturn(list)

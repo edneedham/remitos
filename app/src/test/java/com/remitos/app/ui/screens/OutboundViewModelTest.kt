@@ -155,6 +155,8 @@ class OutboundViewModelTest {
                 issueDate = 123L,
                 driverNombre = "Juan",
                 driverApellido = "Perez",
+                checklistSignaturePath = null,
+                checklistSignedAt = null,
                 status = OutboundListStatus.Abierta
             )
         )

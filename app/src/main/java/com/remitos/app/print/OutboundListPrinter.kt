@@ -3,6 +3,8 @@ package com.remitos.app.print
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.BitmapFactory
 import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
 import android.print.PageRange
@@ -98,6 +100,24 @@ private class OutboundListPrintAdapter(
             canvas.drawText(row, 40f, y, paint)
             y += 18f
             if (y > 760f) return
+        }
+
+        val signaturePath = list.checklistSignaturePath
+        if (signaturePath != null) {
+            y += 20f
+            canvas.drawText("Firma del chofer:", 40f, y, paint)
+            val bitmap = BitmapFactory.decodeFile(signaturePath)
+            if (bitmap != null) {
+                val targetWidth = 320f
+                val ratio = bitmap.height.toFloat() / bitmap.width.toFloat().coerceAtLeast(1f)
+                val targetHeight = targetWidth * ratio
+                canvas.drawBitmap(
+                    bitmap,
+                    null,
+                    RectF(40f, y + 10f, 40f + targetWidth, y + 10f + targetHeight),
+                    null
+                )
+            }
         }
     }
 }

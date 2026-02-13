@@ -2,6 +2,7 @@ package com.remitos.app.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.remitos.app.data.OutboundLineStatus
 import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.db.entity.InboundNoteWithAvailable
@@ -65,6 +66,8 @@ class OutboundViewModel(
                     issueDate = now,
                     driverNombre = draft.driverNombre.trim(),
                     driverApellido = draft.driverApellido.trim(),
+                    checklistSignaturePath = null,
+                    checklistSignedAt = null,
                     status = OutboundListStatus.Abierta
                 )
 
@@ -79,6 +82,7 @@ class OutboundViewModel(
                         recipientTelefono = lineDraft.recipientTelefono.trim(),
                         packageQty = lineDraft.cantidadBultos.toInt(),
                         allocatedPackageIds = "",
+                        status = OutboundLineStatus.EnDeposito,
                         deliveredQty = 0,
                         returnedQty = 0
                     )

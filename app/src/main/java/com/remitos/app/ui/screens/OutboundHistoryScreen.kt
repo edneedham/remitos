@@ -43,6 +43,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.RemitosApplication
+import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.print.OutboundListPrinter
 import com.remitos.app.ui.components.RemitosTopBar
@@ -231,7 +232,7 @@ private fun OutboundHistoryCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "Estado: ${list.status}",
+                    text = "Estado: ${listStatusLabel(list.status)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -253,5 +254,13 @@ private fun OutboundHistoryCard(
                 }
             }
         }
+    }
+}
+
+private fun listStatusLabel(status: String): String {
+    return when (status) {
+        OutboundListStatus.Abierta -> "Abierta"
+        OutboundListStatus.Cerrada -> "Cerrada"
+        else -> status
     }
 }

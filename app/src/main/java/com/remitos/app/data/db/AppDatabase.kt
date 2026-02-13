@@ -26,7 +26,7 @@ import com.remitos.app.data.db.entity.SequenceEntity
         SequenceEntity::class,
         DebugLogEntity::class,
     ],
-    version = 3
+    version = 4
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun inboundDao(): InboundDao
@@ -64,12 +64,26 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE outbound_lines ADD COLUMN status TEXT NOT NULL DEFAULT 'pendiente'"
+                )
+                db.execSQL(
+                    "ALTER TABLE outbound_lists ADD COLUMN checklist_signature_path TEXT"
+                )
+                db.execSQL(
+                    "ALTER TABLE outbound_lists ADD COLUMN checklist_signed_at INTEGER"
+                )
+            }
+        }
+
         fun build(context: Context): AppDatabase {
             return Room.databaseBuilder(
                 context,
                 AppDatabase::class.java,
                 "remitos.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
         }
     }

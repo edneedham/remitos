@@ -22,6 +22,8 @@ data class OutboundLineWithRemito(
     val packageQty: Int,
     @ColumnInfo(name = "allocated_package_ids")
     val allocatedPackageIds: String,
+    @ColumnInfo(name = "status")
+    val status: String,
     @ColumnInfo(name = "delivered_qty")
     val deliveredQty: Int,
     @ColumnInfo(name = "returned_qty")

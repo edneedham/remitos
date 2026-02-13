@@ -1,6 +1,11 @@
 package com.remitos.app.ui.screens
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,13 +20,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BorderColor
+import androidx.compose.material.icons.outlined.Done
 import androidx.compose.material.icons.outlined.Print
+import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +45,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -43,8 +56,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.RemitosApplication
+import com.remitos.app.data.OutboundLineStatus
+import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.print.OutboundListPrinter
 import com.remitos.app.ui.components.RemitosTopBar
+import java.io.File
+import java.io.FileOutputStream
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -68,6 +85,7 @@ fun OutboundPreviewScreen(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showConfirmDialog by remember { mutableStateOf(false) }
+    var showSignatureDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     LaunchedEffect(listId) {
@@ -102,21 +120,75 @@ fun OutboundPreviewScreen(
                     PreviewPlaceholder(current.message)
                 }
                 is OutboundPreviewState.Ready -> {
-                    PreviewCard(current)
+                    PreviewCard(
+                        state = current,
+                        onUpdateOutcome = { lineId, status ->
+                            viewModel.updateLineOutcome(lineId, status)
+                        },
+                    )
+
+                    if (current.message != null) {
+                        Text(
+                            text = current.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    if (current.list.checklistSignaturePath == null) {
+                        OutlinedButton(
+                            onClick = { showSignatureDialog = true },
+                            enabled = !current.isSigning && current.list.status == OutboundListStatus.Abierta,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = MaterialTheme.shapes.medium,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.BorderColor,
+                                contentDescription = null,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (current.isSigning) "Firmando…" else "Firmar checklist")
+                        }
+                    } else {
+                        Text(
+                            text = "Checklist firmada",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
+                    }
 
                     Button(
                         onClick = { showConfirmDialog = true },
+                        enabled = current.list.checklistSignaturePath != null,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
                         shape = MaterialTheme.shapes.medium,
                     ) {
-                        androidx.compose.material3.Icon(
+                        Icon(
                             imageVector = Icons.Outlined.Print,
                             contentDescription = null,
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Imprimir")
+                    }
+
+                    Button(
+                        onClick = { viewModel.closeList(current.list.id) },
+                        enabled = current.list.status == OutboundListStatus.Abierta && canCloseList(current.lines),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = MaterialTheme.shapes.medium,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Done,
+                            contentDescription = null,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (current.isClosing) "Cerrando…" else "Cerrar lista")
                     }
                 }
             }
@@ -148,6 +220,20 @@ fun OutboundPreviewScreen(
             text = { Text("Confirmas imprimir la lista de reparto?") },
         )
     }
+
+    if (showSignatureDialog) {
+        SignatureCaptureDialog(
+            onDismiss = { showSignatureDialog = false },
+            onConfirm = { bitmap ->
+                val ready = state as? OutboundPreviewState.Ready ?: return@SignatureCaptureDialog
+                val path = saveSignatureBitmap(context, ready.list.id, bitmap)
+                if (path != null) {
+                    viewModel.signChecklist(ready.list.id, path, System.currentTimeMillis())
+                }
+                showSignatureDialog = false
+            },
+        )
+    }
 }
 
 @Composable
@@ -168,7 +254,10 @@ private fun PreviewPlaceholder(message: String) {
 }
 
 @Composable
-private fun PreviewCard(state: OutboundPreviewState.Ready) {
+private fun PreviewCard(
+    state: OutboundPreviewState.Ready,
+    onUpdateOutcome: (Long, String) -> Unit,
+) {
     val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     val date = Instant.ofEpochMilli(state.list.issueDate)
         .atZone(ZoneId.systemDefault())
@@ -201,6 +290,11 @@ private fun PreviewCard(state: OutboundPreviewState.Ready) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Text(
+                text = "Estado: ${listStatusLabel(state.list.status)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
 
             Spacer(modifier = Modifier.height(6.dp))
 
@@ -208,12 +302,16 @@ private fun PreviewCard(state: OutboundPreviewState.Ready) {
 
             state.lines.forEach { line ->
                 PreviewLineRow(
-                    remito = line.remitoNumCliente,
-                    entrega = line.deliveryNumber,
-                    destinatario = "${line.recipientNombre} ${line.recipientApellido}",
-                    direccion = line.recipientDireccion,
-                    telefono = line.recipientTelefono,
-                    bultos = line.packageQty.toString(),
+                    line = line,
+                    allowActions = state.list.checklistSignaturePath != null &&
+                        state.list.status == OutboundListStatus.Abierta &&
+                        !isFinalStatus(line.status),
+                    onDelivered = { currentLine ->
+                        onUpdateOutcome(currentLine.id, OutboundLineStatus.Entregado)
+                    },
+                    onReturned = { currentLine ->
+                        onUpdateOutcome(currentLine.id, OutboundLineStatus.Devuelto)
+                    },
                 )
             }
         }
@@ -234,20 +332,41 @@ private fun PreviewHeaderRow() {
 
 @Composable
 private fun PreviewLineRow(
-    remito: String,
-    entrega: String,
-    destinatario: String,
-    direccion: String,
-    telefono: String,
-    bultos: String,
+    line: com.remitos.app.data.db.entity.OutboundLineWithRemito,
+    allowActions: Boolean,
+    onDelivered: (com.remitos.app.data.db.entity.OutboundLineWithRemito) -> Unit,
+    onReturned: (com.remitos.app.data.db.entity.OutboundLineWithRemito) -> Unit,
 ) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        PreviewCell(remito, 1.2f)
-        PreviewCell(entrega, 1.1f)
-        PreviewCell(destinatario, 1.6f)
-        PreviewCell(direccion, 2.2f)
-        PreviewCell(telefono, 1.4f)
-        PreviewCell(bultos, 0.8f)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            PreviewCell(line.remitoNumCliente, 1.2f)
+            PreviewCell(line.deliveryNumber, 1.1f)
+            PreviewCell("${line.recipientNombre} ${line.recipientApellido}", 1.6f)
+            PreviewCell(line.recipientDireccion, 2.2f)
+            PreviewCell(line.recipientTelefono, 1.4f)
+            PreviewCell(line.packageQty.toString(), 0.8f)
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Estado: ${lineStatusLabel(line.status)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (allowActions) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { onDelivered(line) }) {
+                        Text("Entregado")
+                    }
+                    OutlinedButton(onClick = { onReturned(line) }) {
+                        Text("Devuelto")
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -268,4 +387,128 @@ private fun RowScope.PreviewCell(
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )
+}
+
+@Composable
+private fun SignatureCaptureDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (Bitmap) -> Unit,
+) {
+    val configuration = LocalConfiguration.current
+    val widthPx = (configuration.screenWidthDp * 0.85f).toInt().coerceAtLeast(1)
+    val heightPx = (configuration.screenHeightDp * 0.25f).toInt().coerceAtLeast(1)
+    val path = remember { androidx.compose.ui.graphics.Path() }
+    var hasSignature by remember { mutableStateOf(false) }
+
+    val strokeColor = MaterialTheme.colorScheme.onSurface
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Firma del chofer") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
+                        .pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragStart = { offset ->
+                                    path.moveTo(offset.x, offset.y)
+                                    hasSignature = true
+                                },
+                                onDrag = { change, _ ->
+                                    path.lineTo(change.position.x, change.position.y)
+                                }
+                            )
+                        }
+                ) {
+                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                        drawPath(
+                            path = path,
+                            color = strokeColor,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4f)
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    TextButton(
+                        onClick = {
+                            path.reset()
+                            hasSignature = false
+                        }
+                    ) {
+                        Icon(imageVector = Icons.Outlined.Replay, contentDescription = null)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Borrar")
+                    }
+                    Text(
+                        text = if (hasSignature) "Firma registrada" else "Firmá en el recuadro",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bitmap)
+                    canvas.drawColor(Color.WHITE)
+                    val paint = Paint().apply {
+                        color = Color.BLACK
+                        strokeWidth = 4f
+                        style = Paint.Style.STROKE
+                        isAntiAlias = true
+                    }
+                    canvas.drawPath(path.asAndroidPath(), paint)
+                    onConfirm(bitmap)
+                },
+                enabled = hasSignature,
+            ) {
+                Text("Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        },
+    )
+}
+
+private fun saveSignatureBitmap(
+    context: android.content.Context,
+    listId: Long,
+    bitmap: Bitmap,
+): String? {
+    return runCatching {
+        val dir = File(context.filesDir, "signatures").apply { mkdirs() }
+        val file = File(dir, "checklist_${listId}_${System.currentTimeMillis()}.png")
+        FileOutputStream(file).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+        }
+        file.absolutePath
+    }.getOrNull()
+}
+
+private fun lineStatusLabel(status: String): String {
+    return when (status) {
+        OutboundLineStatus.Pendiente -> "Pendiente"
+        OutboundLineStatus.EnDeposito -> "En depósito"
+        OutboundLineStatus.EnTransito -> "En tránsito"
+        OutboundLineStatus.Entregado -> "Entregado"
+        OutboundLineStatus.Devuelto -> "Devuelto"
+        else -> status
+    }
+}
+
+private fun listStatusLabel(status: String): String {
+    return when (status) {
+        OutboundListStatus.Abierta -> "Abierta"
+        OutboundListStatus.Cerrada -> "Cerrada"
+        else -> status
+    }
 }
