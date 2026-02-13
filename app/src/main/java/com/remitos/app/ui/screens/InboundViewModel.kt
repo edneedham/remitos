@@ -57,6 +57,9 @@ class InboundViewModel(
     var showMissingErrors by mutableStateOf(false)
         private set
 
+    var showManualEntryPrompt by mutableStateOf(false)
+        private set
+
     fun updateDraft(value: InboundDraftState) {
         draft = value
     }
@@ -64,6 +67,7 @@ class InboundViewModel(
     fun updateImageUri(value: Uri?) {
         selectedImageUri = value
         showMissingErrors = false
+        showManualEntryPrompt = false
     }
 
     fun processImage(context: Context) {
@@ -144,6 +148,7 @@ class InboundViewModel(
                 }
                 isProcessing = false
                 showMissingErrors = true
+                showManualEntryPrompt = !parseSuccess
             }
         }
     }
@@ -209,12 +214,17 @@ class InboundViewModel(
                 lastOcrFields = emptyMap()
                 saveState = SaveState.Success
                 showMissingErrors = false
+                showManualEntryPrompt = false
             } catch (error: Exception) {
                 saveState = SaveState.Error("No se pudo guardar el ingreso. Intentá de nuevo.")
             } finally {
                 isSaving = false
             }
         }
+    }
+
+    fun clearManualEntryPrompt() {
+        showManualEntryPrompt = false
     }
 
     fun clearSaveState() {

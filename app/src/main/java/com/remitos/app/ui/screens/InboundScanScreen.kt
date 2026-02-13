@@ -370,6 +370,17 @@ fun InboundScanScreen(
         )
     }
 
+    if (viewModel.showManualEntryPrompt) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearManualEntryPrompt() },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearManualEntryPrompt() }) { Text("Aceptar") }
+            },
+            title = { Text("No se pudo leer el documento") },
+            text = { Text("Completá los datos manualmente.") },
+        )
+    }
+
     when (val state = viewModel.saveState) {
         is SaveState.Success -> {
             LaunchedEffect(state) {
