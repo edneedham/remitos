@@ -53,7 +53,7 @@ interface OutboundDao {
 
     @Query(
         """
-        SELECT l.*, n.remito_num_cliente AS remito_num_cliente
+        SELECT l.*, n.remito_num_cliente AS remito_num_cliente, n.remito_num_interno AS remito_num_interno
         FROM outbound_lines l
         INNER JOIN inbound_notes n ON n.id = l.inbound_note_id
         WHERE l.outbound_list_id = :listId

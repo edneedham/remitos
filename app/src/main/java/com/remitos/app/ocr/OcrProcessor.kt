@@ -441,14 +441,6 @@ class OcrProcessor {
                 confidence[OcrFieldKeys.RemitoNumCliente] = 0.6f
             }
 
-            val remitoInternoMatch = Regex(
-                "(?i)remito\\s*(?:n\\s*[°o])?\\s*interno\\s*[:\\-]?\\s*([\\w-]+)"
-            ).find(raw)
-            if (remitoInternoMatch != null) {
-                fields[OcrFieldKeys.RemitoNumInterno] = remitoInternoMatch.groupValues[1]
-                confidence[OcrFieldKeys.RemitoNumInterno] = 0.6f
-            }
-
             val remitenteMatch = Regex("(?i)remitente\\s*[:\\-]?\\s*([A-Za-zÁÉÍÓÚÑáéíóúñ]+)\\s+([A-Za-zÁÉÍÓÚÑáéíóúñ]+)")
                 .find(raw)
             if (remitenteMatch != null) {
@@ -496,8 +488,7 @@ class OcrProcessor {
             if (!fields.containsKey(OcrFieldKeys.DestDireccion)) missing.add("Dirección")
             if (!fields.containsKey(OcrFieldKeys.DestTelefono)) missing.add("Teléfono")
             if (!fields.containsKey(OcrFieldKeys.CantBultosTotal)) missing.add("Cantidad de bultos")
-            if (!fields.containsKey(OcrFieldKeys.RemitoNumCliente)) missing.add("Remito cliente")
-            if (!fields.containsKey(OcrFieldKeys.RemitoNumInterno)) missing.add("Remito interno")
+            if (!fields.containsKey(OcrFieldKeys.RemitoNumCliente)) missing.add("Número de remito de cliente")
 
             if (missing.isEmpty()) return null
             return "Faltan: ${missing.joinToString(", ")}"

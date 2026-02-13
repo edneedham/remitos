@@ -463,6 +463,7 @@ private fun samplePreviewState(): OutboundPreviewState.Ready {
             deliveredQty = 0,
             returnedQty = 0,
             remitoNumCliente = "R-1001",
+            remitoNumInterno = "RI-000101",
         ),
         OutboundLineWithRemito(
             id = 12L,
@@ -479,6 +480,7 @@ private fun samplePreviewState(): OutboundPreviewState.Ready {
             deliveredQty = 0,
             returnedQty = 0,
             remitoNumCliente = "R-1002",
+            remitoNumInterno = "RI-000102",
         ),
     )
     return OutboundPreviewState.Ready(list = list, lines = lines)

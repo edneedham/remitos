@@ -15,12 +15,14 @@ import kotlinx.coroutines.flow.Flow
 class RemitosRepository(private val db: AppDatabase) {
     companion object {
         private const val ListSequenceName = "outbound_list"
+        private const val InboundRemitoSequenceName = "inbound_remito_interno"
         private const val MaxDebugLogs = 200
     }
 
     suspend fun createInboundNote(note: InboundNoteEntity): Long {
         return db.withTransaction {
-            val id = db.inboundDao().insertInbound(note)
+            val remitoInterno = nextInboundRemitoInternoLocked()
+            val id = db.inboundDao().insertInbound(note.copy(remitoNumInterno = remitoInterno))
             val packages = (1..note.cantBultosTotal).map { index ->
                 InboundPackageEntity(
                     inboundNoteId = id,
@@ -107,6 +109,23 @@ class RemitosRepository(private val db: AppDatabase) {
                 next
             }
         }
+    }
+
+    private suspend fun nextInboundRemitoInternoLocked(): String {
+        val current = db.sequenceDao().getSequence(InboundRemitoSequenceName)
+        val nextValue = if (current == null) {
+            db.sequenceDao().insertSequence(SequenceEntity(InboundRemitoSequenceName, 2))
+            1
+        } else {
+            val value = current.nextValue
+            db.sequenceDao().updateSequence(current.copy(nextValue = value + 1))
+            value
+        }
+        return formatInboundRemitoInterno(nextValue)
+    }
+
+    private fun formatInboundRemitoInterno(value: Long): String {
+        return "RI-${value.toString().padStart(6, '0')}"
     }
 
     suspend fun createOutboundList(list: OutboundListEntity): Long {

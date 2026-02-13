@@ -19,7 +19,6 @@ internal fun hasManualCorrections(ocrFields: Map<String, String>, draft: Inbound
         OcrFieldKeys.DestTelefono to draft.destTelefono,
         OcrFieldKeys.CantBultosTotal to draft.cantBultosTotal,
         OcrFieldKeys.RemitoNumCliente to draft.remitoNumCliente,
-        OcrFieldKeys.RemitoNumInterno to draft.remitoNumInterno,
     )
 
     return pairs.any { (key, value) ->

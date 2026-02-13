@@ -282,7 +282,7 @@ private fun InboundHistoryCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "Remito: ${note.remitoNumCliente}",
+                        text = "Remito cliente: ${note.remitoNumCliente}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.secondary,
                         fontWeight = FontWeight.Medium,

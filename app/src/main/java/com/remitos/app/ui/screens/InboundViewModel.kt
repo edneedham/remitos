@@ -100,8 +100,7 @@ class InboundViewModel(
                     destDireccion = result.fields[OcrFieldKeys.DestDireccion] ?: draft.destDireccion,
                     destTelefono = result.fields[OcrFieldKeys.DestTelefono] ?: draft.destTelefono,
                     cantBultosTotal = result.fields[OcrFieldKeys.CantBultosTotal] ?: draft.cantBultosTotal,
-                    remitoNumCliente = result.fields[OcrFieldKeys.RemitoNumCliente] ?: draft.remitoNumCliente,
-                    remitoNumInterno = result.fields[OcrFieldKeys.RemitoNumInterno] ?: draft.remitoNumInterno
+                    remitoNumCliente = result.fields[OcrFieldKeys.RemitoNumCliente] ?: draft.remitoNumCliente
                 )
                 debugLog = DebugLogEntity(
                     createdAt = System.currentTimeMillis(),
@@ -191,7 +190,7 @@ class InboundViewModel(
                     destTelefono = draft.destTelefono.trim(),
                     cantBultosTotal = cantBultos,
                     remitoNumCliente = draft.remitoNumCliente.trim(),
-                    remitoNumInterno = draft.remitoNumInterno.trim(),
+                    remitoNumInterno = "",
                     status = InboundNoteStatus.Activa,
                     scanImagePath = selectedImageUri?.toString(),
                     ocrTextBlob = ocrTextBlob,
@@ -262,7 +261,6 @@ data class InboundDraftState(
             missing.add(MissingField.CantBultos)
         }
         if (remitoNumCliente.isBlank()) missing.add(MissingField.RemitoCliente)
-        if (remitoNumInterno.isBlank()) missing.add(MissingField.RemitoInterno)
         return missing
     }
 }
@@ -276,6 +274,5 @@ enum class MissingField(val label: String) {
     DestDireccion("Dirección Destinatario"),
     DestTelefono("Teléfono Destinatario"),
     CantBultos("Cantidad de bultos"),
-    RemitoCliente("Remito Nº Cliente"),
-    RemitoInterno("Remito Nº Interno")
+    RemitoCliente("Número de remito de cliente")
 }

@@ -72,7 +72,7 @@ class InboundDetailViewModel(
                     destTelefono = draft.destTelefono.trim(),
                     cantBultosTotal = cantBultos,
                     remitoNumCliente = draft.remitoNumCliente.trim(),
-                    remitoNumInterno = draft.remitoNumInterno.trim(),
+                    remitoNumInterno = note.remitoNumInterno,
                     updatedAt = now,
                 )
                 withContext(ioDispatcher) {

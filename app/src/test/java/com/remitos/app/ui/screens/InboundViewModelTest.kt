@@ -50,8 +50,7 @@ class InboundViewModelTest {
                 destDireccion = "Calle 123",
                 destTelefono = "111111111",
                 cantBultosTotal = "0",
-                remitoNumCliente = "RC-1",
-                remitoNumInterno = "RI-1"
+                remitoNumCliente = "RC-1"
             )
         )
 
@@ -80,8 +79,7 @@ class InboundViewModelTest {
                 destDireccion = "Calle 123",
                 destTelefono = "111111111",
                 cantBultosTotal = "2",
-                remitoNumCliente = "RC-2",
-                remitoNumInterno = "RI-2"
+                remitoNumCliente = "RC-2"
             )
         )
 
@@ -107,8 +105,7 @@ class InboundViewModelTest {
                 destDireccion = "Calle 123",
                 destTelefono = "111111111",
                 cantBultosTotal = "2",
-                remitoNumCliente = "RC-2",
-                remitoNumInterno = "RI-2"
+                remitoNumCliente = "RC-2"
             )
         )
         viewModel.updateOcrMetadata("texto ocr", mapOf(OcrFieldKeys.SenderCuit to 0.8f))

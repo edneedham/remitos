@@ -17,7 +17,6 @@ class OcrProcessorParsingSummaryTest {
             OcrFieldKeys.DestTelefono to "1122334455",
             OcrFieldKeys.CantBultosTotal to "2",
             OcrFieldKeys.RemitoNumCliente to "A-1",
-            OcrFieldKeys.RemitoNumInterno to "B-2",
         )
 
         assertNull(OcrProcessor.buildParsingErrorSummary(fields))
@@ -33,7 +32,7 @@ class OcrProcessorParsingSummaryTest {
 
         val summary = OcrProcessor.buildParsingErrorSummary(fields)
         assertEquals(
-            "Faltan: Remitente, Destinatario, Dirección, Teléfono, Cantidad de bultos, Remito cliente, Remito interno",
+            "Faltan: Remitente, Destinatario, Dirección, Teléfono, Cantidad de bultos, Número de remito de cliente",
             summary
         )
     }

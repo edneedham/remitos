@@ -400,21 +400,13 @@ private fun InboundDetailForm(
             RemitosTextField(
                 value = draft.remitoNumCliente,
                 onValueChange = { onDraftChange(draft.copy(remitoNumCliente = it)) },
-                label = "Remito Nº Cliente",
+                label = "Número de remito de cliente",
                 isError = missing.contains(MissingField.RemitoCliente),
                 errorMessage = "Campo requerido.",
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
             )
         }
-        RemitosTextField(
-            value = draft.remitoNumInterno,
-            onValueChange = { onDraftChange(draft.copy(remitoNumInterno = it)) },
-            label = "Remito Nº Interno",
-            isError = missing.contains(MissingField.RemitoInterno),
-            errorMessage = "Campo requerido.",
-            readOnly = readOnly,
-        )
     }
 }
 

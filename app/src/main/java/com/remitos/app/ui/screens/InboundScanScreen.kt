@@ -304,18 +304,10 @@ fun InboundScanScreen(
                 RemitosTextField(
                     value = draft.remitoNumCliente,
                     onValueChange = { viewModel.updateDraft(draft.copy(remitoNumCliente = it)) },
-                    label = "Remito N° Cliente",
+                    label = "Número de remito de cliente",
                     leadingIcon = Icons.Outlined.Numbers,
                     isError = errorMessage(MissingField.RemitoCliente) != null,
                     errorMessage = errorMessage(MissingField.RemitoCliente),
-                )
-                RemitosTextField(
-                    value = draft.remitoNumInterno,
-                    onValueChange = { viewModel.updateDraft(draft.copy(remitoNumInterno = it)) },
-                    label = "Remito N° Interno",
-                    leadingIcon = Icons.Outlined.Numbers,
-                    isError = errorMessage(MissingField.RemitoInterno) != null,
-                    errorMessage = errorMessage(MissingField.RemitoInterno),
                 )
             }
 

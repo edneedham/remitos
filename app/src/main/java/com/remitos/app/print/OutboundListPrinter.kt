@@ -110,6 +110,7 @@ private class OutboundListPrintAdapter(
         val titleCenter = (left + right) / 2f
         canvas.drawText("Reparto", titleCenter - 26f, titleTop + 17f, boldPaint)
         canvas.drawText("Nro. de Documento:", titleRight - 190f, titleTop + 17f, paint)
+        canvas.drawText(list.listNumber.toString(), titleRight - 70f, titleTop + 17f, paint)
 
         val issueTop = titleTop + titleHeight
         canvas.drawRect(titleLeft, issueTop, titleRight, issueTop + titleHeight, linePaint)
@@ -187,7 +188,7 @@ private class OutboundListPrintAdapter(
             canvas.drawRect(left, rowTop, tableRight, rowTop + rowHeight, linePaint)
             val values = listOf(
                 line.remitoNumCliente,
-                line.deliveryNumber,
+                line.remitoNumInterno,
                 "${line.recipientApellido} ${line.recipientNombre}",
                 line.recipientDireccion,
                 "",

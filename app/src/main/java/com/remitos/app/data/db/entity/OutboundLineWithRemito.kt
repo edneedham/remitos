@@ -30,5 +30,7 @@ data class OutboundLineWithRemito(
     @ColumnInfo(name = "returned_qty")
     val returnedQty: Int,
     @ColumnInfo(name = OcrFieldKeys.RemitoNumCliente)
-    val remitoNumCliente: String
+    val remitoNumCliente: String,
+    @ColumnInfo(name = OcrFieldKeys.RemitoNumInterno)
+    val remitoNumInterno: String
 )
