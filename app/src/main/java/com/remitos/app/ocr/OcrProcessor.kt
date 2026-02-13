@@ -420,60 +420,295 @@ class OcrProcessor {
         internal fun parseFields(raw: String): Pair<Map<String, String>, Map<String, Float>> {
             val fields = mutableMapOf<String, String>()
             val confidence = mutableMapOf<String, Float>()
+            val normalized = raw.replace("\r", "\n")
+            val lines = normalized.lines()
+
+            val senderLabels = listOf(
+                "remitente",
+                "proveedor",
+                "emisor",
+                "vendedor",
+            )
+            val destLabels = listOf(
+                "destinatario",
+                "cliente",
+                "receptor",
+                "comprador",
+                "consignatario",
+            )
+            val addressLabels = listOf(
+                "dirección",
+                "direccion",
+                "domicilio",
+                "dirección de entrega",
+                "direccion de entrega",
+                "domicilio de entrega",
+                "dirección destinatario",
+                "direccion destinatario",
+                "domicilio destinatario",
+                "dirección cliente",
+                "direccion cliente",
+                "domicilio cliente",
+            )
+            val phoneLabels = listOf(
+                "teléfono",
+                "telefono",
+                "tel",
+                "tel.",
+                "celular",
+                "contacto",
+            )
+            val bultosLabels = listOf(
+                "cantidad de bultos",
+                "cant bultos",
+                "cant. bultos",
+                "bultos",
+            )
+            val documentNumberLabels = listOf(
+                "remito cliente",
+                "remito",
+                "nota de entrega",
+                "guía de despacho",
+                "guia de despacho",
+                "orden de entrega",
+                "factura",
+                "comprobante",
+                "documento",
+            )
+            val cuitLabels = listOf(
+                "cuit",
+                "cuil",
+                "cuit/cuil",
+                "cuit remitente",
+                "cuit proveedor",
+                "cuit emisor",
+            )
+
+            val knownLabels = senderLabels + destLabels + addressLabels + phoneLabels + bultosLabels + documentNumberLabels + cuitLabels
+
+            val senderValue = findLabeledValue(lines, senderLabels, knownLabels)
+            if (senderValue != null) {
+                val (nombre, apellido) = splitPersonName(senderValue.value)
+                if (nombre.isNotBlank()) {
+                    fields[OcrFieldKeys.SenderNombre] = nombre
+                    confidence[OcrFieldKeys.SenderNombre] = senderValue.confidence
+                }
+                if (apellido.isNotBlank()) {
+                    fields[OcrFieldKeys.SenderApellido] = apellido
+                    confidence[OcrFieldKeys.SenderApellido] = senderValue.confidence
+                }
+            }
+
+            val destValue = findLabeledValue(lines, destLabels, knownLabels)
+            if (destValue != null) {
+                val (nombre, apellido) = splitPersonName(destValue.value)
+                if (nombre.isNotBlank()) {
+                    fields[OcrFieldKeys.DestNombre] = nombre
+                    confidence[OcrFieldKeys.DestNombre] = destValue.confidence
+                }
+                if (apellido.isNotBlank()) {
+                    fields[OcrFieldKeys.DestApellido] = apellido
+                    confidence[OcrFieldKeys.DestApellido] = destValue.confidence
+                }
+            }
+
+            val addressValue = findLabeledValue(lines, addressLabels, knownLabels)
+            if (addressValue != null && addressValue.value.isNotBlank()) {
+                fields[OcrFieldKeys.DestDireccion] = addressValue.value
+                confidence[OcrFieldKeys.DestDireccion] = addressValue.confidence
+            }
+
+            val phoneValue = findLabeledValue(lines, phoneLabels, knownLabels)
+            if (phoneValue != null && phoneValue.value.isNotBlank()) {
+                val normalizedPhone = phoneValue.value.replace(" ", "").trim()
+                if (normalizedPhone.isNotBlank()) {
+                    fields[OcrFieldKeys.DestTelefono] = normalizedPhone
+                    confidence[OcrFieldKeys.DestTelefono] = phoneValue.confidence
+                }
+            }
+
+            val bultosValue = findLabeledValue(lines, bultosLabels, knownLabels)
+            if (bultosValue != null) {
+                val quantity = Regex("\\d+").find(bultosValue.value)?.value
+                if (!quantity.isNullOrBlank()) {
+                    fields[OcrFieldKeys.CantBultosTotal] = quantity
+                    confidence[OcrFieldKeys.CantBultosTotal] = bultosValue.confidence
+                }
+            }
+
+            val documentValue = findLabeledValue(
+                lines,
+                documentNumberLabels,
+                knownLabels,
+            ) { value -> value.any { it.isDigit() } }
+            if (documentValue != null && documentValue.value.isNotBlank()) {
+                fields[OcrFieldKeys.RemitoNumCliente] = documentValue.value
+                confidence[OcrFieldKeys.RemitoNumCliente] = documentValue.confidence
+            }
+
+            val cuitValue = findLabeledValue(lines, cuitLabels, knownLabels)
+            if (cuitValue != null) {
+                val match = Regex("\\b\\d{2}-\\d{8}-\\d{1}\\b").find(cuitValue.value)
+                if (match != null) {
+                    fields[OcrFieldKeys.SenderCuit] = match.value
+                    confidence[OcrFieldKeys.SenderCuit] = cuitValue.confidence
+                }
+            }
 
             val cuitMatch = Regex("\\b\\d{2}-\\d{8}-\\d{1}\\b").find(raw)
-            if (cuitMatch != null) {
+            if (cuitMatch != null && !fields.containsKey(OcrFieldKeys.SenderCuit)) {
                 fields[OcrFieldKeys.SenderCuit] = cuitMatch.value
                 confidence[OcrFieldKeys.SenderCuit] = 0.8f
             }
 
-            val bultosMatch = Regex("(?i)cantidad\\s+de\\s+bultos\\s*[:\\-]?\\s*(\\d+)").find(raw)
-            if (bultosMatch != null) {
+            val bultosMatch = Regex("(?i)(?:cantidad\\s*de\\s*)?bultos\\s*[:\\-]?\\s*(\\d+)").find(raw)
+            if (bultosMatch != null && !fields.containsKey(OcrFieldKeys.CantBultosTotal)) {
                 fields[OcrFieldKeys.CantBultosTotal] = bultosMatch.groupValues[1]
                 confidence[OcrFieldKeys.CantBultosTotal] = 0.7f
             }
 
             val remitoClienteMatch = Regex(
-                "(?i)remito\\s*(?:n\\s*[°o])?\\s*cliente\\s*[:\\-]?\\s*([\\w-]+)"
+                "(?i)(?:remito\\s*(?:n\\s*[°o])?\\s*cliente|remito|factura|nota\\s*de\\s*entrega|gu[ií]a\\s*de\\s*despacho|orden\\s*de\\s*entrega)\\s*[:\\-]?\\s*([\\w-]+)"
             ).find(raw)
-            if (remitoClienteMatch != null) {
+            if (remitoClienteMatch != null && !fields.containsKey(OcrFieldKeys.RemitoNumCliente)) {
                 fields[OcrFieldKeys.RemitoNumCliente] = remitoClienteMatch.groupValues[1]
                 confidence[OcrFieldKeys.RemitoNumCliente] = 0.6f
             }
 
-            val remitenteMatch = Regex("(?i)remitente\\s*[:\\-]?\\s*([A-Za-zÁÉÍÓÚÑáéíóúñ]+)\\s+([A-Za-zÁÉÍÓÚÑáéíóúñ]+)")
-                .find(raw)
-            if (remitenteMatch != null) {
-                fields[OcrFieldKeys.SenderNombre] = remitenteMatch.groupValues[1]
-                fields[OcrFieldKeys.SenderApellido] = remitenteMatch.groupValues[2]
-                confidence[OcrFieldKeys.SenderNombre] = 0.6f
-                confidence[OcrFieldKeys.SenderApellido] = 0.6f
+            if (!fields.containsKey(OcrFieldKeys.SenderNombre) || !fields.containsKey(OcrFieldKeys.SenderApellido)) {
+                val remitenteMatch = Regex("(?i)remitente\\s*[:\\-]?\\s*([A-Za-zÁÉÍÓÚÑáéíóúñ]+(?:\\s+[A-Za-zÁÉÍÓÚÑáéíóúñ]+)*)")
+                    .find(raw)
+                if (remitenteMatch != null) {
+                    val (nombre, apellido) = splitPersonName(remitenteMatch.groupValues[1])
+                    if (!fields.containsKey(OcrFieldKeys.SenderNombre) && nombre.isNotBlank()) {
+                        fields[OcrFieldKeys.SenderNombre] = nombre
+                        confidence[OcrFieldKeys.SenderNombre] = 0.6f
+                    }
+                    if (!fields.containsKey(OcrFieldKeys.SenderApellido) && apellido.isNotBlank()) {
+                        fields[OcrFieldKeys.SenderApellido] = apellido
+                        confidence[OcrFieldKeys.SenderApellido] = 0.6f
+                    }
+                }
             }
 
-            val destinatarioMatch = Regex("(?i)destinatario\\s*[:\\-]?\\s*([A-Za-zÁÉÍÓÚÑáéíóúñ]+)\\s+([A-Za-zÁÉÍÓÚÑáéíóúñ]+)")
-                .find(raw)
-            if (destinatarioMatch != null) {
-                fields[OcrFieldKeys.DestNombre] = destinatarioMatch.groupValues[1]
-                fields[OcrFieldKeys.DestApellido] = destinatarioMatch.groupValues[2]
-                confidence[OcrFieldKeys.DestNombre] = 0.6f
-                confidence[OcrFieldKeys.DestApellido] = 0.6f
+            if (!fields.containsKey(OcrFieldKeys.DestNombre) || !fields.containsKey(OcrFieldKeys.DestApellido)) {
+                val destinatarioMatch = Regex("(?i)destinatario\\s*[:\\-]?\\s*([A-Za-zÁÉÍÓÚÑáéíóúñ]+(?:\\s+[A-Za-zÁÉÍÓÚÑáéíóúñ]+)*)")
+                    .find(raw)
+                if (destinatarioMatch != null) {
+                    val (nombre, apellido) = splitPersonName(destinatarioMatch.groupValues[1])
+                    if (!fields.containsKey(OcrFieldKeys.DestNombre) && nombre.isNotBlank()) {
+                        fields[OcrFieldKeys.DestNombre] = nombre
+                        confidence[OcrFieldKeys.DestNombre] = 0.6f
+                    }
+                    if (!fields.containsKey(OcrFieldKeys.DestApellido) && apellido.isNotBlank()) {
+                        fields[OcrFieldKeys.DestApellido] = apellido
+                        confidence[OcrFieldKeys.DestApellido] = 0.6f
+                    }
+                }
             }
 
-            val direccionMatch = Regex("(?i)direcci[oó]n\\s*destinatario\\s*[:\\-]?\\s*(.+)")
-                .find(raw)
-            if (direccionMatch != null) {
-                fields[OcrFieldKeys.DestDireccion] = direccionMatch.groupValues[1].trim()
-                confidence[OcrFieldKeys.DestDireccion] = 0.6f
+            if (!fields.containsKey(OcrFieldKeys.DestDireccion)) {
+                val direccionMatch = Regex("(?i)direcci[oó]n\\s*(?:destinatario|cliente)?\\s*[:\\-]?\\s*(.+)")
+                    .find(raw)
+                if (direccionMatch != null) {
+                    fields[OcrFieldKeys.DestDireccion] = direccionMatch.groupValues[1].trim()
+                    confidence[OcrFieldKeys.DestDireccion] = 0.6f
+                }
             }
 
-            val telefonoMatch = Regex("(?i)tel[eé]fono\\s*destinatario\\s*[:\\-]?\\s*([+\\d][\\d\\s-]+)")
-                .find(raw)
-            if (telefonoMatch != null) {
-                fields[OcrFieldKeys.DestTelefono] = telefonoMatch.groupValues[1].replace(" ", "").trim()
-                confidence[OcrFieldKeys.DestTelefono] = 0.6f
+            if (!fields.containsKey(OcrFieldKeys.DestTelefono)) {
+                val telefonoMatch = Regex("(?i)tel[eé]fono\\s*(?:destinatario|cliente)?\\s*[:\\-]?\\s*([+\\d][\\d\\s-]+)")
+                    .find(raw)
+                if (telefonoMatch != null) {
+                    fields[OcrFieldKeys.DestTelefono] = telefonoMatch.groupValues[1].replace(" ", "").trim()
+                    confidence[OcrFieldKeys.DestTelefono] = 0.6f
+                }
             }
 
             return fields to confidence
+        }
+
+        private data class LabeledValue(
+            val value: String,
+            val confidence: Float,
+        )
+
+        private fun findLabeledValue(
+            lines: List<String>,
+            labels: List<String>,
+            knownLabels: List<String>,
+            valueValidator: (String) -> Boolean = { true },
+        ): LabeledValue? {
+            if (labels.isEmpty()) return null
+            val labelRegex = labels
+                .sortedByDescending { it.length }
+                .joinToString("|") { labelPattern(it) }
+            val pattern = Regex(
+                "^\\s*(?:$labelRegex)\\b(?:\\s*(?:n\\s*[°o]|nro\\.?|no\\.?|num\\.?|n°))?\\s*[:\\-]?\\s*(.*)$",
+                RegexOption.IGNORE_CASE
+            )
+            val knownLabelRegex = if (knownLabels.isEmpty()) {
+                null
+            } else {
+                val knownPattern = knownLabels
+                    .sortedByDescending { it.length }
+                    .joinToString("|") { labelPattern(it) }
+                Regex("^\\s*(?:$knownPattern)\\b.*$", RegexOption.IGNORE_CASE)
+            }
+            for (index in lines.indices) {
+                val line = lines[index].trim()
+                if (line.isBlank()) continue
+                val match = pattern.find(line) ?: continue
+                val inlineValue = match.groupValues[1].trim()
+                if (inlineValue.isNotBlank()) {
+                    val cleanedValue = cleanValue(inlineValue)
+                    if (!valueValidator(cleanedValue)) continue
+                    return LabeledValue(cleanedValue, 0.75f)
+                }
+                val nextValue = nextNonEmptyLine(lines, index + 1, knownLabelRegex)
+                if (!nextValue.isNullOrBlank()) {
+                    val cleanedValue = cleanValue(nextValue)
+                    if (!valueValidator(cleanedValue)) continue
+                    return LabeledValue(cleanedValue, 0.65f)
+                }
+            }
+            return null
+        }
+
+        private fun labelPattern(label: String): String {
+            return label.split(" ")
+                .filter { it.isNotBlank() }
+                .joinToString("\\s+") { Regex.escape(it) }
+        }
+
+        private fun nextNonEmptyLine(
+            lines: List<String>,
+            startIndex: Int,
+            knownLabelRegex: Regex?,
+        ): String? {
+            val end = (startIndex + 2).coerceAtMost(lines.size)
+            for (i in startIndex until end) {
+                val candidate = lines[i].trim()
+                if (candidate.isBlank()) continue
+                if (candidate.endsWith(":")) continue
+                if (knownLabelRegex?.containsMatchIn(candidate) == true) continue
+                return candidate
+            }
+            return null
+        }
+
+        private fun splitPersonName(value: String): Pair<String, String> {
+            val cleaned = value.replace("[,:;]".toRegex(), " ").trim()
+            val parts = cleaned.split("\\s+".toRegex()).filter { it.isNotBlank() }
+            if (parts.isEmpty()) return "" to ""
+            if (parts.size == 1) return parts.first() to ""
+            val nombre = parts.first()
+            val apellido = parts.drop(1).joinToString(" ")
+            return nombre to apellido
+        }
+
+        private fun cleanValue(value: String): String {
+            return value.replace("\t", " ").trim()
         }
 
         internal fun buildParsingErrorSummary(fields: Map<String, String>): String? {
