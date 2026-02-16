@@ -11,6 +11,8 @@ import com.remitos.app.data.db.entity.OutboundLineEntity
 import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.SequenceEntity
+import androidx.sqlite.db.SimpleSQLiteQuery
+import androidx.sqlite.db.SupportSQLiteQuery
 import kotlinx.coroutines.flow.Flow
 
 class RemitosRepository(private val db: AppDatabase) {
@@ -208,6 +210,11 @@ class RemitosRepository(private val db: AppDatabase) {
         return db.outboundDao().getLinesForListWithRemito(listId)
     }
 
+    suspend fun searchOutboundLists(filters: OutboundSearchFilters): List<OutboundListEntity> {
+        val query = buildOutboundSearchQuery(filters)
+        return db.outboundDao().searchOutboundLists(query)
+    }
+
     suspend fun markOutboundInTransit(listId: Long) {
         db.withTransaction {
             val lines = db.outboundDao().getLinesForList(listId)
@@ -252,5 +259,76 @@ class RemitosRepository(private val db: AppDatabase) {
 
     suspend fun closeOutboundList(listId: Long) {
         db.outboundDao().updateOutboundListStatus(listId, OutboundListStatus.Cerrada)
+    }
+
+    internal fun buildOutboundSearchQuery(filters: OutboundSearchFilters): SupportSQLiteQuery {
+        val normalizedTokens = normalizeSearchTokens(filters.query)
+        val args = mutableListOf<Any>()
+        val conditions = mutableListOf<String>()
+
+        if (filters.listStatuses.isNotEmpty()) {
+            conditions += "ol.status IN (${placeholders(filters.listStatuses.size)})"
+            args.addAll(filters.listStatuses)
+        }
+
+        if (filters.lineStatuses.isNotEmpty()) {
+            conditions +=
+                """
+                EXISTS (
+                    SELECT 1 FROM outbound_lines l2
+                    WHERE l2.outbound_list_id = ol.id
+                    AND l2.status IN (${placeholders(filters.lineStatuses.size)})
+                )
+                """.trimIndent()
+            args.addAll(filters.lineStatuses)
+        }
+
+        normalizedTokens.forEach { token ->
+            val like = "%$token%"
+            conditions +=
+                """
+                (
+                    CAST(ol.list_number AS TEXT) LIKE ?
+                    OR LOWER(ol.driver_nombre) LIKE ?
+                    OR LOWER(ol.driver_apellido) LIKE ?
+                    OR LOWER(l.delivery_number) LIKE ?
+                    OR LOWER(l.recipient_nombre) LIKE ?
+                    OR LOWER(l.recipient_apellido) LIKE ?
+                    OR LOWER(l.recipient_direccion) LIKE ?
+                    OR LOWER(l.recipient_telefono) LIKE ?
+                    OR LOWER(n.remito_num_cliente) LIKE ?
+                    OR LOWER(n.remito_num_interno) LIKE ?
+                )
+                """.trimIndent()
+            repeat(10) { index ->
+                args.add(if (index == 0) "%$token%" else like)
+            }
+        }
+
+        val whereClause = if (conditions.isEmpty()) "1=1" else conditions.joinToString(" AND ")
+        val sql =
+            """
+            SELECT DISTINCT ol.*
+            FROM outbound_lists ol
+            LEFT JOIN outbound_lines l ON l.outbound_list_id = ol.id
+            LEFT JOIN inbound_notes n ON n.id = l.inbound_note_id
+            WHERE $whereClause
+            ORDER BY ol.issue_date DESC
+            """.trimIndent()
+
+        return SimpleSQLiteQuery(sql, args.toTypedArray())
+    }
+
+    private fun normalizeSearchTokens(query: String): List<String> {
+        return query
+            .trim()
+            .lowercase()
+            .split("\n", " ", "\t")
+            .map { it.trim() }
+            .filter { it.length >= 2 }
+    }
+
+    private fun placeholders(count: Int): String {
+        return List(count) { "?" }.joinToString(",")
     }
 }

@@ -4,6 +4,8 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RawQuery
+import androidx.sqlite.db.SupportSQLiteQuery
 import com.remitos.app.data.db.entity.OutboundLineEntity
 import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
@@ -32,6 +34,9 @@ interface OutboundDao {
 
     @Query("SELECT * FROM outbound_lists ORDER BY issue_date DESC")
     fun observeOutboundLists(): Flow<List<OutboundListEntity>>
+
+    @RawQuery(observedEntities = [OutboundListEntity::class])
+    suspend fun searchOutboundLists(query: SupportSQLiteQuery): List<OutboundListEntity>
 
     @Query("SELECT * FROM outbound_lists WHERE id = :listId")
     suspend fun getOutboundList(listId: Long): OutboundListEntity?

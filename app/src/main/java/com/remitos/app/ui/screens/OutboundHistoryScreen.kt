@@ -11,19 +11,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Print
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Route
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,6 +48,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.RemitosApplication
+import com.remitos.app.data.OutboundLineStatus
 import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.print.OutboundListPrinter
@@ -67,8 +73,12 @@ fun OutboundHistoryScreen(onBack: () -> Unit) {
     )
 
     val outboundLists by viewModel.outboundLists.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.currentQuery.collectAsStateWithLifecycle()
+    val selectedListStatuses by viewModel.selectedListStatuses.collectAsStateWithLifecycle()
+    val selectedLineStatuses by viewModel.selectedLineStatuses.collectAsStateWithLifecycle()
     val reprintState by viewModel.reprintState.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val filterScrollState = rememberScrollState()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -80,51 +90,101 @@ fun OutboundHistoryScreen(onBack: () -> Unit) {
             )
         },
     ) { padding ->
-        if (outboundLists.isEmpty()) {
-            Box(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Spacer(modifier = Modifier.size(4.dp))
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = viewModel::updateSearchQuery,
+                leadingIcon = {
+                    Icon(Icons.Outlined.Search, contentDescription = null)
+                },
+                label = { Text("Buscar listas") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .horizontalScroll(filterScrollState),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Route,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.outlineVariant,
-                    )
-                    Text(
-                        text = "No se encontraron listas",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = "Las listas guardadas apareceran aqui",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
+                FilterChip(
+                    selected = selectedListStatuses.contains(OutboundListStatus.Abierta),
+                    onClick = { viewModel.toggleListStatus(OutboundListStatus.Abierta) },
+                    label = { Text("Abierta") },
+                )
+                FilterChip(
+                    selected = selectedListStatuses.contains(OutboundListStatus.Cerrada),
+                    onClick = { viewModel.toggleListStatus(OutboundListStatus.Cerrada) },
+                    label = { Text("Cerrada") },
+                )
+                Spacer(modifier = Modifier.size(4.dp))
+                FilterChip(
+                    selected = selectedLineStatuses.contains(OutboundLineStatus.EnDeposito),
+                    onClick = { viewModel.toggleLineStatus(OutboundLineStatus.EnDeposito) },
+                    label = { Text("En depósito") },
+                )
+                FilterChip(
+                    selected = selectedLineStatuses.contains(OutboundLineStatus.EnTransito),
+                    onClick = { viewModel.toggleLineStatus(OutboundLineStatus.EnTransito) },
+                    label = { Text("En tránsito") },
+                )
+                FilterChip(
+                    selected = selectedLineStatuses.contains(OutboundLineStatus.Entregado),
+                    onClick = { viewModel.toggleLineStatus(OutboundLineStatus.Entregado) },
+                    label = { Text("Entregado") },
+                )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                items(outboundLists) { list ->
-                    OutboundHistoryCard(
-                        list = list,
-                        onReprint = { viewModel.requestReprint(list.id) },
-                    )
+
+            if (outboundLists.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Route,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.outlineVariant,
+                        )
+                        Text(
+                            text = "No se encontraron listas",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = "Probá ajustando la búsqueda o filtros",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
                 }
-                item { Spacer(modifier = Modifier.size(16.dp)) }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(outboundLists) { list ->
+                        OutboundHistoryCard(
+                            list = list,
+                            onReprint = { viewModel.requestReprint(list.id) },
+                        )
+                    }
+                    item { Spacer(modifier = Modifier.size(16.dp)) }
+                }
             }
         }
     }
@@ -217,13 +277,30 @@ private fun OutboundHistoryCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text(
-                    text = "Lista ${list.listNumber}",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Lista ${list.listNumber}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (list.status == OutboundListStatus.Cerrada) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.extraSmall)
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "Cerrada",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            )
+                        }
+                    }
+                }
                 Text(
                     text = "Chofer: ${list.driverApellido} ${list.driverNombre}",
                     style = MaterialTheme.typography.bodySmall,
