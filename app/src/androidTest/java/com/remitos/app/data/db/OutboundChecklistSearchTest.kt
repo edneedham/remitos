@@ -88,6 +88,7 @@ class OutboundChecklistSearchTest {
                     status = OutboundLineStatus.EnDeposito,
                     deliveredQty = 0,
                     returnedQty = 0,
+                    missingQty = 0,
                 )
             )
         )
@@ -118,6 +119,7 @@ class OutboundChecklistSearchTest {
                     status = OutboundLineStatus.Entregado,
                     deliveredQty = 1,
                     returnedQty = 0,
+                    missingQty = 0,
                 )
             )
         )

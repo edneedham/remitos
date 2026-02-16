@@ -42,6 +42,7 @@ class OutboundStatusRulesTest {
             status = status,
             deliveredQty = 0,
             returnedQty = 0,
+            missingQty = 0,
             remitoNumCliente = "R-1",
             remitoNumInterno = "RI-000001",
         )

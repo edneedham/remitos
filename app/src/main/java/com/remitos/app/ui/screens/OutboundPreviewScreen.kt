@@ -11,12 +11,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Done
 import androidx.compose.material.icons.outlined.Print
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -25,6 +27,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,6 +43,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -51,8 +56,10 @@ import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.OutboundListEntity
+import com.remitos.app.data.db.entity.OutboundLineEditHistoryEntity
 import com.remitos.app.print.OutboundListPrinter
 import com.remitos.app.ui.components.RemitosTopBar
+import com.remitos.app.ui.components.RemitosTextField
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -77,6 +84,7 @@ fun OutboundPreviewScreen(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val historyState by viewModel.historyState.collectAsStateWithLifecycle()
+    val editState by viewModel.editState.collectAsStateWithLifecycle()
     var showConfirmDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -119,6 +127,9 @@ fun OutboundPreviewScreen(
                         },
                         onOpenHistory = { lineId ->
                             viewModel.loadLineHistory(lineId)
+                        },
+                        onEdit = { lineId ->
+                            viewModel.loadLineEdit(lineId)
                         },
                     )
 
@@ -198,6 +209,15 @@ fun OutboundPreviewScreen(
         )
     }
 
+    if (editState != null) {
+        LineEditDialog(
+            state = editState,
+            onDismiss = { viewModel.clearLineEdit() },
+            onUpdateDraft = { draft -> viewModel.updateLineEditDraft(draft) },
+            onSave = { viewModel.saveLineEdit() },
+        )
+    }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -233,6 +253,7 @@ fun OutboundPreviewSampleScreen(onBack: () -> Unit) {
                     state = updateSampleOutcome(state, lineId, status)
                 },
                 onOpenHistory = {},
+                onEdit = {},
             )
 
             Text(
@@ -320,6 +341,7 @@ private fun PreviewCard(
     state: OutboundPreviewState.Ready,
     onUpdateOutcome: (Long, String) -> Unit,
     onOpenHistory: (Long) -> Unit,
+    onEdit: (Long) -> Unit,
 ) {
     val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     val date = Instant.ofEpochMilli(state.list.issueDate)
@@ -377,6 +399,9 @@ private fun PreviewCard(
                     onHistory = { currentLine ->
                         onOpenHistory(currentLine.id)
                     },
+                    onEdit = { currentLine ->
+                        onEdit(currentLine.id)
+                    },
                 )
             }
         }
@@ -402,6 +427,7 @@ private fun PreviewLineRow(
     onDelivered: (OutboundLineWithRemito) -> Unit,
     onReturned: (OutboundLineWithRemito) -> Unit,
     onHistory: (OutboundLineWithRemito) -> Unit,
+    onEdit: (OutboundLineWithRemito) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -422,6 +448,13 @@ private fun PreviewLineRow(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (line.missingQty > 0) {
+                Text(
+                    text = "Faltantes: ${line.missingQty}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (allowActions) {
                     OutlinedButton(onClick = { onDelivered(line) }) {
@@ -433,6 +466,15 @@ private fun PreviewLineRow(
                 }
                 TextButton(onClick = { onHistory(line) }) {
                     Text("Historial")
+                }
+                TextButton(onClick = { onEdit(line) }) {
+                    Icon(
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Editar")
                 }
             }
         }
@@ -480,13 +522,31 @@ private fun LineHistoryDialog(
                 state.message != null -> {
                     Text(state.message)
                 }
-                state.entries.isEmpty() -> {
+                state.statusEntries.isEmpty() && state.editEntries.isEmpty() -> {
                     Text("No hay historial registrado.")
                 }
                 else -> {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        state.entries.forEach { entry ->
-                            LineHistoryRow(entry)
+                        if (state.statusEntries.isNotEmpty()) {
+                            Text(
+                                text = "Estados",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            state.statusEntries.forEach { entry ->
+                                LineHistoryRow(entry)
+                            }
+                        }
+                        if (state.editEntries.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Cambios",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            state.editEntries.forEach { entry ->
+                                LineEditHistoryRow(entry)
+                            }
                         }
                     }
                 }
@@ -501,6 +561,103 @@ private fun LineHistoryRow(entry: OutboundLineStatusHistoryEntity) {
         text = "${lineStatusLabel(entry.status)} · ${formatHistoryTimestamp(entry.createdAt)}",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun LineEditHistoryRow(entry: OutboundLineEditHistoryEntity) {
+    Text(
+        text = "${editFieldLabel(entry.fieldName)}: ${entry.oldValue} → ${entry.newValue}",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        text = "${formatHistoryTimestamp(entry.createdAt)} · ${entry.reason}",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.outline,
+    )
+}
+
+@Composable
+private fun LineEditDialog(
+    state: OutboundLineEditState?,
+    onDismiss: () -> Unit,
+    onUpdateDraft: (OutboundLineEditDraft) -> Unit,
+    onSave: () -> Unit,
+) {
+    if (state == null) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = onSave,
+                enabled = !state.isSaving,
+            ) {
+                Text(if (state.isSaving) "Guardando..." else "Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        },
+        title = { Text("Editar remito ${state.line.remitoNumCliente}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (state.message != null) {
+                    Text(
+                        text = state.message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                RemitosTextField(
+                    value = state.draft.deliveryNumber,
+                    onValueChange = { onUpdateDraft(state.draft.copy(deliveryNumber = it)) },
+                    label = "N° Entrega",
+                )
+                RemitosTextField(
+                    value = state.draft.recipientNombre,
+                    onValueChange = { onUpdateDraft(state.draft.copy(recipientNombre = it)) },
+                    label = "Nombre destinatario",
+                )
+                RemitosTextField(
+                    value = state.draft.recipientApellido,
+                    onValueChange = { onUpdateDraft(state.draft.copy(recipientApellido = it)) },
+                    label = "Apellido",
+                )
+                RemitosTextField(
+                    value = state.draft.recipientDireccion,
+                    onValueChange = { onUpdateDraft(state.draft.copy(recipientDireccion = it)) },
+                    label = "Dirección",
+                )
+                RemitosTextField(
+                    value = state.draft.recipientTelefono,
+                    onValueChange = { onUpdateDraft(state.draft.copy(recipientTelefono = it)) },
+                    label = "Teléfono",
+                    keyboardType = KeyboardType.Phone,
+                )
+                OutlinedTextField(
+                    value = state.draft.missingQty,
+                    onValueChange = { value ->
+                        onUpdateDraft(state.draft.copy(missingQty = value))
+                    },
+                    label = { Text("Bultos faltantes") },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                    ),
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = state.draft.reason,
+                    onValueChange = { value ->
+                        onUpdateDraft(state.draft.copy(reason = value))
+                    },
+                    label = { Text("Motivo del cambio") },
+                    singleLine = false,
+                )
+            }
+        }
     )
 }
 
@@ -530,6 +687,7 @@ private fun samplePreviewState(): OutboundPreviewState.Ready {
             status = OutboundLineStatus.EnDeposito,
             deliveredQty = 0,
             returnedQty = 0,
+            missingQty = 0,
             remitoNumCliente = "R-1001",
             remitoNumInterno = "RI-000101",
         ),
@@ -547,6 +705,7 @@ private fun samplePreviewState(): OutboundPreviewState.Ready {
             status = OutboundLineStatus.EnDeposito,
             deliveredQty = 0,
             returnedQty = 0,
+            missingQty = 0,
             remitoNumCliente = "R-1002",
             remitoNumInterno = "RI-000102",
         ),
@@ -597,5 +756,17 @@ private fun listStatusLabel(status: String): String {
         OutboundListStatus.Abierta -> "Abierta"
         OutboundListStatus.Cerrada -> "Cerrada"
         else -> status
+    }
+}
+
+private fun editFieldLabel(field: String): String {
+    return when (field) {
+        "delivery_number" -> "N° Entrega"
+        "recipient_nombre" -> "Nombre"
+        "recipient_apellido" -> "Apellido"
+        "recipient_direccion" -> "Dirección"
+        "recipient_telefono" -> "Teléfono"
+        "missing_qty" -> "Faltantes"
+        else -> field
     }
 }

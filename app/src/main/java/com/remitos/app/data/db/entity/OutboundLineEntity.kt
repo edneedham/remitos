@@ -50,5 +50,7 @@ data class OutboundLineEntity(
     @ColumnInfo(name = "delivered_qty")
     val deliveredQty: Int,
     @ColumnInfo(name = "returned_qty")
-    val returnedQty: Int
+    val returnedQty: Int,
+    @ColumnInfo(name = "missing_qty")
+    val missingQty: Int
 )

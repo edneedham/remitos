@@ -15,6 +15,7 @@ import com.remitos.app.data.db.dao.SequenceDao
 import com.remitos.app.data.db.entity.DebugLogEntity
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
+import com.remitos.app.data.db.entity.OutboundLineEditHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineEntity
 import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundListEntity
@@ -26,11 +27,12 @@ import com.remitos.app.data.db.entity.SequenceEntity
         InboundPackageEntity::class,
         OutboundListEntity::class,
         OutboundLineEntity::class,
+        OutboundLineEditHistoryEntity::class,
         OutboundLineStatusHistoryEntity::class,
         SequenceEntity::class,
         DebugLogEntity::class,
     ],
-    version = 5
+    version = 6
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun inboundDao(): InboundDao
@@ -110,12 +112,42 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE outbound_lines ADD COLUMN missing_qty INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS outbound_line_edit_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        outbound_line_id INTEGER NOT NULL,
+                        field_name TEXT NOT NULL,
+                        old_value TEXT NOT NULL,
+                        new_value TEXT NOT NULL,
+                        reason TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        FOREIGN KEY(outbound_line_id) REFERENCES outbound_lines(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_outbound_line_edit_history_outbound_line_id " +
+                        "ON outbound_line_edit_history(outbound_line_id)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_outbound_line_edit_history_created_at " +
+                        "ON outbound_line_edit_history(created_at)"
+                )
+            }
+        }
+
         fun build(context: Context): AppDatabase {
             return Room.databaseBuilder(
                 context,
                 AppDatabase::class.java,
                 "remitos.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
         }
     }

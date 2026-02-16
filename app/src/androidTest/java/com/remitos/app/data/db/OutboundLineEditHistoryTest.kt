@@ -19,7 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class OutboundLineStatusHistoryTest {
+class OutboundLineEditHistoryTest {
     private lateinit var db: AppDatabase
     private lateinit var repository: RemitosRepository
 
@@ -38,7 +38,7 @@ class OutboundLineStatusHistoryTest {
     }
 
     @Test
-    fun updateOutboundLineOutcome_appendsHistoryAndUpdatesStatus() = runBlocking {
+    fun updateOutboundLineDetails_appendsEditHistory() = runBlocking {
         val now = System.currentTimeMillis()
         val noteId = db.inboundDao().insertInbound(
             InboundNoteEntity(
@@ -95,17 +95,26 @@ class OutboundLineStatusHistoryTest {
 
         val lineId = db.outboundDao().getLinesForList(listId).first().id
 
-        repository.updateOutboundLineOutcome(lineId, OutboundLineStatus.Entregado, deliveredQty = 1, returnedQty = 0)
-        repository.updateOutboundLineOutcome(lineId, OutboundLineStatus.EnDeposito, deliveredQty = 0, returnedQty = 0)
+        repository.updateOutboundLineDetails(
+            lineId = lineId,
+            deliveryNumber = "E-2",
+            recipientNombre = "Ana",
+            recipientApellido = "Gomez",
+            recipientDireccion = "Calle 456",
+            recipientTelefono = "222222222",
+            missingQty = 1,
+            reason = "Corrección de datos",
+        )
 
-        val history = repository.getOutboundLineStatusHistory(lineId)
-        assertEquals(2, history.size)
-        assertEquals(OutboundLineStatus.Entregado, history[0].status)
-        assertEquals(OutboundLineStatus.EnDeposito, history[1].status)
-        assertTrue(history[0].createdAt > 0)
-        assertTrue(history[1].createdAt >= history[0].createdAt)
+        val edits = repository.getOutboundLineEditHistory(lineId)
+        assertTrue(edits.any { it.fieldName == "delivery_number" })
+        assertTrue(edits.any { it.fieldName == "recipient_apellido" })
+        assertTrue(edits.any { it.fieldName == "missing_qty" })
+        assertEquals("Corrección de datos", edits.first().reason)
 
-        val updatedLine = db.outboundDao().getLinesForList(listId).first()
-        assertEquals(OutboundLineStatus.EnDeposito, updatedLine.status)
+        val updatedLine = db.outboundDao().getOutboundLine(lineId)
+        assertEquals("E-2", updatedLine?.deliveryNumber)
+        assertEquals("Gomez", updatedLine?.recipientApellido)
+        assertEquals(1, updatedLine?.missingQty)
     }
 }

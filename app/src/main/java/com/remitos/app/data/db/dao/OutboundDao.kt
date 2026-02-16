@@ -7,6 +7,7 @@ import androidx.room.Query
 import androidx.room.RawQuery
 import androidx.sqlite.db.SupportSQLiteQuery
 import com.remitos.app.data.db.entity.OutboundLineEntity
+import com.remitos.app.data.db.entity.OutboundLineEditHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.OutboundListEntity
@@ -23,6 +24,9 @@ interface OutboundDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLineStatusHistory(entries: List<OutboundLineStatusHistoryEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLineEditHistory(entries: List<OutboundLineEditHistoryEntity>)
+
     @Query(
         """
         SELECT * FROM outbound_line_status_history
@@ -31,6 +35,15 @@ interface OutboundDao {
         """
     )
     suspend fun getLineStatusHistory(lineId: Long): List<OutboundLineStatusHistoryEntity>
+
+    @Query(
+        """
+        SELECT * FROM outbound_line_edit_history
+        WHERE outbound_line_id = :lineId
+        ORDER BY created_at ASC
+        """
+    )
+    suspend fun getLineEditHistory(lineId: Long): List<OutboundLineEditHistoryEntity>
 
     @Query("SELECT * FROM outbound_lists ORDER BY issue_date DESC")
     fun observeOutboundLists(): Flow<List<OutboundListEntity>>
@@ -46,6 +59,9 @@ interface OutboundDao {
 
     @Query("SELECT * FROM outbound_lines WHERE outbound_list_id = :listId")
     suspend fun getLinesForList(listId: Long): List<OutboundLineEntity>
+
+    @Query("SELECT * FROM outbound_lines WHERE id = :lineId")
+    suspend fun getOutboundLine(lineId: Long): OutboundLineEntity?
 
     @Query("UPDATE outbound_lines SET status = :status WHERE outbound_list_id = :listId")
     suspend fun updateLineStatusForList(listId: Long, status: String)
@@ -67,6 +83,28 @@ interface OutboundDao {
         status: String,
         deliveredQty: Int,
         returnedQty: Int,
+    )
+
+    @Query(
+        """
+        UPDATE outbound_lines
+        SET delivery_number = :deliveryNumber,
+            recipient_nombre = :recipientNombre,
+            recipient_apellido = :recipientApellido,
+            recipient_direccion = :recipientDireccion,
+            recipient_telefono = :recipientTelefono,
+            missing_qty = :missingQty
+        WHERE id = :lineId
+        """
+    )
+    suspend fun updateLineDetails(
+        lineId: Long,
+        deliveryNumber: String,
+        recipientNombre: String,
+        recipientApellido: String,
+        recipientDireccion: String,
+        recipientTelefono: String,
+        missingQty: Int,
     )
 
     @Query(

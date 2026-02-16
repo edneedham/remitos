@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.OutboundLineStatus
 import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.RemitosRepository
+import com.remitos.app.data.db.entity.OutboundLineEditHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.OutboundListEntity
@@ -21,6 +22,8 @@ class OutboundPreviewViewModel(
     val state: StateFlow<OutboundPreviewState> = _state
     private val _historyState = MutableStateFlow<OutboundLineHistoryState?>(null)
     val historyState: StateFlow<OutboundLineHistoryState?> = _historyState
+    private val _editState = MutableStateFlow<OutboundLineEditState?>(null)
+    val editState: StateFlow<OutboundLineEditState?> = _editState
 
     fun load(listId: Long) {
         if (listId <= 0L) {
@@ -128,17 +131,30 @@ class OutboundPreviewViewModel(
     fun loadLineHistory(lineId: Long) {
         val current = _state.value as? OutboundPreviewState.Ready ?: return
         val line = current.lines.firstOrNull { it.id == lineId } ?: return
-        _historyState.value = OutboundLineHistoryState(line = line, entries = emptyList(), isLoading = true)
+        _historyState.value = OutboundLineHistoryState(
+            line = line,
+            statusEntries = emptyList(),
+            editEntries = emptyList(),
+            isLoading = true,
+        )
         viewModelScope.launch {
             try {
-                val entries = withContext(Dispatchers.IO) {
+                val statusEntries = withContext(Dispatchers.IO) {
                     repository.getOutboundLineStatusHistory(lineId)
                 }
-                _historyState.value = OutboundLineHistoryState(line = line, entries = entries)
+                val editEntries = withContext(Dispatchers.IO) {
+                    repository.getOutboundLineEditHistory(lineId)
+                }
+                _historyState.value = OutboundLineHistoryState(
+                    line = line,
+                    statusEntries = statusEntries,
+                    editEntries = editEntries,
+                )
             } catch (error: Exception) {
                 _historyState.value = OutboundLineHistoryState(
                     line = line,
-                    entries = emptyList(),
+                    statusEntries = emptyList(),
+                    editEntries = emptyList(),
                     message = "No se pudo cargar el historial. Intentá de nuevo."
                 )
             }
@@ -147,6 +163,101 @@ class OutboundPreviewViewModel(
 
     fun clearLineHistory() {
         _historyState.value = null
+    }
+
+    fun loadLineEdit(lineId: Long) {
+        val current = _state.value as? OutboundPreviewState.Ready ?: return
+        val line = current.lines.firstOrNull { it.id == lineId } ?: return
+        _editState.value = OutboundLineEditState(
+            line = line,
+            draft = OutboundLineEditDraft(
+                lineId = line.id,
+                deliveryNumber = line.deliveryNumber,
+                recipientNombre = line.recipientNombre,
+                recipientApellido = line.recipientApellido,
+                recipientDireccion = line.recipientDireccion,
+                recipientTelefono = line.recipientTelefono,
+                missingQty = line.missingQty.toString(),
+                reason = "",
+            )
+        )
+    }
+
+    fun updateLineEditDraft(draft: OutboundLineEditDraft) {
+        val current = _editState.value ?: return
+        _editState.value = current.copy(draft = draft, message = null)
+    }
+
+    fun saveLineEdit() {
+        val current = _editState.value ?: return
+        if (current.isSaving) return
+        val draft = current.draft
+
+        val validationError = validateEditDraft(draft)
+        if (validationError != null) {
+            _editState.value = current.copy(message = validationError)
+            return
+        }
+
+        _editState.value = current.copy(isSaving = true, message = null)
+        viewModelScope.launch {
+            try {
+                val missingQty = draft.missingQty.toIntOrNull() ?: 0
+                withContext(Dispatchers.IO) {
+                    repository.updateOutboundLineDetails(
+                        lineId = draft.lineId,
+                        deliveryNumber = draft.deliveryNumber.trim(),
+                        recipientNombre = draft.recipientNombre.trim(),
+                        recipientApellido = draft.recipientApellido.trim(),
+                        recipientDireccion = draft.recipientDireccion.trim(),
+                        recipientTelefono = draft.recipientTelefono.trim(),
+                        missingQty = missingQty,
+                        reason = draft.reason.trim(),
+                    )
+                }
+                val state = _state.value as? OutboundPreviewState.Ready
+                if (state != null) {
+                    val updatedLines = state.lines.map { line ->
+                        if (line.id == draft.lineId) {
+                            line.copy(
+                                deliveryNumber = draft.deliveryNumber.trim(),
+                                recipientNombre = draft.recipientNombre.trim(),
+                                recipientApellido = draft.recipientApellido.trim(),
+                                recipientDireccion = draft.recipientDireccion.trim(),
+                                recipientTelefono = draft.recipientTelefono.trim(),
+                                missingQty = missingQty,
+                            )
+                        } else {
+                            line
+                        }
+                    }
+                    _state.value = state.copy(lines = updatedLines)
+                }
+                _editState.value = null
+            } catch (error: Exception) {
+                _editState.value = current.copy(
+                    isSaving = false,
+                    message = "No se pudo guardar los cambios. Intentá de nuevo."
+                )
+            }
+        }
+    }
+
+    fun clearLineEdit() {
+        _editState.value = null
+    }
+
+    private fun validateEditDraft(draft: OutboundLineEditDraft): String? {
+        if (draft.deliveryNumber.isBlank()) return "Completá el número de entrega."
+        if (draft.recipientNombre.isBlank() || draft.recipientApellido.isBlank()) {
+            return "Completá el nombre y apellido del destinatario."
+        }
+        if (draft.recipientDireccion.isBlank()) return "Completá la dirección del destinatario."
+        if (draft.recipientTelefono.isBlank()) return "Completá el teléfono del destinatario."
+        val missingQty = draft.missingQty.toIntOrNull()
+        if (missingQty == null || missingQty < 0) return "La cantidad de faltantes debe ser válida."
+        if (draft.reason.isBlank()) return "Completá el motivo del cambio."
+        return null
     }
 }
 
@@ -164,9 +275,28 @@ sealed interface OutboundPreviewState {
 
 data class OutboundLineHistoryState(
     val line: OutboundLineWithRemito,
-    val entries: List<OutboundLineStatusHistoryEntity>,
+    val statusEntries: List<OutboundLineStatusHistoryEntity>,
+    val editEntries: List<OutboundLineEditHistoryEntity>,
     val isLoading: Boolean = false,
     val message: String? = null,
+)
+
+data class OutboundLineEditState(
+    val line: OutboundLineWithRemito,
+    val draft: OutboundLineEditDraft,
+    val isSaving: Boolean = false,
+    val message: String? = null,
+)
+
+data class OutboundLineEditDraft(
+    val lineId: Long,
+    val deliveryNumber: String,
+    val recipientNombre: String,
+    val recipientApellido: String,
+    val recipientDireccion: String,
+    val recipientTelefono: String,
+    val missingQty: String,
+    val reason: String,
 )
 
 internal fun canCloseList(lines: List<OutboundLineWithRemito>): Boolean {

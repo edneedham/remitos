@@ -8,6 +8,7 @@ import com.remitos.app.data.db.entity.InboundPackageEntity
 import com.remitos.app.data.db.entity.InboundNoteWithAvailable
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.data.db.entity.OutboundLineEntity
+import com.remitos.app.data.db.entity.OutboundLineEditHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.SequenceEntity
@@ -210,6 +211,10 @@ class RemitosRepository(private val db: AppDatabase) {
         return db.outboundDao().getLinesForListWithRemito(listId)
     }
 
+    suspend fun getOutboundLineEditHistory(lineId: Long): List<OutboundLineEditHistoryEntity> {
+        return db.outboundDao().getLineEditHistory(lineId)
+    }
+
     suspend fun searchOutboundLists(filters: OutboundSearchFilters): List<OutboundListEntity> {
         val query = buildOutboundSearchQuery(filters)
         return db.outboundDao().searchOutboundLists(query)
@@ -250,6 +255,56 @@ class RemitosRepository(private val db: AppDatabase) {
             )
             db.outboundDao().insertLineStatusHistory(listOf(history))
             db.outboundDao().updateLineOutcome(lineId, status, deliveredQty, returnedQty)
+        }
+    }
+
+    suspend fun updateOutboundLineDetails(
+        lineId: Long,
+        deliveryNumber: String,
+        recipientNombre: String,
+        recipientApellido: String,
+        recipientDireccion: String,
+        recipientTelefono: String,
+        missingQty: Int,
+        reason: String,
+    ) {
+        db.withTransaction {
+            val current = db.outboundDao().getOutboundLine(lineId) ?: return@withTransaction
+            val entries = mutableListOf<OutboundLineEditHistoryEntity>()
+            val now = System.currentTimeMillis()
+
+            fun record(field: String, oldValue: String, newValue: String) {
+                if (oldValue == newValue) return
+                entries.add(
+                    OutboundLineEditHistoryEntity(
+                        outboundLineId = lineId,
+                        fieldName = field,
+                        oldValue = oldValue,
+                        newValue = newValue,
+                        reason = reason,
+                        createdAt = now
+                    )
+                )
+            }
+
+            record("delivery_number", current.deliveryNumber, deliveryNumber)
+            record("recipient_nombre", current.recipientNombre, recipientNombre)
+            record("recipient_apellido", current.recipientApellido, recipientApellido)
+            record("recipient_direccion", current.recipientDireccion, recipientDireccion)
+            record("recipient_telefono", current.recipientTelefono, recipientTelefono)
+            record("missing_qty", current.missingQty.toString(), missingQty.toString())
+
+            if (entries.isEmpty()) return@withTransaction
+            db.outboundDao().insertLineEditHistory(entries)
+            db.outboundDao().updateLineDetails(
+                lineId = lineId,
+                deliveryNumber = deliveryNumber,
+                recipientNombre = recipientNombre,
+                recipientApellido = recipientApellido,
+                recipientDireccion = recipientDireccion,
+                recipientTelefono = recipientTelefono,
+                missingQty = missingQty,
+            )
         }
     }
 

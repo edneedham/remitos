@@ -84,7 +84,8 @@ class OutboundViewModel(
                         allocatedPackageIds = "",
                         status = OutboundLineStatus.EnDeposito,
                         deliveredQty = 0,
-                        returnedQty = 0
+                        returnedQty = 0,
+                        missingQty = 0,
                     )
                 }
 
