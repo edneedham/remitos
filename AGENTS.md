@@ -35,6 +35,10 @@ Notes:
 - Avoid committing build artifacts or IDE files; keep `.idea/` untracked.
 - Do not commit `opencv-sdk/` (use `scripts/fetch-opencv.sh` to download the SDK).
 
+## Commit & Pull Request Guidelines
+
+- Create commits with `scripts/committer "<msg>" <file...>`; avoid manual `git add`/`git commit` so staging stays scoped.
+
 ## Repo Structure
 
 - `app/src/main/java/com/remitos/app`
