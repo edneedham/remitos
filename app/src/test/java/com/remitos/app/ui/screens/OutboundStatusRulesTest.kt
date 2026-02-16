@@ -11,14 +11,14 @@ class OutboundStatusRulesTest {
     fun canCloseList_returnsTrueWhenAllFinal() {
         val lines = listOf(
             buildLine(status = OutboundLineStatus.Entregado),
-            buildLine(status = OutboundLineStatus.Devuelto),
+            buildLine(status = OutboundLineStatus.Entregado),
         )
 
         assertTrue(canCloseList(lines))
     }
 
     @Test
-    fun canCloseList_returnsFalseWhenPending() {
+    fun canCloseList_returnsFalseWhenNotFinal() {
         val lines = listOf(
             buildLine(status = OutboundLineStatus.EnTransito),
             buildLine(status = OutboundLineStatus.Entregado),

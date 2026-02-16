@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.OutboundLineStatus
 import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.RemitosRepository
+import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.OutboundListEntity
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,8 @@ class OutboundPreviewViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow<OutboundPreviewState>(OutboundPreviewState.Loading)
     val state: StateFlow<OutboundPreviewState> = _state
+    private val _historyState = MutableStateFlow<OutboundLineHistoryState?>(null)
+    val historyState: StateFlow<OutboundLineHistoryState?> = _historyState
 
     fun load(listId: Long) {
         if (listId <= 0L) {
@@ -72,11 +75,12 @@ class OutboundPreviewViewModel(
         val current = _state.value as? OutboundPreviewState.Ready ?: return
         if (current.isUpdating) return
         val line = current.lines.firstOrNull { it.id == lineId } ?: return
+        if (line.status == status) return
         _state.value = current.copy(isUpdating = true, message = null)
         viewModelScope.launch {
             try {
-        val deliveredQty = if (status == OutboundLineStatus.Entregado) line.packageQty else 0
-        val returnedQty = if (status == OutboundLineStatus.Devuelto) line.packageQty else 0
+                val deliveredQty = if (status == OutboundLineStatus.Entregado) line.packageQty else 0
+                val returnedQty = 0
                 withContext(Dispatchers.IO) {
                     repository.updateOutboundLineOutcome(lineId, status, deliveredQty, returnedQty)
                 }
@@ -120,6 +124,30 @@ class OutboundPreviewViewModel(
             }
         }
     }
+
+    fun loadLineHistory(lineId: Long) {
+        val current = _state.value as? OutboundPreviewState.Ready ?: return
+        val line = current.lines.firstOrNull { it.id == lineId } ?: return
+        _historyState.value = OutboundLineHistoryState(line = line, entries = emptyList(), isLoading = true)
+        viewModelScope.launch {
+            try {
+                val entries = withContext(Dispatchers.IO) {
+                    repository.getOutboundLineStatusHistory(lineId)
+                }
+                _historyState.value = OutboundLineHistoryState(line = line, entries = entries)
+            } catch (error: Exception) {
+                _historyState.value = OutboundLineHistoryState(
+                    line = line,
+                    entries = emptyList(),
+                    message = "No se pudo cargar el historial. Intentá de nuevo."
+                )
+            }
+        }
+    }
+
+    fun clearLineHistory() {
+        _historyState.value = null
+    }
 }
 
 sealed interface OutboundPreviewState {
@@ -134,10 +162,17 @@ sealed interface OutboundPreviewState {
     data class Error(val message: String) : OutboundPreviewState
 }
 
+data class OutboundLineHistoryState(
+    val line: OutboundLineWithRemito,
+    val entries: List<OutboundLineStatusHistoryEntity>,
+    val isLoading: Boolean = false,
+    val message: String? = null,
+)
+
 internal fun canCloseList(lines: List<OutboundLineWithRemito>): Boolean {
     return lines.isNotEmpty() && lines.all { isFinalStatus(it.status) }
 }
 
 internal fun isFinalStatus(status: String): Boolean {
-    return status == OutboundLineStatus.Entregado || status == OutboundLineStatus.Devuelto
+    return status == OutboundLineStatus.Entregado
 }

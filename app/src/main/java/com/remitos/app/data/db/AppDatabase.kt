@@ -16,6 +16,7 @@ import com.remitos.app.data.db.entity.DebugLogEntity
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
 import com.remitos.app.data.db.entity.OutboundLineEntity
+import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.data.db.entity.SequenceEntity
 
@@ -25,10 +26,11 @@ import com.remitos.app.data.db.entity.SequenceEntity
         InboundPackageEntity::class,
         OutboundListEntity::class,
         OutboundLineEntity::class,
+        OutboundLineStatusHistoryEntity::class,
         SequenceEntity::class,
         DebugLogEntity::class,
     ],
-    version = 4
+    version = 5
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun inboundDao(): InboundDao
@@ -69,7 +71,7 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
-                    "ALTER TABLE outbound_lines ADD COLUMN status TEXT NOT NULL DEFAULT '${OutboundLineStatus.Pendiente}'"
+                    "ALTER TABLE outbound_lines ADD COLUMN status TEXT NOT NULL DEFAULT '${OutboundLineStatus.EnDeposito}'"
                 )
                 db.execSQL(
                     "ALTER TABLE outbound_lists ADD COLUMN checklist_signature_path TEXT"
@@ -80,12 +82,40 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS outbound_line_status_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        outbound_line_id INTEGER NOT NULL,
+                        status TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        FOREIGN KEY(outbound_line_id) REFERENCES outbound_lines(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_outbound_line_status_history_outbound_line_id " +
+                        "ON outbound_line_status_history(outbound_line_id)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_outbound_line_status_history_created_at " +
+                        "ON outbound_line_status_history(created_at)"
+                )
+                db.execSQL(
+                    "UPDATE outbound_lines SET status = '${OutboundLineStatus.EnDeposito}' " +
+                        "WHERE status IN ('pendiente', 'devuelto')"
+                )
+            }
+        }
+
         fun build(context: Context): AppDatabase {
             return Room.databaseBuilder(
                 context,
                 AppDatabase::class.java,
                 "remitos.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
         }
     }

@@ -48,6 +48,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.OutboundLineStatus
 import com.remitos.app.data.OutboundListStatus
+import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.print.OutboundListPrinter
@@ -55,6 +56,7 @@ import com.remitos.app.ui.components.RemitosTopBar
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,6 +76,7 @@ fun OutboundPreviewScreen(
     )
 
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val historyState by viewModel.historyState.collectAsStateWithLifecycle()
     var showConfirmDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -113,6 +116,9 @@ fun OutboundPreviewScreen(
                         state = current,
                         onUpdateOutcome = { lineId, status ->
                             viewModel.updateLineOutcome(lineId, status)
+                        },
+                        onOpenHistory = { lineId ->
+                            viewModel.loadLineHistory(lineId)
                         },
                     )
 
@@ -185,6 +191,13 @@ fun OutboundPreviewScreen(
         )
     }
 
+    if (historyState != null) {
+        LineHistoryDialog(
+            state = historyState,
+            onDismiss = { viewModel.clearLineHistory() }
+        )
+    }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -219,6 +232,7 @@ fun OutboundPreviewSampleScreen(onBack: () -> Unit) {
                 onUpdateOutcome = { lineId, status ->
                     state = updateSampleOutcome(state, lineId, status)
                 },
+                onOpenHistory = {},
             )
 
             Text(
@@ -305,6 +319,7 @@ private fun PreviewPlaceholder(message: String) {
 private fun PreviewCard(
     state: OutboundPreviewState.Ready,
     onUpdateOutcome: (Long, String) -> Unit,
+    onOpenHistory: (Long) -> Unit,
 ) {
     val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     val date = Instant.ofEpochMilli(state.list.issueDate)
@@ -357,7 +372,10 @@ private fun PreviewCard(
                         onUpdateOutcome(currentLine.id, OutboundLineStatus.Entregado)
                     },
                     onReturned = { currentLine ->
-                        onUpdateOutcome(currentLine.id, OutboundLineStatus.Devuelto)
+                        onUpdateOutcome(currentLine.id, OutboundLineStatus.EnDeposito)
+                    },
+                    onHistory = { currentLine ->
+                        onOpenHistory(currentLine.id)
                     },
                 )
             }
@@ -383,6 +401,7 @@ private fun PreviewLineRow(
     allowActions: Boolean,
     onDelivered: (OutboundLineWithRemito) -> Unit,
     onReturned: (OutboundLineWithRemito) -> Unit,
+    onHistory: (OutboundLineWithRemito) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -403,14 +422,17 @@ private fun PreviewLineRow(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (allowActions) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (allowActions) {
                     OutlinedButton(onClick = { onDelivered(line) }) {
                         Text("Entregado")
                     }
                     OutlinedButton(onClick = { onReturned(line) }) {
-                        Text("Devuelto")
+                        Text("Volvió al depósito")
                     }
+                }
+                TextButton(onClick = { onHistory(line) }) {
+                    Text("Historial")
                 }
             }
         }
@@ -433,6 +455,52 @@ private fun RowScope.PreviewCell(
         color = if (isHeader) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
+    )
+}
+
+@Composable
+private fun LineHistoryDialog(
+    state: OutboundLineHistoryState?,
+    onDismiss: () -> Unit,
+) {
+    if (state == null) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cerrar")
+            }
+        },
+        title = { Text("Historial del remito ${state.line.remitoNumCliente}") },
+        text = {
+            when {
+                state.isLoading -> {
+                    Text("Cargando historial...")
+                }
+                state.message != null -> {
+                    Text(state.message)
+                }
+                state.entries.isEmpty() -> {
+                    Text("No hay historial registrado.")
+                }
+                else -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        state.entries.forEach { entry ->
+                            LineHistoryRow(entry)
+                        }
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun LineHistoryRow(entry: OutboundLineStatusHistoryEntity) {
+    Text(
+        text = "${lineStatusLabel(entry.status)} · ${formatHistoryTimestamp(entry.createdAt)}",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
@@ -494,7 +562,7 @@ private fun updateSampleOutcome(
     val lines = state.lines.map { line ->
         if (line.id == lineId) {
             val deliveredQty = if (status == OutboundLineStatus.Entregado) line.packageQty else 0
-            val returnedQty = if (status == OutboundLineStatus.Devuelto) line.packageQty else 0
+            val returnedQty = 0
             line.copy(status = status, deliveredQty = deliveredQty, returnedQty = returnedQty)
         } else {
             line
@@ -510,13 +578,18 @@ private fun closeSampleList(state: OutboundPreviewState.Ready): OutboundPreviewS
 
 private fun lineStatusLabel(status: String): String {
     return when (status) {
-        OutboundLineStatus.Pendiente -> "Pendiente"
         OutboundLineStatus.EnDeposito -> "En depósito"
         OutboundLineStatus.EnTransito -> "En tránsito"
         OutboundLineStatus.Entregado -> "Entregado"
-        OutboundLineStatus.Devuelto -> "Devuelto"
         else -> status
     }
+}
+
+private fun formatHistoryTimestamp(timestamp: Long): String {
+    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale("es", "AR"))
+    return Instant.ofEpochMilli(timestamp)
+        .atZone(ZoneId.systemDefault())
+        .format(formatter)
 }
 
 private fun listStatusLabel(status: String): String {

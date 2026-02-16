@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.remitos.app.data.db.entity.OutboundLineEntity
+import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.OutboundListEntity
 import kotlinx.coroutines.flow.Flow
@@ -16,6 +17,18 @@ interface OutboundDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOutboundLines(lines: List<OutboundLineEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLineStatusHistory(entries: List<OutboundLineStatusHistoryEntity>)
+
+    @Query(
+        """
+        SELECT * FROM outbound_line_status_history
+        WHERE outbound_line_id = :lineId
+        ORDER BY created_at ASC
+        """
+    )
+    suspend fun getLineStatusHistory(lineId: Long): List<OutboundLineStatusHistoryEntity>
 
     @Query("SELECT * FROM outbound_lists ORDER BY issue_date DESC")
     fun observeOutboundLists(): Flow<List<OutboundListEntity>>

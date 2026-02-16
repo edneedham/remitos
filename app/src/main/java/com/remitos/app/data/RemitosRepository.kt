@@ -8,6 +8,7 @@ import com.remitos.app.data.db.entity.InboundPackageEntity
 import com.remitos.app.data.db.entity.InboundNoteWithAvailable
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.data.db.entity.OutboundLineEntity
+import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.SequenceEntity
 import kotlinx.coroutines.flow.Flow
@@ -208,7 +209,24 @@ class RemitosRepository(private val db: AppDatabase) {
     }
 
     suspend fun markOutboundInTransit(listId: Long) {
-        db.outboundDao().updateLineStatusForList(listId, OutboundLineStatus.EnTransito)
+        db.withTransaction {
+            val lines = db.outboundDao().getLinesForList(listId)
+            val targets = lines.filter {
+                it.status != OutboundLineStatus.Entregado && it.status != OutboundLineStatus.EnTransito
+            }
+            if (targets.isEmpty()) return@withTransaction
+
+            val now = System.currentTimeMillis()
+            val historyEntries = targets.map { line ->
+                OutboundLineStatusHistoryEntity(
+                    outboundLineId = line.id,
+                    status = OutboundLineStatus.EnTransito,
+                    createdAt = now
+                )
+            }
+            db.outboundDao().insertLineStatusHistory(historyEntries)
+            db.outboundDao().updateLineStatus(targets.map { it.id }, OutboundLineStatus.EnTransito)
+        }
     }
 
     suspend fun updateOutboundLineOutcome(
@@ -217,7 +235,19 @@ class RemitosRepository(private val db: AppDatabase) {
         deliveredQty: Int,
         returnedQty: Int,
     ) {
-        db.outboundDao().updateLineOutcome(lineId, status, deliveredQty, returnedQty)
+        db.withTransaction {
+            val history = OutboundLineStatusHistoryEntity(
+                outboundLineId = lineId,
+                status = status,
+                createdAt = System.currentTimeMillis()
+            )
+            db.outboundDao().insertLineStatusHistory(listOf(history))
+            db.outboundDao().updateLineOutcome(lineId, status, deliveredQty, returnedQty)
+        }
+    }
+
+    suspend fun getOutboundLineStatusHistory(lineId: Long): List<OutboundLineStatusHistoryEntity> {
+        return db.outboundDao().getLineStatusHistory(lineId)
     }
 
     suspend fun closeOutboundList(listId: Long) {
