@@ -22,6 +22,7 @@ import com.remitos.app.ui.screens.DebugScreen
 import com.remitos.app.ui.screens.InboundCameraScreen
 import com.remitos.app.ui.screens.InboundDetailScreen
 import com.remitos.app.ui.screens.InboundHistoryScreen
+import com.remitos.app.ui.screens.InboundPreviewScreen
 import com.remitos.app.ui.screens.InboundScanScreen
 import com.remitos.app.ui.screens.OutboundPreviewSampleScreen
 import com.remitos.app.ui.screens.ActivityScreen
@@ -47,6 +48,7 @@ private object Routes {
     const val Dashboard = "dashboard"
     const val InboundScan = "inbound_scan"
     const val InboundCamera = "inbound_camera"
+    const val InboundPreview = "inbound_preview"
     const val InboundHistory = "inbound_history"
     const val InboundDetail = "inbound_detail"
     const val ChecklistSample = "checklist_sample"
@@ -134,10 +136,31 @@ private fun AppNavHost(navController: NavHostController) {
             InboundCameraScreen(
                 onBack = { navController.popBackStack() },
                 onPhotoCaptured = { uri ->
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("preview_photo_uri", uri)
+                    navController.navigate(Routes.InboundPreview)
+                },
+            )
+        }
+        composable(Routes.InboundPreview) {
+            val previewUri = navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.get<Uri>("preview_photo_uri")
+            InboundPreviewScreen(
+                photoUri = previewUri,
+                onBack = { navController.popBackStack() },
+                onRetake = { navController.popBackStack() },
+                onConfirm = { uri ->
+                    navController.getBackStackEntry(Routes.InboundScan)
+                        .savedStateHandle
+                        .set("captured_photo_uri", uri)
+                    navController.popBackStack(Routes.InboundScan, false)
+                },
+                onPhotoUriHandled = {
                     navController.previousBackStackEntry
                         ?.savedStateHandle
-                        ?.set("captured_photo_uri", uri)
-                    navController.popBackStack()
+                        ?.remove<Uri>("preview_photo_uri")
                 },
             )
         }
