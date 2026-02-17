@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.FilterList
@@ -34,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,6 +86,12 @@ fun InboundHistoryScreen(
     val canLoadMore by viewModel.canLoadMoreState.collectAsStateWithLifecycle()
     var showFilters by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val listState = rememberLazyListState()
+    LaunchedEffect(notes.size) {
+        if (listState.firstVisibleItemIndex > 0 && notes.isNotEmpty()) {
+            listState.scrollToItem(0)
+        }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -181,6 +189,7 @@ fun InboundHistoryScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.padding(horizontal = 20.dp),
+                    state = listState,
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(notes, key = { it.id }) { note ->
