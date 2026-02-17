@@ -110,9 +110,16 @@ class OcrProcessor {
 
     private fun toGrayscaleBitmap(context: Context, uri: Uri): Bitmap {
         val source = ImageDecoder.createSource(context.contentResolver, uri)
-        val decoded = ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+        val decoded = ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
             decoder.isMutableRequired = true
             decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            val maxEdge = maxOf(info.size.width, info.size.height).coerceAtLeast(1)
+            if (maxEdge > maxTargetEdgePx) {
+                val scale = maxTargetEdgePx.toFloat() / maxEdge.toFloat()
+                val targetWidth = (info.size.width * scale).toInt().coerceAtLeast(1)
+                val targetHeight = (info.size.height * scale).toInt().coerceAtLeast(1)
+                decoder.setTargetSize(targetWidth, targetHeight)
+            }
         }
         val bitmap = if (decoded.config == Bitmap.Config.ARGB_8888) {
             decoded
