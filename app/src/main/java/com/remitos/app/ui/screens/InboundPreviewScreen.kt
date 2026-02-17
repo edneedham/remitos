@@ -231,6 +231,8 @@ fun InboundPreviewScreen(
 
 private fun loadPreviewBitmap(context: Context, uri: Uri): Bitmap? {
     return runCatching {
+        val cacheKey = "preview|$uri"
+        ImageCache.get(cacheKey)?.let { return it }
         val source = ImageDecoder.createSource(context.contentResolver, uri)
         ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
             decoder.isMutableRequired = false
@@ -242,6 +244,8 @@ private fun loadPreviewBitmap(context: Context, uri: Uri): Bitmap? {
                 val targetHeight = (size.height * scale).roundToInt().coerceAtLeast(1)
                 decoder.setTargetSize(targetWidth, targetHeight)
             }
+        }.also { decoded ->
+            ImageCache.put(cacheKey, decoded)
         }
     }.getOrNull()
 }

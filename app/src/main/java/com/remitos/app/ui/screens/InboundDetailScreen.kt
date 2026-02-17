@@ -421,6 +421,8 @@ private fun loadBitmap(
     targetHeight: Int,
 ): Bitmap? {
     return runCatching {
+        val cacheKey = "detail|$path|$targetWidth|$targetHeight"
+        ImageCache.get(cacheKey)?.let { return it }
         val uri = Uri.parse(path)
         val source = ImageDecoder.createSource(context.contentResolver, uri)
         ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
@@ -434,6 +436,8 @@ private fun loadBitmap(
                 val scaledHeight = (info.size.height * scale).roundToInt().coerceAtLeast(1)
                 decoder.setTargetSize(scaledWidth, scaledHeight)
             }
+        }.also { decoded ->
+            ImageCache.put(cacheKey, decoded)
         }
     }.getOrNull()
 }
