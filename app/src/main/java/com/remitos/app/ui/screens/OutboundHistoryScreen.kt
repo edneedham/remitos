@@ -76,6 +76,7 @@ fun OutboundHistoryScreen(onBack: () -> Unit) {
     val searchQuery by viewModel.currentQuery.collectAsStateWithLifecycle()
     val selectedListStatuses by viewModel.selectedListStatuses.collectAsStateWithLifecycle()
     val selectedLineStatuses by viewModel.selectedLineStatuses.collectAsStateWithLifecycle()
+    val canLoadMore by viewModel.canLoadMoreLists.collectAsStateWithLifecycle()
     val reprintState by viewModel.reprintState.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val filterScrollState = rememberScrollState()
@@ -182,6 +183,18 @@ fun OutboundHistoryScreen(onBack: () -> Unit) {
                             list = list,
                             onReprint = { viewModel.requestReprint(list.id) },
                         )
+                    }
+                    if (canLoadMore) {
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                            ) {
+                                TextButton(onClick = { viewModel.loadMore() }) {
+                                    Text("Cargar más")
+                                }
+                            }
+                        }
                     }
                     item { Spacer(modifier = Modifier.size(16.dp)) }
                 }

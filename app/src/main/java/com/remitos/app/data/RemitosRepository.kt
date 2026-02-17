@@ -215,8 +215,8 @@ class RemitosRepository(private val db: AppDatabase) {
         return db.outboundDao().getLineEditHistory(lineId)
     }
 
-    suspend fun searchOutboundLists(filters: OutboundSearchFilters): List<OutboundListEntity> {
-        val query = buildOutboundSearchQuery(filters)
+    suspend fun searchOutboundLists(filters: OutboundSearchFilters, limit: Int? = null): List<OutboundListEntity> {
+        val query = buildOutboundSearchQuery(filters, limit)
         return db.outboundDao().searchOutboundLists(query)
     }
 
@@ -316,7 +316,7 @@ class RemitosRepository(private val db: AppDatabase) {
         db.outboundDao().updateOutboundListStatus(listId, OutboundListStatus.Cerrada)
     }
 
-    internal fun buildOutboundSearchQuery(filters: OutboundSearchFilters): SupportSQLiteQuery {
+    internal fun buildOutboundSearchQuery(filters: OutboundSearchFilters, limit: Int? = null): SupportSQLiteQuery {
         val normalizedTokens = normalizeSearchTokens(filters.query)
         val args = mutableListOf<Any>()
         val conditions = mutableListOf<String>()
@@ -361,6 +361,11 @@ class RemitosRepository(private val db: AppDatabase) {
         }
 
         val whereClause = if (conditions.isEmpty()) "1=1" else conditions.joinToString(" AND ")
+        val limitClause = if (limit != null) " LIMIT ?" else ""
+        if (limit != null) {
+            args.add(limit)
+        }
+
         val sql =
             """
             SELECT DISTINCT ol.*
@@ -369,6 +374,7 @@ class RemitosRepository(private val db: AppDatabase) {
             LEFT JOIN inbound_notes n ON n.id = l.inbound_note_id
             WHERE $whereClause
             ORDER BY ol.issue_date DESC
+            $limitClause
             """.trimIndent()
 
         return SimpleSQLiteQuery(sql, args.toTypedArray())

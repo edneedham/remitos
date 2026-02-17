@@ -27,31 +27,42 @@ class OutboundHistoryViewModel(
     private val repository: RemitosRepository,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
+    private val pageSize = 20
     private val searchQuery = MutableStateFlow("")
     private val listStatusFilter = MutableStateFlow(setOf(OutboundListStatus.Abierta))
     private val lineStatusFilter = MutableStateFlow(emptySet<String>())
+    private val pageLimit = MutableStateFlow(pageSize)
+    private val canLoadMore = MutableStateFlow(false)
 
     val outboundLists: StateFlow<List<OutboundListEntity>> = combine(
         searchQuery.debounce(300).distinctUntilChanged(),
         listStatusFilter,
         lineStatusFilter,
+        pageLimit,
         repository.observeOutboundLists(),
-    ) { query, listStatuses, lineStatuses, _ ->
+    ) { query, listStatuses, lineStatuses, limit, _ ->
         OutboundSearchFilters(
             query = query,
             listStatuses = listStatuses,
             lineStatuses = lineStatuses,
-        )
+        ) to limit
     }
         .flatMapLatest { filters ->
             flow {
+                val (queryFilters, limit) = filters
                 val results = withContext(ioDispatcher) {
-                    repository.searchOutboundLists(filters)
+                    repository.searchOutboundLists(queryFilters, limit + 1)
                 }
-                emit(results)
+                val hasMore = results.size > limit
+                canLoadMore.value = hasMore
+                val trimmed = if (hasMore) results.take(limit) else results
+                emit(trimmed)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val canLoadMoreLists: StateFlow<Boolean> = canLoadMore
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), canLoadMore.value)
 
     val reprintState = MutableStateFlow<OutboundReprintState?>(null)
     val isReprinting = MutableStateFlow(false)
@@ -65,6 +76,7 @@ class OutboundHistoryViewModel(
 
     fun updateSearchQuery(value: String) {
         searchQuery.value = value
+        pageLimit.value = pageSize
     }
 
     fun toggleListStatus(status: String) {
@@ -76,6 +88,7 @@ class OutboundHistoryViewModel(
             current.add(OutboundListStatus.Abierta)
         }
         listStatusFilter.value = current
+        pageLimit.value = pageSize
     }
 
     fun toggleLineStatus(status: String) {
@@ -84,10 +97,17 @@ class OutboundHistoryViewModel(
             current.remove(status)
         }
         lineStatusFilter.value = current
+        pageLimit.value = pageSize
     }
 
     fun clearLineStatusFilters() {
         lineStatusFilter.value = emptySet()
+        pageLimit.value = pageSize
+    }
+
+    fun loadMore() {
+        if (!canLoadMore.value) return
+        pageLimit.value += pageSize
     }
 
     fun requestReprint(listId: Long) {
