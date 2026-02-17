@@ -99,7 +99,6 @@ class InboundHistoryViewModel(
                     val toMatch = to?.let { note.createdAt <= it } ?: true
                     textMatch && fromMatch && toMatch
                 }
-                .sortedByDescending { it.createdAt }
                 .toList()
         }
 
