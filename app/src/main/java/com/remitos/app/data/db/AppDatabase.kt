@@ -32,7 +32,7 @@ import com.remitos.app.data.db.entity.SequenceEntity
         SequenceEntity::class,
         DebugLogEntity::class,
     ],
-    version = 6
+    version = 7
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun inboundDao(): InboundDao
@@ -142,12 +142,45 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_outbound_lists_status ON outbound_lists(status)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_outbound_lists_issue_date ON outbound_lists(issue_date)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_outbound_lines_outbound_list_id " +
+                        "ON outbound_lines(outbound_list_id)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_outbound_lines_status ON outbound_lines(status)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_inbound_notes_remito_num_cliente " +
+                        "ON inbound_notes(remito_num_cliente)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_inbound_notes_remito_num_interno " +
+                        "ON inbound_notes(remito_num_interno)"
+                )
+            }
+        }
+
         fun build(context: Context): AppDatabase {
             return Room.databaseBuilder(
                 context,
                 AppDatabase::class.java,
                 "remitos.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            ).addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+                MIGRATION_6_7
+            )
                 .build()
         }
     }

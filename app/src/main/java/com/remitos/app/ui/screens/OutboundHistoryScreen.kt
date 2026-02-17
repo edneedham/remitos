@@ -177,7 +177,7 @@ fun OutboundHistoryScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(outboundLists) { list ->
+                    items(outboundLists, key = { it.id }) { list ->
                         OutboundHistoryCard(
                             list = list,
                             onReprint = { viewModel.requestReprint(list.id) },
