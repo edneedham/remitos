@@ -12,8 +12,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import java.time.LocalDate
 import java.time.ZoneId
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -32,17 +33,31 @@ class InboundHistoryViewModel(
     val toDateState: StateFlow<String> = toDate
 
     val filteredNotes: StateFlow<List<InboundNoteEntity>> = combine(
-        repository.observeInboundNotes(),
         searchQuery.debounce(300).distinctUntilChanged(),
         fromDate.debounce(300).distinctUntilChanged(),
         toDate.debounce(300).distinctUntilChanged(),
         pageLimit
-    ) { notes, query, from, to, limit ->
-        val filtered = filterNotes(notes, query, from, to, ZoneId.systemDefault())
-        val hasMore = filtered.size > limit
-        canLoadMore.value = hasMore
-        if (hasMore) filtered.take(limit) else filtered
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    ) { query, from, to, limit ->
+        InboundQueryState(query, from, to, limit)
+    }
+        .flatMapLatest { state ->
+            val zoneId = ZoneId.systemDefault()
+            val fromMillis = parseDateStart(state.fromDate, zoneId)
+            val toMillis = parseDateEnd(state.toDate, zoneId)
+            repository.observeInboundNotesFiltered(
+                query = state.query,
+                from = fromMillis,
+                to = toMillis,
+                limit = state.limit + 1,
+            )
+        }
+        .map { notes ->
+            val limit = pageLimit.value
+            val hasMore = notes.size > limit
+            canLoadMore.value = hasMore
+            if (hasMore) notes.take(limit) else notes
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val canLoadMoreState: StateFlow<Boolean> = canLoadMore
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), canLoadMore.value)
@@ -67,53 +82,24 @@ class InboundHistoryViewModel(
         pageLimit.value += pageSize
     }
 
-    companion object {
-        internal fun filterNotes(
-            notes: List<InboundNoteEntity>,
-            searchQuery: String,
-            fromDate: String,
-            toDate: String,
-            zoneId: ZoneId
-        ): List<InboundNoteEntity> {
-            val query = searchQuery.trim().lowercase()
-            val from = parseDateStart(fromDate, zoneId)
-            val to = parseDateEnd(toDate, zoneId)
+    private fun parseDateStart(value: String, zoneId: ZoneId): Long? {
+        val date = parseDate(value) ?: return null
+        return date.atStartOfDay(zoneId).toInstant().toEpochMilli()
+    }
 
-            return notes.asSequence()
-                .filter { note ->
-                    val textMatch = if (query.isBlank()) {
-                        true
-                    } else {
-                        listOf(
-                            note.senderCuit,
-                            note.senderNombre,
-                            note.senderApellido,
-                            note.destNombre,
-                            note.destApellido,
-                            note.remitoNumCliente,
-                            note.remitoNumInterno
-                        ).any { it.lowercase().contains(query) }
-                    }
+    private fun parseDateEnd(value: String, zoneId: ZoneId): Long? {
+        val date = parseDate(value) ?: return null
+        return date.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
+    }
 
-                    val fromMatch = from?.let { note.createdAt >= it } ?: true
-                    val toMatch = to?.let { note.createdAt <= it } ?: true
-                    textMatch && fromMatch && toMatch
-                }
-                .toList()
-        }
-
-        private fun parseDateStart(value: String, zoneId: ZoneId): Long? {
-            val date = parseDate(value) ?: return null
-            return date.atStartOfDay(zoneId).toInstant().toEpochMilli()
-        }
-
-        private fun parseDateEnd(value: String, zoneId: ZoneId): Long? {
-            val date = parseDate(value) ?: return null
-            return date.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
-        }
-
-        private fun parseDate(value: String): LocalDate? {
-            return runCatching { LocalDate.parse(value.trim()) }.getOrNull()
-        }
+    private fun parseDate(value: String): java.time.LocalDate? {
+        return runCatching { java.time.LocalDate.parse(value.trim()) }.getOrNull()
     }
 }
+
+private data class InboundQueryState(
+    val query: String,
+    val fromDate: String,
+    val toDate: String,
+    val limit: Int,
+)

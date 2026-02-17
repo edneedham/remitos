@@ -85,6 +85,17 @@ class RemitosRepository(private val db: AppDatabase) {
         return db.inboundDao().observeInboundNotes()
     }
 
+    fun observeInboundNotesFiltered(
+        query: String,
+        from: Long?,
+        to: Long?,
+        limit: Int,
+    ): Flow<List<InboundNoteEntity>> {
+        val normalized = query.trim().lowercase()
+        val like = "%$normalized%"
+        return db.inboundDao().observeInboundNotesFiltered(normalized, like, from, to, limit)
+    }
+
     suspend fun getInboundNote(noteId: Long): InboundNoteEntity? {
         return db.inboundDao().getInboundNote(noteId)
     }

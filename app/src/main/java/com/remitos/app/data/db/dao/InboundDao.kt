@@ -23,6 +23,33 @@ interface InboundDao {
 
     @Query(
         """
+        SELECT * FROM inbound_notes
+        WHERE (
+            :query = '' OR
+            LOWER(sender_cuit) LIKE :queryLike OR
+            LOWER(sender_nombre) LIKE :queryLike OR
+            LOWER(sender_apellido) LIKE :queryLike OR
+            LOWER(dest_nombre) LIKE :queryLike OR
+            LOWER(dest_apellido) LIKE :queryLike OR
+            LOWER(remito_num_cliente) LIKE :queryLike OR
+            LOWER(remito_num_interno) LIKE :queryLike
+        )
+        AND (:from IS NULL OR created_at >= :from)
+        AND (:to IS NULL OR created_at <= :to)
+        ORDER BY created_at DESC
+        LIMIT :limit
+        """
+    )
+    fun observeInboundNotesFiltered(
+        query: String,
+        queryLike: String,
+        from: Long?,
+        to: Long?,
+        limit: Int,
+    ): Flow<List<InboundNoteEntity>>
+
+    @Query(
+        """
         SELECT n.*, COUNT(p.id) AS available_count
         FROM inbound_notes n
         LEFT JOIN inbound_packages p
