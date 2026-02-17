@@ -31,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -80,6 +81,7 @@ fun InboundHistoryScreen(
     val searchQuery by viewModel.searchQueryState.collectAsStateWithLifecycle()
     val fromDate by viewModel.fromDateState.collectAsStateWithLifecycle()
     val toDate by viewModel.toDateState.collectAsStateWithLifecycle()
+    val canLoadMore by viewModel.canLoadMoreState.collectAsStateWithLifecycle()
     var showFilters by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -181,11 +183,23 @@ fun InboundHistoryScreen(
                     modifier = Modifier.padding(horizontal = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(notes) { note ->
+                    items(notes, key = { it.id }) { note ->
                         InboundHistoryCard(
                             note = note,
                             onOpenDetail = { onOpenDetail(note.id) },
                         )
+                    }
+                    if (canLoadMore) {
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                            ) {
+                                TextButton(onClick = { viewModel.loadMore() }) {
+                                    Text("Cargar más")
+                                }
+                            }
+                        }
                     }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
                 }

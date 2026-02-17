@@ -15,9 +15,12 @@ import java.time.ZoneId
 class InboundHistoryViewModel(
     repository: RemitosRepository
 ) : ViewModel() {
+    private val pageSize = 20
     private val searchQuery = MutableStateFlow("")
     private val fromDate = MutableStateFlow("")
     private val toDate = MutableStateFlow("")
+    private val pageLimit = MutableStateFlow(pageSize)
+    private val canLoadMore = MutableStateFlow(false)
 
     val searchQueryState: StateFlow<String> = searchQuery
     val fromDateState: StateFlow<String> = fromDate
@@ -27,21 +30,36 @@ class InboundHistoryViewModel(
         repository.observeInboundNotes(),
         searchQuery,
         fromDate,
-        toDate
-    ) { notes, query, from, to ->
-        filterNotes(notes, query, from, to, ZoneId.systemDefault())
+        toDate,
+        pageLimit
+    ) { notes, query, from, to, limit ->
+        val filtered = filterNotes(notes, query, from, to, ZoneId.systemDefault())
+        val hasMore = filtered.size > limit
+        canLoadMore.value = hasMore
+        if (hasMore) filtered.take(limit) else filtered
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val canLoadMoreState: StateFlow<Boolean> = canLoadMore
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), canLoadMore.value)
 
     fun updateSearchQuery(value: String) {
         searchQuery.value = value
+        pageLimit.value = pageSize
     }
 
     fun updateFromDate(value: String) {
         fromDate.value = value
+        pageLimit.value = pageSize
     }
 
     fun updateToDate(value: String) {
         toDate.value = value
+        pageLimit.value = pageSize
+    }
+
+    fun loadMore() {
+        if (!canLoadMore.value) return
+        pageLimit.value += pageSize
     }
 
     companion object {

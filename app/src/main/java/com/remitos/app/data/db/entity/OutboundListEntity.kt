@@ -2,9 +2,16 @@ package com.remitos.app.data.db.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "outbound_lists")
+@Entity(
+    tableName = "outbound_lists",
+    indices = [
+        Index(value = ["status"]),
+        Index(value = ["issue_date"]),
+    ]
+)
 data class OutboundListEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

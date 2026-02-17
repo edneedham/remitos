@@ -22,7 +22,11 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.RESTRICT
         )
     ],
-    indices = [Index("outbound_list_id"), Index("inbound_note_id")]
+    indices = [
+        Index("outbound_list_id"),
+        Index("inbound_note_id"),
+        Index("status"),
+    ]
 )
 data class OutboundLineEntity(
     @PrimaryKey(autoGenerate = true)

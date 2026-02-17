@@ -2,10 +2,17 @@ package com.remitos.app.data.db.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.remitos.app.ocr.OcrFieldKeys
 
-@Entity(tableName = "inbound_notes")
+@Entity(
+    tableName = "inbound_notes",
+    indices = [
+        Index(value = [OcrFieldKeys.RemitoNumCliente]),
+        Index(value = [OcrFieldKeys.RemitoNumInterno]),
+    ]
+)
 data class InboundNoteEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
