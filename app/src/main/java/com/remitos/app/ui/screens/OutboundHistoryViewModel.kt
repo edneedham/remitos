@@ -36,8 +36,8 @@ class OutboundHistoryViewModel(
 
     val outboundLists: StateFlow<List<OutboundListEntity>> = combine(
         searchQuery.debounce(300).distinctUntilChanged(),
-        listStatusFilter,
-        lineStatusFilter,
+        listStatusFilter.debounce(150).distinctUntilChanged(),
+        lineStatusFilter.debounce(150).distinctUntilChanged(),
         pageLimit,
         repository.observeOutboundLists(),
     ) { query, listStatuses, lineStatuses, limit, _ ->
