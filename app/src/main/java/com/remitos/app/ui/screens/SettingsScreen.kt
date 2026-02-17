@@ -19,6 +19,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +33,9 @@ import com.remitos.app.BuildConfig
 import com.remitos.app.RemitosApplication
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.components.SectionCard
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -51,6 +55,11 @@ fun SettingsScreen(
     )
 
     val perspectiveEnabled by viewModel.perspectiveCorrectionEnabled.collectAsStateWithLifecycle()
+    val storageInfo by produceState(initialValue = StorageInfo.empty(), context) {
+        value = withContext(Dispatchers.IO) {
+            loadStorageInfo(File(context.filesDir, "remitos"))
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -99,6 +108,33 @@ fun SettingsScreen(
                 }
             }
 
+            SectionCard(
+                title = "Almacenamiento",
+                icon = Icons.Outlined.Tune,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = "Imágenes guardadas",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "${storageInfo.count} archivos · ${formatBytes(storageInfo.totalBytes)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.weight(1f))
             Row(
                 modifier = Modifier
@@ -120,4 +156,38 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+private data class StorageInfo(
+    val count: Int,
+    val totalBytes: Long,
+) {
+    companion object {
+        fun empty() = StorageInfo(0, 0)
+    }
+}
+
+private fun loadStorageInfo(directory: File): StorageInfo {
+    if (!directory.exists() || !directory.isDirectory) return StorageInfo.empty()
+    var count = 0
+    var bytes = 0L
+    directory.listFiles()?.forEach { file ->
+        if (file.isFile) {
+            count += 1
+            bytes += file.length()
+        }
+    }
+    return StorageInfo(count, bytes)
+}
+
+private fun formatBytes(bytes: Long): String {
+    val units = arrayOf("B", "KB", "MB", "GB")
+    var value = bytes.toDouble()
+    var unitIndex = 0
+    while (value >= 1024 && unitIndex < units.lastIndex) {
+        value /= 1024.0
+        unitIndex += 1
+    }
+    val rounded = if (unitIndex == 0) value.toInt().toString() else String.format("%.1f", value)
+    return "$rounded ${units[unitIndex]}"
 }
