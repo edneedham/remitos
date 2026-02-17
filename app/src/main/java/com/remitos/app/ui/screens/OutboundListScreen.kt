@@ -231,25 +231,21 @@ fun OutboundListScreen(
                         label = "N° Entrega",
                         leadingIcon = Icons.Outlined.Numbers,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RemitosTextField(
-                            value = line.recipientNombre,
-                            onValueChange = { value ->
-                                updateLine(line.id) { it.copy(recipientNombre = value) }
-                            },
-                            label = "Nombre destinatario",
-                            leadingIcon = Icons.Outlined.Person,
-                            modifier = Modifier.weight(1f),
-                        )
-                        RemitosTextField(
-                            value = line.recipientApellido,
-                            onValueChange = { value ->
-                                updateLine(line.id) { it.copy(recipientApellido = value) }
-                            },
-                            label = "Apellido",
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
+                    RemitosTextField(
+                        value = line.recipientNombre,
+                        onValueChange = { value ->
+                            updateLine(line.id) { it.copy(recipientNombre = value) }
+                        },
+                        label = "Nombre destinatario",
+                        leadingIcon = Icons.Outlined.Person,
+                    )
+                    RemitosTextField(
+                        value = line.recipientApellido,
+                        onValueChange = { value ->
+                            updateLine(line.id) { it.copy(recipientApellido = value) }
+                        },
+                        label = "Apellido",
+                    )
                     RemitosTextField(
                         value = line.recipientDireccion,
                         onValueChange = { value ->
