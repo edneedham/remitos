@@ -63,6 +63,10 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.max
+import kotlin.math.roundToInt
+
+private const val DETAIL_MAX_EDGE_PX = 1200
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -419,10 +423,16 @@ private fun loadBitmap(
     return runCatching {
         val uri = Uri.parse(path)
         val source = ImageDecoder.createSource(context.contentResolver, uri)
-        ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+        ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
             decoder.isMutableRequired = false
-            if (targetWidth > 0 && targetHeight > 0) {
-                decoder.setTargetSize(targetWidth, targetHeight)
+            val maxEdge = max(info.size.width, info.size.height).coerceAtLeast(1)
+            val desiredEdge = max(targetWidth, targetHeight).coerceAtLeast(1)
+            val maxAllowed = minOf(desiredEdge, DETAIL_MAX_EDGE_PX)
+            if (maxEdge > maxAllowed) {
+                val scale = maxAllowed.toFloat() / maxEdge.toFloat()
+                val scaledWidth = (info.size.width * scale).roundToInt().coerceAtLeast(1)
+                val scaledHeight = (info.size.height * scale).roundToInt().coerceAtLeast(1)
+                decoder.setTargetSize(scaledWidth, scaledHeight)
             }
         }
     }.getOrNull()
