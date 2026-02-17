@@ -2,6 +2,7 @@ package com.remitos.app.ui.screens
 
 import android.net.Uri
 import android.util.Log
+import java.io.File
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -264,7 +265,7 @@ fun InboundCameraScreen(
                 enabled = allowCapture,
                 onClick = {
                     val capture = imageCapture ?: return@IconButton
-                    val file = createImageFile(context.cacheDir)
+                    val file = createImageFile(File(context.filesDir, "remitos"))
                     val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
                     capture.takePicture(
                         outputOptions,

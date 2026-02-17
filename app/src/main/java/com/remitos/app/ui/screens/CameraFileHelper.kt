@@ -8,11 +8,17 @@ import java.util.Date
 import java.util.Locale
 
 internal fun createImageFile(baseDir: File): File {
+    if (!baseDir.exists()) {
+        baseDir.mkdirs()
+    }
     val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
     return File(baseDir, "remito_$timestamp.jpg")
 }
 
 internal fun saveBitmapToFile(bitmap: Bitmap, baseDir: File): File {
+    if (!baseDir.exists()) {
+        baseDir.mkdirs()
+    }
     val file = createImageFile(baseDir)
     FileOutputStream(file).use { output ->
         bitmap.compress(Bitmap.CompressFormat.JPEG, 92, output)

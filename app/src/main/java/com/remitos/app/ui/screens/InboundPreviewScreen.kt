@@ -51,6 +51,7 @@ import com.remitos.app.ui.components.RemitosTopBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -184,7 +185,7 @@ fun InboundPreviewScreen(
                             if (current == null) return@Button
                             scope.launch {
                                 val uri = withContext(Dispatchers.IO) {
-                                    val file = saveBitmapToFile(current, context.cacheDir)
+                                    val file = saveBitmapToFile(current, File(context.filesDir, "remitos"))
                                     Uri.fromFile(file)
                                 }
                                 onConfirm(uri)
