@@ -3,6 +3,17 @@
 This repository is a Kotlin Android app using Jetpack Compose, Room, and ML Kit.
 Follow this guide when making changes.
 
+## Branch Strategy
+
+**Main branches:**
+- `main` - Offline-only beta (stable, feature-complete for standalone use)
+- `backend-integration` - Active development for backend-connected features
+
+**Tags:**
+- `v0.1.15-offline-beta` - Final offline-only release
+
+**Important:** When working on the `main` branch, keep it offline-only. Backend features go on `backend-integration`.
+
 ## Build, Lint, Test
 
 All commands assume repo root.
@@ -38,6 +49,28 @@ Notes:
 ## Commit & Pull Request Guidelines
 
 - Create commits with `scripts/committer "<msg>" <file...>`; avoid manual `git add`/`git commit` so staging stays scoped.
+
+## Feature Flags
+
+The app uses `FeatureFlags` object to control offline vs backend modes:
+
+```kotlin
+// Offline-only mode (default on main branch)
+FeatureFlags.configureOfflineMode()
+
+// Backend integration mode
+FeatureFlags.configureBackendMode("https://api.example.com")
+```
+
+Available flags:
+- `enableBackendOcr` - Use backend OCR instead of on-device
+- `enableImageUpload` - Upload images to backend
+- `enableCloudSync` - Sync audit logs with backend
+- `backendBaseUrl` - Backend API base URL
+
+**When adding features:**
+- On `main`: Ensure they work with `FeatureFlags.configureOfflineMode()`
+- On `backend-integration`: Can use backend features when flags are enabled
 
 ## Repo Structure
 
@@ -89,7 +122,7 @@ Notes:
 ### Coroutines & Threading
 
 - Use `suspend` functions for DB and OCR operations.
-- Execute DB work in Room’s `withTransaction` where needed.
+- Execute DB work in Room's `withTransaction` where needed.
 - Do not block the UI thread; use `Dispatchers.IO` where appropriate.
 
 ### Room / Database
