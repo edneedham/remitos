@@ -3,6 +3,7 @@ package com.remitos.app
 import android.app.Application
 import com.remitos.app.data.AuthManager
 import com.remitos.app.data.DatabaseManager
+import com.remitos.app.data.FeatureFlags
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.SessionManager
 import com.remitos.app.data.SettingsStore
@@ -34,6 +35,9 @@ class RemitosApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Configure backend mode
+        FeatureFlags.configureBackendMode("https://remitos-api-3wjjt7hd6a-rj.a.run.app")
 
         // Initialize session manager
         sessionManager = SessionManager(

@@ -8,8 +8,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -17,6 +22,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
+import com.remitos.app.RemitosApplication
 import com.remitos.app.ui.screens.DashboardScreen
 import com.remitos.app.ui.screens.DebugScreen
 import com.remitos.app.ui.screens.InboundCameraScreen
@@ -24,6 +30,7 @@ import com.remitos.app.ui.screens.InboundDetailScreen
 import com.remitos.app.ui.screens.InboundHistoryScreen
 import com.remitos.app.ui.screens.InboundPreviewScreen
 import com.remitos.app.ui.screens.InboundScanScreen
+import com.remitos.app.ui.screens.LoginScreen
 import com.remitos.app.ui.screens.OutboundPreviewSampleScreen
 import com.remitos.app.ui.screens.ActivityScreen
 import com.remitos.app.ui.screens.OutboundHistoryScreen
@@ -32,6 +39,7 @@ import com.remitos.app.ui.screens.OutboundPreviewScreen
 import com.remitos.app.ui.screens.SettingsScreen
 import com.remitos.app.ui.screens.SplashScreen
 import com.remitos.app.ui.theme.RemitosTheme
+import kotlinx.coroutines.launch
 
 @Composable
 fun RemitosApp() {
@@ -45,6 +53,7 @@ fun RemitosApp() {
 
 private object Routes {
     const val Splash = "splash"
+    const val Login = "login"
     const val Dashboard = "dashboard"
     const val InboundScan = "inbound_scan"
     const val InboundCamera = "inbound_camera"
@@ -64,6 +73,9 @@ private const val NAV_ANIM_DURATION = 300
 
 @Composable
 private fun AppNavHost(navController: NavHostController) {
+    val context = LocalContext.current
+    val app = context.applicationContext as RemitosApplication
+    
     NavHost(
         navController = navController,
         startDestination = Routes.Splash,
@@ -97,14 +109,63 @@ private fun AppNavHost(navController: NavHostController) {
             enterTransition = { fadeIn(animationSpec = tween(0)) },
             exitTransition = { fadeOut(animationSpec = tween(NAV_ANIM_DURATION)) },
         ) {
+            var isAuthenticated by remember { mutableStateOf<Boolean?>(null) }
+            
+            LaunchedEffect(Unit) {
+                // Check if user is already logged in
+                val currentUser = app.authManager.getCurrentUser()
+                isAuthenticated = currentUser != null
+                
+                if (isAuthenticated == true) {
+                    // Initialize user context
+                    app.initializeCurrentUserContext()
+                }
+            }
+            
             SplashScreen(
                 onFinished = {
-                    navController.navigate(Routes.Dashboard) {
-                        popUpTo(Routes.Splash) { inclusive = true }
+                    when (isAuthenticated) {
+                        true -> {
+                            // User is logged in, go to dashboard
+                            navController.navigate(Routes.Dashboard) {
+                                popUpTo(Routes.Splash) { inclusive = true }
+                            }
+                        }
+                        false -> {
+                            // No user logged in, go to login
+                            navController.navigate(Routes.Login) {
+                                popUpTo(Routes.Splash) { inclusive = true }
+                            }
+                        }
+                        null -> {
+                            // Still checking, stay on splash
+                        }
                     }
                 },
             )
         }
+        
+        composable(
+            route = Routes.Login,
+            enterTransition = { fadeIn(animationSpec = tween(NAV_ANIM_DURATION)) },
+            exitTransition = { fadeOut(animationSpec = tween(NAV_ANIM_DURATION)) },
+        ) {
+            LoginScreen(
+                onLoginSuccess = {
+                    // Navigate to dashboard and clear back stack
+                    navController.navigate(Routes.Dashboard) {
+                        popUpTo(Routes.Login) { inclusive = true }
+                    }
+                },
+                onContinueOffline = {
+                    // Navigate to dashboard in offline mode
+                    navController.navigate(Routes.Dashboard) {
+                        popUpTo(Routes.Login) { inclusive = true }
+                    }
+                },
+            )
+        }
+        
         composable(Routes.Dashboard) {
             DashboardScreen(
                 onScan = { navController.navigate(Routes.InboundScan) },
@@ -210,6 +271,12 @@ private fun AppNavHost(navController: NavHostController) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
                 onOpenDebug = { navController.navigate(Routes.Debug) },
+                onLogout = {
+                    // Navigate to login and clear back stack
+                    navController.navigate(Routes.Login) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
             )
         }
         composable(Routes.Activity) {
