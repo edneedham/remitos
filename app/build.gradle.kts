@@ -62,6 +62,12 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
+    // Security
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     implementation(project(":opencv"))
 
     implementation("androidx.room:room-runtime:2.6.1")

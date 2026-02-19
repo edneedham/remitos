@@ -31,6 +31,32 @@ object FeatureFlags {
      */
     var backendBaseUrl: String? = null
         private set
+    
+    /**
+     * Auto-logout time in minutes. 0 = disabled.
+     * After this period of inactivity, user is automatically logged out.
+     */
+    var autoLogoutMinutes: Int = 30
+        private set
+    
+    /**
+     * Image compression quality (0-100). Lower = smaller files.
+     * Recommended: 60% for ~500KB images.
+     */
+    var imageQuality: Int = 60
+        private set
+    
+    /**
+     * Sync interval in minutes. How often to run background sync.
+     */
+    var syncIntervalMinutes: Int = 15
+        private set
+    
+    /**
+     * Number of days of recent history to load on initial login.
+     */
+    var lazySyncDays: Int = 7
+        private set
 
     /**
      * Configure feature flags for offline-only mode (default beta behavior).
@@ -60,11 +86,19 @@ object FeatureFlags {
         backendOcr: Boolean = false,
         imageUpload: Boolean = false,
         cloudSync: Boolean = false,
-        baseUrl: String? = null
+        baseUrl: String? = null,
+        autoLogout: Int = 30,
+        imageQualityPercent: Int = 60,
+        syncInterval: Int = 15,
+        initialSyncDays: Int = 7
     ) {
         enableBackendOcr = backendOcr
         enableImageUpload = imageUpload
         enableCloudSync = cloudSync
         backendBaseUrl = baseUrl
+        autoLogoutMinutes = autoLogout
+        imageQuality = imageQualityPercent
+        syncIntervalMinutes = syncInterval
+        lazySyncDays = initialSyncDays
     }
 }
