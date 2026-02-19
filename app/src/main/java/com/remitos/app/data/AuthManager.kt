@@ -190,7 +190,7 @@ class AuthManager(private val context: Context) {
         }
     }
     
-    private fun addToUsersList(userId: String, email: String, name: String?) {
+    private suspend fun addToUsersList(userId: String, email: String, name: String?) {
         val users = listLoggedInUsers().toMutableList()
         
         // Remove if already exists (update)
@@ -207,7 +207,7 @@ class AuthManager(private val context: Context) {
         saveUsersList(users)
     }
     
-    private fun removeFromUsersList(userId: String) {
+    private suspend fun removeFromUsersList(userId: String) {
         val users = listLoggedInUsers().filter { it.userId != userId }
         saveUsersList(users)
     }

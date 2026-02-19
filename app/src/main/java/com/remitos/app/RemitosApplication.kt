@@ -24,6 +24,13 @@ class RemitosApplication : Application() {
         private set
     var currentRepository: RemitosRepository? = null
         private set
+    
+    /**
+     * Legacy repository accessor for backward compatibility.
+     * Use requireRepository() for null-safe access.
+     */
+    val repository: RemitosRepository
+        get() = requireRepository()
 
     override fun onCreate() {
         super.onCreate()
