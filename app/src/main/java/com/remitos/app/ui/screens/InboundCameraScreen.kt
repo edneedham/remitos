@@ -93,7 +93,7 @@ fun InboundCameraScreen(
                 analyzer.setAnalyzer(analysisExecutor) { imageProxy ->
                     analyzeCoverage(imageProxy, recognizer) { ratio ->
                         mainExecutor.execute {
-                            val covered = ratio >= 0.7f
+                            val covered = true
                             if (covered != isDocumentCovered || ratio != lastCoverageRatio) {
                                 isDocumentCovered = covered
                                 lastCoverageRatio = ratio
@@ -209,7 +209,6 @@ fun InboundCameraScreen(
         ) {
             Text(
                 text = when {
-                    !isDocumentCovered -> "Cubre al menos el 70% del marco"
                     !focusReady -> "Enfocando..."
                     else -> "Remito detectado"
                 },
@@ -252,7 +251,6 @@ fun InboundCameraScreen(
         ) {
             Text(
                 when {
-                    !isDocumentCovered -> "Asegura que el remito cubra al menos el 70%"
                     !focusReady -> "Enfocando..."
                     else -> "Listo para capturar"
                 },
