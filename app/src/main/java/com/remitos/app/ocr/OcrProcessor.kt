@@ -12,7 +12,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import com.remitos.app.FeatureFlags
+import com.remitos.app.data.FeatureFlags
 import com.remitos.app.network.ApiClient
 import com.remitos.app.network.ScanRequest
 import kotlinx.coroutines.Dispatchers
@@ -67,9 +67,6 @@ class OcrProcessor {
         TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     }
 
-    companion object {
-        private const val CONFIDENCE_THRESHOLD = 0.7
-    }
 
     suspend fun processImage(
         context: Context,
@@ -480,6 +477,8 @@ class OcrProcessor {
     }
 
     companion object {
+        private const val CONFIDENCE_THRESHOLD = 0.7
+
         internal fun parseFields(raw: String): Pair<Map<String, String>, Map<String, Double>> {
             val fields = mutableMapOf<String, String>()
             val confidence = mutableMapOf<String, Double>()

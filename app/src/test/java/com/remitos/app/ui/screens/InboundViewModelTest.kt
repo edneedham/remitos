@@ -108,7 +108,7 @@ class InboundViewModelTest {
                 remitoNumCliente = "RC-2"
             )
         )
-        viewModel.updateOcrMetadata("texto ocr", mapOf(OcrFieldKeys.SenderCuit to 0.8f))
+        viewModel.updateOcrMetadata("texto ocr", mapOf(OcrFieldKeys.SenderCuit to 0.8))
 
         viewModel.save()
         advanceUntilIdle()

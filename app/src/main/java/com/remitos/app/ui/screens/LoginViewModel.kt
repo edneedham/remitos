@@ -70,7 +70,7 @@ class LoginViewModel(
                 }
 
                 // Initialize API client if needed
-                if (!ApiClient.isInitialized()) {
+                if (!ApiClient.isInitialized) {
                     ApiClient.getApiService(authManager)
                 }
 

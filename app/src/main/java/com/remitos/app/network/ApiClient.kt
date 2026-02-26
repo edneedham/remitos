@@ -100,13 +100,6 @@ object ApiClient {
         }
     }
 
-    /**
-     * Check if the client is initialized.
-     */
-    fun isInitialized(): Boolean {
-        return retrofit != null && apiService != null
-    }
-
     private fun createRetrofit(authManager: AuthManager): Retrofit {
         val baseUrl = FeatureFlags.backendBaseUrl
             ?: throw IllegalStateException("Backend base URL not configured. Call FeatureFlags.configureBackendMode() first.")

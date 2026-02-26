@@ -152,12 +152,12 @@ class InboundViewModel(
         }
     }
 
-    fun updateOcrMetadata(text: String?, confidence: Map<String, Float>?) {
+    fun updateOcrMetadata(text: String?, confidence: Map<String, Double>?) {
         ocrTextBlob = text
         ocrConfidenceJson = confidenceToJson(confidence)
     }
 
-    private fun confidenceToJson(confidence: Map<String, Float>?): String? {
+    private fun confidenceToJson(confidence: Map<String, Double>?): String? {
         if (confidence.isNullOrEmpty()) return null
         return confidence.entries.joinToString(prefix = "{", postfix = "}") { (key, value) ->
             "\"$key\":$value"
