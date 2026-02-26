@@ -168,11 +168,25 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Build database with default name (for backward compatibility).
+         * @deprecated Use DatabaseManager instead for multi-user support.
+         */
+        @Deprecated("Use DatabaseManager.getDatabase() instead")
         fun build(context: Context): AppDatabase {
+            return build(context, "remitos.db")
+        }
+
+        /**
+         * Build database with custom name (for multi-user support).
+         * @param context Application context
+         * @param databaseName Name of the database file
+         */
+        fun build(context: Context, databaseName: String): AppDatabase {
             return Room.databaseBuilder(
                 context,
                 AppDatabase::class.java,
-                "remitos.db"
+                databaseName
             ).addMigrations(
                 MIGRATION_1_2,
                 MIGRATION_2_3,
@@ -180,8 +194,7 @@ abstract class AppDatabase : RoomDatabase() {
                 MIGRATION_4_5,
                 MIGRATION_5_6,
                 MIGRATION_6_7
-            )
-                .build()
+            ).build()
         }
     }
 }

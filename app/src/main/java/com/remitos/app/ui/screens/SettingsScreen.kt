@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -18,9 +21,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -31,9 +38,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.BuildConfig
 import com.remitos.app.RemitosApplication
+import com.remitos.app.data.FeatureFlags
+import com.remitos.app.data.UserInfo
+import com.remitos.app.ui.components.AccountSwitcherCard
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.components.SectionCard
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -42,9 +53,11 @@ import java.io.File
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenDebug: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as RemitosApplication
+    val scope = rememberCoroutineScope()
     val viewModel: SettingsViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -59,6 +72,16 @@ fun SettingsScreen(
         value = withContext(Dispatchers.IO) {
             loadStorageInfo(File(context.filesDir, "remitos"))
         }
+    }
+
+    // Account state
+    var currentUser by remember { mutableStateOf<UserInfo?>(null) }
+    var accounts by remember { mutableStateOf<List<UserInfo>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        val currentUserId = app.authManager.getCurrentUser()
+        currentUser = currentUserId?.let { app.authManager.getUserInfo(it) }
+        accounts = app.authManager.listLoggedInUsers()
     }
 
     Scaffold(
@@ -77,6 +100,27 @@ fun SettingsScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // Account Section
+            if (FeatureFlags.enableCloudSync) {
+                AccountSwitcherCard(
+                    currentUser = currentUser,
+                    accounts = accounts,
+                    onSwitchAccount = { userId ->
+                        scope.launch {
+                            app.switchUser(userId)
+                            currentUser = app.authManager.getUserInfo(userId)
+                            onBack() // Go back after switching
+                        }
+                    },
+                    onLogout = { deleteData ->
+                        scope.launch {
+                            app.logoutCurrentUser(deleteData)
+                            onLogout()
+                        }
+                    },
+                )
+            }
+
             SectionCard(
                 title = "Procesamiento",
                 icon = Icons.Outlined.Tune,
