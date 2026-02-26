@@ -22,6 +22,9 @@ object ApiClient {
 
     private var retrofit: Retrofit? = null
     private var apiService: RemitosApiService? = null
+    
+    val isInitialized: Boolean
+        get() = retrofit != null && apiService != null
 
     /**
      * Get or create the Retrofit instance.
@@ -47,6 +50,44 @@ object ApiClient {
                 .create(RemitosApiService::class.java)
                 .also { apiService = it }
         }
+    }
+    
+    /**
+     * Get API service if initialized, or null otherwise.
+     * Useful for OCR fallback where we may not have auth.
+     */
+    fun getApiServiceIfInitialized(): RemitosApiService? = apiService
+    
+    /**
+     * Get or create API service for unauthenticated requests (e.g., OCR scan).
+     */
+    fun getUnauthenticatedApiService(): RemitosApiService {
+        return apiService ?: synchronized(this) {
+            apiService ?: createUnauthenticatedRetrofit()
+                .create(RemitosApiService::class.java)
+                .also { apiService = it }
+        }
+    }
+    
+    private fun createUnauthenticatedRetrofit(): Retrofit {
+        val baseUrl = FeatureFlags.backendBaseUrl
+            ?: throw IllegalStateException("Backend base URL not configured.")
+        
+        val gson = GsonBuilder()
+            .setLenient()
+            .create()
+        
+        val client = OkHttpClient.Builder()
+            .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .readTimeout(60L, TimeUnit.SECONDS)
+            .writeTimeout(60L, TimeUnit.SECONDS)
+            .build()
+        
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
     }
 
     /**

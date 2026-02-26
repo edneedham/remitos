@@ -228,9 +228,6 @@ private fun AppNavHost(navController: NavHostController) {
         composable(Routes.OutboundList) {
             OutboundListScreen(
                 onBack = { navController.popBackStack() },
-                onPreview = { listId ->
-                    navController.navigate("${Routes.OutboundPreview}/$listId")
-                },
             )
         }
         composable(

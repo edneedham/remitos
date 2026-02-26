@@ -13,8 +13,15 @@ data class RegisterRequest(
 )
 
 data class LoginRequest(
-    val email: String,
-    val password: String
+    @SerializedName("company_code")
+    val companyCode: String,
+    
+    val username: String,
+    
+    val password: String,
+    
+    @SerializedName("device_name")
+    val deviceName: String? = null
 )
 
 data class RefreshTokenRequest(
@@ -23,19 +30,13 @@ data class RefreshTokenRequest(
 )
 
 data class AuthResponse(
-    @SerializedName("access_token")
-    val accessToken: String,
+    val token: String,
     
     @SerializedName("refresh_token")
     val refreshToken: String,
     
     @SerializedName("expires_in")
-    val expiresIn: Int,  // seconds
-    
-    @SerializedName("token_type")
-    val tokenType: String = "Bearer",
-    
-    val user: UserDto
+    val expiresIn: Int
 )
 
 data class UserDto(

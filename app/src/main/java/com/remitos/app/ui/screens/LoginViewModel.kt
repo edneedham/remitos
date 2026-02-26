@@ -54,9 +54,9 @@ class LoginViewModel(
     }
 
     /**
-     * Attempt to login with email and password.
+     * Attempt to login with company code, username and password.
      */
-    fun login(email: String, password: String) {
+    fun login(companyCode: String, username: String, password: String, deviceName: String? = null) {
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
 
@@ -79,22 +79,24 @@ class LoginViewModel(
                 // Make login request
                 val response = apiService.login(
                     LoginRequest(
-                        email = email.trim(),
-                        password = password
+                        companyCode = companyCode.trim().uppercase(),
+                        username = username.trim(),
+                        password = password,
+                        deviceName = deviceName
                     )
                 )
 
                 if (response.isSuccessful) {
                     val authResponse = response.body()
                     if (authResponse != null) {
-                        // Save tokens
-                        val userId = authResponse.user.id.toString()
+                        // Save tokens - use username as identifier since we don't have user ID from this response
+                        val userId = username.lowercase()
                         val tokenData = TokenData(
-                            accessToken = authResponse.accessToken,
+                            accessToken = authResponse.token,
                             refreshToken = authResponse.refreshToken,
                             expiresAt = calculateExpiryTime(authResponse.expiresIn),
-                            userEmail = authResponse.user.email,
-                            userName = "${authResponse.user.nombre ?: ""} ${authResponse.user.apellido ?: ""}".trim()
+                            userEmail = username,
+                            userName = username
                         )
 
                         authManager.saveToken(userId, tokenData)
@@ -106,7 +108,7 @@ class LoginViewModel(
                     }
                 } else {
                     val errorMessage = when (response.code()) {
-                        401 -> "Correo o contraseña incorrectos"
+                        401 -> "Código de empresa, usuario o contraseña incorrectos"
                         403 -> "Cuenta desactivada. Contacte al administrador."
                         429 -> "Demasiados intentos. Intente más tarde."
                         in 500..599 -> "Error del servidor. Intente más tarde."

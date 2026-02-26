@@ -119,9 +119,9 @@ fun LoginScreen(
             modifier = Modifier.padding(padding),
             accounts = accounts,
             uiState = uiState,
-            onLogin = { email, password ->
+            onLogin = { companyCode, username, password ->
                 scope.launch {
-                    viewModel.login(email, password)
+                    viewModel.login(companyCode, username, password)
                 }
             },
             onSwitchAccount = { userId ->
@@ -141,11 +141,12 @@ private fun LoginContent(
     modifier: Modifier = Modifier,
     accounts: List<UserInfo>,
     uiState: LoginUiState,
-    onLogin: (String, String) -> Unit,
+    onLogin: (String, String, String) -> Unit,
     onSwitchAccount: (String) -> Unit,
     onContinueOffline: () -> Unit,
 ) {
-    var email by remember { mutableStateOf("") }
+    var companyCode by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
@@ -254,11 +255,30 @@ private fun LoginContent(
             }
         }
         
-        // Email field
+        // Company Code field
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Correo electrónico") },
+            value = companyCode,
+            onValueChange = { companyCode = it.uppercase() },
+            label = { Text("Código de empresa") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Next,
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+            ),
+            enabled = !isLoading,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Username field
+        OutlinedTextField(
+            value = username,
+            onValueChange = { username = it },
+            label = { Text("Usuario") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -291,7 +311,7 @@ private fun LoginContent(
             keyboardActions = KeyboardActions(
                 onDone = {
                     focusManager.clearFocus()
-                    onLogin(email, password)
+                    onLogin(companyCode, username, password)
                 }
             ),
             trailingIcon = {
@@ -319,20 +339,10 @@ private fun LoginContent(
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        // Forgot password (placeholder - could link to web)
-        TextButton(
-            onClick = { /* TODO: Open forgot password URL */ },
-            enabled = !isLoading,
-        ) {
-            Text("¿Olvidaste tu contraseña?")
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
         // Login button
         Button(
-            onClick = { onLogin(email, password) },
-            enabled = email.isNotBlank() && password.isNotBlank() && !isLoading,
+            onClick = { onLogin(companyCode, username, password) },
+            enabled = companyCode.isNotBlank() && username.isNotBlank() && password.isNotBlank() && !isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -358,30 +368,15 @@ private fun LoginContent(
             Text("Continuar sin conexión")
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         
-        // Register link
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("¿No tienes cuenta?")
-            TextButton(
-                onClick = { /* TODO: Navigate to registration */ },
-                enabled = !isLoading,
-            ) {
-                Text("Registrarse")
-            }
-        }
-        
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Version info
-            Text(
-                text = "v${com.remitos.app.BuildConfig.VERSION_NAME}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
+        // Version info
+        Text(
+            text = "v${com.remitos.app.BuildConfig.VERSION_NAME}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
         }
         
         // Bottom spacer for scroll padding

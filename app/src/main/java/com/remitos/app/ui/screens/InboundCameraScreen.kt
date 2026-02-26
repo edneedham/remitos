@@ -6,8 +6,6 @@ import java.io.File
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -51,11 +49,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.delay
-import java.util.concurrent.Executors
 
 @Composable
 fun InboundCameraScreen(
@@ -67,41 +61,23 @@ fun InboundCameraScreen(
     val previewView = remember { PreviewView(context) }
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
-    var isDocumentCovered by remember { mutableStateOf(false) }
-    var lastCoverageRatio by remember { mutableStateOf(0f) }
-    val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
-    val recognizer = remember { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
     val mainExecutor = remember { ContextCompat.getMainExecutor(context) }
     val focusGate = remember { FocusGate() }
     var focusReady by remember { mutableStateOf(false) }
     var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
-    val allowCapture = isDocumentCovered && focusReady
     var cameraControl by remember { mutableStateOf<androidx.camera.core.CameraControl?>(null) }
 
     LaunchedEffect(cameraProviderFuture) {
         val cameraProvider = cameraProviderFuture.get()
-        val preview = Preview.Builder().build().also {
+        val preview = Preview.Builder()
+            .setTargetAspectRatio(androidx.camera.core.AspectRatio.RATIO_4_3)
+            .build().also {
             it.setSurfaceProvider(previewView.surfaceProvider)
         }
         val capture = ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+            .setTargetAspectRatio(androidx.camera.core.AspectRatio.RATIO_4_3)
             .build()
-        val analysis = ImageAnalysis.Builder()
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .build()
-            .also { analyzer ->
-                analyzer.setAnalyzer(analysisExecutor) { imageProxy ->
-                    analyzeCoverage(imageProxy, recognizer) { ratio ->
-                        mainExecutor.execute {
-                            val covered = ratio >= 0.7f
-                            if (covered != isDocumentCovered || ratio != lastCoverageRatio) {
-                                isDocumentCovered = covered
-                                lastCoverageRatio = ratio
-                            }
-                        }
-                    }
-                }
-            }
 
         cameraProvider.unbindAll()
         val camera = cameraProvider.bindToLifecycle(
@@ -109,7 +85,6 @@ fun InboundCameraScreen(
             CameraSelector.DEFAULT_BACK_CAMERA,
             preview,
             capture,
-            analysis,
         )
         cameraControl = camera.cameraControl
         imageCapture = capture
@@ -138,8 +113,6 @@ fun InboundCameraScreen(
     DisposableEffect(lifecycleOwner) {
         onDispose {
             runCatching { cameraProviderFuture.get().unbindAll() }
-            analysisExecutor.shutdown()
-            recognizer.close()
         }
     }
 
@@ -192,16 +165,12 @@ fun InboundCameraScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
-                .fillMaxHeight(0.85f)
+                .fillMaxHeight(0.65f)
                 .aspectRatio(3f / 4f)
                 .padding(top = 8.dp, bottom = 72.dp)
                 .border(
                     width = 2.dp,
-                    color = if (allowCapture) {
-                        Color.White.copy(alpha = 0.7f)
-                    } else {
-                        Color(0xFFFFC857).copy(alpha = 0.9f)
-                    },
+                    color = Color.White.copy(alpha = 0.7f),
                     shape = RoundedCornerShape(12.dp),
                 )
                 .padding(horizontal = 16.dp),
@@ -209,9 +178,8 @@ fun InboundCameraScreen(
         ) {
             Text(
                 text = when {
-                    !isDocumentCovered -> "Cubre al menos el 70% del marco"
                     !focusReady -> "Enfocando..."
-                    else -> "Remito detectado"
+                    else -> "Listo para capturar"
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.8f),
@@ -252,9 +220,8 @@ fun InboundCameraScreen(
         ) {
             Text(
                 when {
-                    !isDocumentCovered -> "Asegura que el remito cubra al menos el 70%"
                     !focusReady -> "Enfocando..."
-                    else -> "Listo para capturar"
+                    else -> "Toca para capturar"
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.8f),
@@ -262,7 +229,7 @@ fun InboundCameraScreen(
 
             // Shutter button
             IconButton(
-                enabled = allowCapture,
+                enabled = true,
                 onClick = {
                     val capture = imageCapture ?: return@IconButton
                     val file = createImageFile(File(context.filesDir, "remitos"))
@@ -284,18 +251,8 @@ fun InboundCameraScreen(
                 modifier = Modifier
                     .size(72.dp)
                     .clip(CircleShape)
-                    .background(
-                        if (allowCapture) {
-                            Color.White.copy(alpha = 0.2f)
-                        } else {
-                            Color.White.copy(alpha = 0.08f)
-                        }
-                    )
-                    .border(
-                        3.dp,
-                        if (allowCapture) Color.White else Color.White.copy(alpha = 0.5f),
-                        CircleShape
-                    ),
+                    .background(Color.White.copy(alpha = 0.2f))
+                    .border(3.dp, Color.White, CircleShape),
                 colors = IconButtonDefaults.iconButtonColors(
                     contentColor = Color.White,
                 ),
@@ -304,46 +261,9 @@ fun InboundCameraScreen(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(if (allowCapture) Color.White else Color.White.copy(alpha = 0.6f)),
+                        .background(Color.White),
                 )
             }
         }
     }
-}
-
-private fun analyzeCoverage(
-    imageProxy: ImageProxy,
-    recognizer: com.google.mlkit.vision.text.TextRecognizer,
-    onResult: (Float) -> Unit,
-) {
-    val image = imageProxy.image
-    if (image == null) {
-        imageProxy.close()
-        return
-    }
-
-    val inputImage = InputImage.fromMediaImage(image, imageProxy.imageInfo.rotationDegrees)
-    recognizer.process(inputImage)
-        .addOnSuccessListener { result ->
-            val boxes = result.textBlocks.mapNotNull { it.boundingBox }
-            if (boxes.isEmpty()) {
-                onResult(0f)
-            } else {
-                val minLeft = boxes.minOf { it.left }
-                val minTop = boxes.minOf { it.top }
-                val maxRight = boxes.maxOf { it.right }
-                val maxBottom = boxes.maxOf { it.bottom }
-                val width = (maxRight - minLeft).coerceAtLeast(0)
-                val height = (maxBottom - minTop).coerceAtLeast(0)
-                val boxArea = width.toFloat() * height.toFloat()
-                val frameArea = (imageProxy.width * imageProxy.height).toFloat().coerceAtLeast(1f)
-                onResult(boxArea / frameArea)
-            }
-        }
-        .addOnFailureListener {
-            onResult(0f)
-        }
-        .addOnCompleteListener {
-            imageProxy.close()
-        }
 }

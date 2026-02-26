@@ -12,9 +12,15 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.remitos.app.FeatureFlags
+import com.remitos.app.network.ApiClient
+import com.remitos.app.network.ScanRequest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.Mat
@@ -24,17 +30,20 @@ import org.opencv.core.MatOfPoint2f
 import org.opencv.core.Point
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
+import java.io.File
+import java.io.FileOutputStream
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 data class OcrResult(
     val text: String,
     val fields: Map<String, String>,
-    val confidence: Map<String, Float>,
+    val confidence: Map<String, Double>,
     val preprocessTimeMs: Long,
     val imageWidth: Int,
     val imageHeight: Int,
-    val parsingErrorSummary: String?
+    val parsingErrorSummary: String?,
+    val source: String = "mlkit"
 )
 
 data class OcrDebugInfo(
@@ -58,6 +67,10 @@ class OcrProcessor {
         TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     }
 
+    companion object {
+        private const val CONFIDENCE_THRESHOLD = 0.7
+    }
+
     suspend fun processImage(
         context: Context,
         uri: Uri,
@@ -75,25 +88,87 @@ class OcrProcessor {
         val image = preprocessResult.first
         val width = preprocessResult.second
         val height = preprocessResult.third
-        val text = try {
-            recognizeText(image)
+        
+        val mlKitResult = try {
+            val text = recognizeText(image)
+            val fields = extractFields(text)
+            val parsingSummary = buildParsingErrorSummary(fields.first)
+            OcrResult(
+                text = text.text,
+                fields = fields.first,
+                confidence = fields.second.mapValues { it.value.toDouble() },
+                preprocessTimeMs = preprocessTimeMs,
+                imageWidth = width,
+                imageHeight = height,
+                parsingErrorSummary = parsingSummary,
+                source = "mlkit"
+            )
         } catch (error: Exception) {
             throw OcrProcessingException(
                 debugInfo = OcrDebugInfo(preprocessTimeMs, width, height),
                 cause = error
             )
         }
-        val fields = extractFields(text)
-        val parsingSummary = buildParsingErrorSummary(fields.first)
-        return OcrResult(
-            text = text.text,
-            fields = fields.first,
-            confidence = fields.second,
-            preprocessTimeMs = preprocessTimeMs,
-            imageWidth = width,
-            imageHeight = height,
-            parsingErrorSummary = parsingSummary
-        )
+        
+        val avgConfidence = mlKitResult.confidence.values.takeIf { it.isNotEmpty() }?.average() ?: 0.0
+        
+        return if (avgConfidence < CONFIDENCE_THRESHOLD && FeatureFlags.enableBackendOcr) {
+            tryProcessWithBackend(context, uri, mlKitResult)
+        } else {
+            mlKitResult
+        }
+    }
+
+    private suspend fun tryProcessWithBackend(
+        context: Context,
+        uri: Uri,
+        mlKitResult: OcrResult
+    ): OcrResult {
+        return try {
+            val apiService = try {
+                ApiClient.getUnauthenticatedApiService()
+            } catch (e: Exception) {
+                return mlKitResult
+            }
+            
+            val imageFile = withContext(Dispatchers.IO) {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val tempFile = File.createTempFile("scan_", ".jpg", context.cacheDir)
+                inputStream?.use { input ->
+                    FileOutputStream(tempFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                tempFile
+            }
+            
+            val requestBody = imageFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
+            val imagePart = MultipartBody.Part.createFormData("image", imageFile.name, requestBody)
+            
+            val response = apiService.scanImage(
+                image = imagePart,
+                text = mlKitResult.text,
+                confidenceJson = mlKitResult.confidence.entries.joinToString(",") { "${it.key}:${it.value}" }
+            )
+            
+            if (response.isSuccessful && response.body() != null) {
+                val scanResponse = response.body()!!
+                OcrResult(
+                    text = scanResponse.text,
+                    fields = scanResponse.fields,
+                    confidence = scanResponse.confidence,
+                    preprocessTimeMs = mlKitResult.preprocessTimeMs,
+                    imageWidth = mlKitResult.imageWidth,
+                    imageHeight = mlKitResult.imageHeight,
+                    parsingErrorSummary = buildParsingErrorSummary(scanResponse.fields),
+                    source = scanResponse.source
+                )
+            } else {
+                mlKitResult
+            }
+        } catch (e: Exception) {
+            mlKitResult
+        }
     }
 
     private suspend fun recognizeText(image: InputImage): Text {
@@ -104,7 +179,7 @@ class OcrProcessor {
         }
     }
 
-    private fun extractFields(text: Text): Pair<Map<String, String>, Map<String, Float>> {
+    private fun extractFields(text: Text): Pair<Map<String, String>, Map<String, Double>> {
         return parseFields(text.text)
     }
 
@@ -150,40 +225,21 @@ class OcrProcessor {
     }
 
     private fun reduceNoise(bitmap: Bitmap): Bitmap {
-        val width = bitmap.width
-        val height = bitmap.height
-        if (width < 3 || height < 3) return bitmap
+        if (!ensureOpenCvReady()) return bitmap
+        if (bitmap.width < 3 || bitmap.height < 3) return bitmap
 
-        val input = IntArray(width * height)
-        val output = IntArray(width * height)
-        bitmap.getPixels(input, 0, width, 0, 0, width, height)
-
-        for (y in 1 until height - 1) {
-            val rowOffset = y * width
-            for (x in 1 until width - 1) {
-                var sum = 0
-                for (dy in -1..1) {
-                    val offset = (y + dy) * width
-                    for (dx in -1..1) {
-                        val color = input[offset + x + dx]
-                        sum += color and 0xFF
-                    }
-                }
-                val avg = (sum / 9).coerceIn(0, 255)
-                output[rowOffset + x] = (0xFF shl 24) or (avg shl 16) or (avg shl 8) or avg
-            }
+        val rgba = Mat()
+        val output = Mat()
+        try {
+            Utils.bitmapToMat(bitmap, rgba)
+            Imgproc.medianBlur(rgba, output, 3)
+            val result = Bitmap.createBitmap(output.cols(), output.rows(), Bitmap.Config.ARGB_8888)
+            Utils.matToBitmap(output, result)
+            return result
+        } finally {
+            rgba.release()
+            output.release()
         }
-
-        for (x in 0 until width) {
-            output[x] = input[x]
-            output[(height - 1) * width + x] = input[(height - 1) * width + x]
-        }
-        for (y in 1 until height - 1) {
-            output[y * width] = input[y * width]
-            output[y * width + (width - 1)] = input[y * width + (width - 1)]
-        }
-
-        return Bitmap.createBitmap(output, width, height, Bitmap.Config.ARGB_8888)
     }
 
     private fun correctPerspectiveOrDeskew(bitmap: Bitmap): Bitmap {
@@ -424,9 +480,9 @@ class OcrProcessor {
     }
 
     companion object {
-        internal fun parseFields(raw: String): Pair<Map<String, String>, Map<String, Float>> {
+        internal fun parseFields(raw: String): Pair<Map<String, String>, Map<String, Double>> {
             val fields = mutableMapOf<String, String>()
-            val confidence = mutableMapOf<String, Float>()
+            val confidence = mutableMapOf<String, Double>()
             val normalized = raw.replace("\r", "\n")
             val lines = normalized.lines()
 
@@ -565,13 +621,13 @@ class OcrProcessor {
             val cuitMatch = Regex("\\b\\d{2}-\\d{8}-\\d{1}\\b").find(raw)
             if (cuitMatch != null && !fields.containsKey(OcrFieldKeys.SenderCuit)) {
                 fields[OcrFieldKeys.SenderCuit] = cuitMatch.value
-                confidence[OcrFieldKeys.SenderCuit] = 0.8f
+                confidence[OcrFieldKeys.SenderCuit] = 0.8
             }
 
             val bultosMatch = Regex("(?i)(?:cantidad\\s*de\\s*)?bultos\\s*[:\\-]?\\s*(\\d+)").find(raw)
             if (bultosMatch != null && !fields.containsKey(OcrFieldKeys.CantBultosTotal)) {
                 fields[OcrFieldKeys.CantBultosTotal] = bultosMatch.groupValues[1]
-                confidence[OcrFieldKeys.CantBultosTotal] = 0.7f
+                confidence[OcrFieldKeys.CantBultosTotal] = 0.7
             }
 
             val remitoClienteMatch = Regex(
@@ -579,7 +635,7 @@ class OcrProcessor {
             ).find(raw)
             if (remitoClienteMatch != null && !fields.containsKey(OcrFieldKeys.RemitoNumCliente)) {
                 fields[OcrFieldKeys.RemitoNumCliente] = remitoClienteMatch.groupValues[1]
-                confidence[OcrFieldKeys.RemitoNumCliente] = 0.6f
+                confidence[OcrFieldKeys.RemitoNumCliente] = 0.6
             }
 
             if (!fields.containsKey(OcrFieldKeys.SenderNombre) || !fields.containsKey(OcrFieldKeys.SenderApellido)) {
@@ -589,11 +645,11 @@ class OcrProcessor {
                     val (nombre, apellido) = splitPersonName(remitenteMatch.groupValues[1])
                     if (!fields.containsKey(OcrFieldKeys.SenderNombre) && nombre.isNotBlank()) {
                         fields[OcrFieldKeys.SenderNombre] = nombre
-                        confidence[OcrFieldKeys.SenderNombre] = 0.6f
+                        confidence[OcrFieldKeys.SenderNombre] = 0.6
                     }
                     if (!fields.containsKey(OcrFieldKeys.SenderApellido) && apellido.isNotBlank()) {
                         fields[OcrFieldKeys.SenderApellido] = apellido
-                        confidence[OcrFieldKeys.SenderApellido] = 0.6f
+                        confidence[OcrFieldKeys.SenderApellido] = 0.6
                     }
                 }
             }
@@ -605,11 +661,11 @@ class OcrProcessor {
                     val (nombre, apellido) = splitPersonName(destinatarioMatch.groupValues[1])
                     if (!fields.containsKey(OcrFieldKeys.DestNombre) && nombre.isNotBlank()) {
                         fields[OcrFieldKeys.DestNombre] = nombre
-                        confidence[OcrFieldKeys.DestNombre] = 0.6f
+                        confidence[OcrFieldKeys.DestNombre] = 0.6
                     }
                     if (!fields.containsKey(OcrFieldKeys.DestApellido) && apellido.isNotBlank()) {
                         fields[OcrFieldKeys.DestApellido] = apellido
-                        confidence[OcrFieldKeys.DestApellido] = 0.6f
+                        confidence[OcrFieldKeys.DestApellido] = 0.6
                     }
                 }
             }
@@ -619,7 +675,7 @@ class OcrProcessor {
                     .find(raw)
                 if (direccionMatch != null) {
                     fields[OcrFieldKeys.DestDireccion] = direccionMatch.groupValues[1].trim()
-                    confidence[OcrFieldKeys.DestDireccion] = 0.6f
+                    confidence[OcrFieldKeys.DestDireccion] = 0.6
                 }
             }
 
@@ -628,7 +684,7 @@ class OcrProcessor {
                     .find(raw)
                 if (telefonoMatch != null) {
                     fields[OcrFieldKeys.DestTelefono] = telefonoMatch.groupValues[1].replace(" ", "").trim()
-                    confidence[OcrFieldKeys.DestTelefono] = 0.6f
+                    confidence[OcrFieldKeys.DestTelefono] = 0.6
                 }
             }
 
@@ -637,7 +693,7 @@ class OcrProcessor {
 
         private data class LabeledValue(
             val value: String,
-            val confidence: Float,
+            val confidence: Double,
         )
 
         private fun findLabeledValue(
@@ -670,13 +726,13 @@ class OcrProcessor {
                 if (inlineValue.isNotBlank()) {
                     val cleanedValue = cleanValue(inlineValue)
                     if (!valueValidator(cleanedValue)) continue
-                    return LabeledValue(cleanedValue, 0.75f)
+                    return LabeledValue(cleanedValue, 0.75)
                 }
                 val nextValue = nextNonEmptyLine(lines, index + 1, knownLabelRegex)
                 if (!nextValue.isNullOrBlank()) {
                     val cleanedValue = cleanValue(nextValue)
                     if (!valueValidator(cleanedValue)) continue
-                    return LabeledValue(cleanedValue, 0.65f)
+                    return LabeledValue(cleanedValue, 0.65)
                 }
             }
             return null

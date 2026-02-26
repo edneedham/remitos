@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Print
 import androidx.compose.material.icons.outlined.Save
+import com.remitos.app.print.OutboundListPrinter
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
@@ -43,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -56,12 +58,12 @@ import com.remitos.app.RemitosApplication
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.components.SectionCard
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OutboundListScreen(
     onBack: () -> Unit,
-    onPreview: (Long) -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val app = context.applicationContext as RemitosApplication
@@ -86,6 +88,7 @@ fun OutboundListScreen(
     var expandedLineId by remember { mutableStateOf<Long?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scope = rememberCoroutineScope()
 
     fun updateLine(lineId: Long, updater: (OutboundLineDraft) -> OutboundLineDraft) {
         draft = draft.copy(
@@ -326,27 +329,49 @@ fun OutboundListScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            val listId = printPayload?.list?.id ?: 0L
+                            val payload = printPayload
                             viewModel.clearSaveState()
                             viewModel.clearPrintPayload()
-                            if (listId != 0L) {
-                                onPreview(listId)
+                            if (payload != null) {
+                                OutboundListPrinter(context).print(payload.list, payload.lines)
                             }
+                            onBack()
                         },
                     ) {
-                        if (printPayload != null) {
+                        Icon(
+                            Icons.Outlined.Print,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(4.dp))
+                        Text("Imprimir")
+                    }
+                },
+                dismissButton = {
+                    Row {
+                        TextButton(
+                            onClick = {
+                                val payload = printPayload
+                                viewModel.clearSaveState()
+                                viewModel.clearPrintPayload()
+                                if (payload != null) {
+                                    scope.launch {
+                                        val file = OutboundListPrinter(context).saveToPdf(payload.list, payload.lines)
+                                        if (file != null) {
+                                            snackbarHostState.showSnackbar("PDF guardado en: ${file.absolutePath}")
+                                        }
+                                    }
+                                }
+                            },
+                        ) {
                             Icon(
-                                Icons.Outlined.Print,
+                                Icons.Outlined.Save,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(modifier = Modifier.size(4.dp))
+                            Text("Guardar PDF")
                         }
-                        Text(if (printPayload != null) "Previsualizar" else "Aceptar")
-                    }
-                },
-                dismissButton = if (printPayload != null) {
-                    {
                         TextButton(
                             onClick = {
                                 viewModel.clearSaveState()
@@ -357,8 +382,6 @@ fun OutboundListScreen(
                             Text("Cerrar")
                         }
                     }
-                } else {
-                    null
                 },
                 title = { Text("Lista guardada") },
                 text = { Text("La lista de reparto se guardo correctamente.") },
