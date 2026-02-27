@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -20,6 +22,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.remitos.app.BuildConfig
 import com.remitos.app.R
 import kotlinx.coroutines.delay
 
@@ -53,6 +56,12 @@ fun SplashScreen(
                 painter = painterResource(id = R.drawable.ic_logo_wordmark),
                 contentDescription = "en punto",
                 modifier = Modifier.size(width = 200.dp, height = 52.dp),
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "v${BuildConfig.VERSION_NAME}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
             )
         }
     }
