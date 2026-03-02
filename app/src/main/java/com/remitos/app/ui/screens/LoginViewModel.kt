@@ -97,7 +97,8 @@ class LoginViewModel(
                             refreshToken = authResponse.refreshToken,
                             expiresAt = calculateExpiryTime(authResponse.expiresIn),
                             userEmail = username,
-                            userName = username
+                            userName = username,
+                            role = authResponse.role
                         )
 
                         authManager.saveToken(userId, tokenData)

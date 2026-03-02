@@ -16,7 +16,8 @@ data class TokenData(
     val refreshToken: String,
     val expiresAt: Long,  // Unix timestamp in milliseconds
     val userEmail: String,
-    val userName: String? = null
+    val userName: String? = null,
+    val role: String? = null
 )
 
 /**
@@ -68,6 +69,7 @@ class AuthManager(private val context: Context) {
             put("expires_at", tokenData.expiresAt)
             put("user_email", tokenData.userEmail)
             put("user_name", tokenData.userName)
+            tokenData.role?.let { put("role", it) }
         }
         
         encryptedPrefs.edit().apply {
@@ -102,7 +104,8 @@ class AuthManager(private val context: Context) {
                 refreshToken = json.getString("refresh_token"),
                 expiresAt = json.getLong("expires_at"),
                 userEmail = json.optString("user_email", ""),
-                userName = json.optString("user_name", "")
+                userName = json.optString("user_name", null),
+                role = json.optString("role", null)
             )
         } catch (e: Exception) {
             null
@@ -139,6 +142,14 @@ class AuthManager(private val context: Context) {
     fun getCurrentUser(): String? {
         val userId = encryptedPrefs.getString(KEY_CURRENT_USER, "")
         return if (userId.isNullOrEmpty()) null else userId
+    }
+    
+    /**
+     * Get the role of the currently active user.
+     */
+    fun getCurrentUserRole(): String? {
+        val userId = getCurrentUser() ?: return null
+        return getTokenSync(userId)?.role
     }
     
     /**

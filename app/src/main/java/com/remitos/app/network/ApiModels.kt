@@ -36,7 +36,9 @@ data class AuthResponse(
     val refreshToken: String,
     
     @SerializedName("expires_in")
-    val expiresIn: Int
+    val expiresIn: Int,
+    
+    val role: String? = null
 )
 
 data class UserDto(

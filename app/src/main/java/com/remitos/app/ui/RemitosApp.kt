@@ -172,7 +172,9 @@ private fun AppNavHost(navController: NavHostController) {
         ) {
             LoginScreen(
                 onLoginSuccess = {
-                    // Navigate to dashboard and clear back stack
+                    // Navigate based on role
+                    val role = app.authManager.getCurrentUserRole()
+                    // For now, all roles go to Dashboard - Dashboard will show different options based on role
                     navController.navigate(Routes.Dashboard) {
                         popUpTo(Routes.Login) { inclusive = true }
                     }
