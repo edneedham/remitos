@@ -42,6 +42,18 @@ interface RemitosApiService {
     @GET("auth/me")
     suspend fun getCurrentUser(): Response<UserDto>
 
+    /**
+     * Register this device to a warehouse.
+     */
+    @POST("auth/device")
+    suspend fun registerDevice(@Body request: RegisterDeviceRequest): Response<DeviceRegistrationResponse>
+
+    /**
+     * Get warehouses for the current user's company.
+     */
+    @GET("warehouses")
+    suspend fun getWarehouses(): Response<List<WarehouseDto>>
+
     // ==================== INBOUND NOTES ====================
 
     /**

@@ -52,6 +52,37 @@ data class UserDto(
     val updatedAt: String
 )
 
+data class RegisterDeviceRequest(
+    @SerializedName("device_uuid")
+    val deviceUuid: String,
+    val platform: String,
+    @SerializedName("warehouse_id")
+    val warehouseId: String,
+    val model: String? = null,
+    @SerializedName("os_version")
+    val osVersion: String? = null,
+    @SerializedName("app_version")
+    val appVersion: String? = null
+)
+
+data class DeviceRegistrationResponse(
+    val message: String,
+    @SerializedName("device_id")
+    val deviceId: String
+)
+
+data class WarehouseDto(
+    val id: String,
+    @SerializedName("company_id")
+    val companyId: String,
+    val name: String,
+    val address: String? = null,
+    @SerializedName("created_at")
+    val createdAt: String,
+    @SerializedName("updated_at")
+    val updatedAt: String
+)
+
 // Inbound Note Models
 
 data class InboundNoteDto(

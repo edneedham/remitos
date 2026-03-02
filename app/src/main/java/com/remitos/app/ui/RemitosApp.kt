@@ -23,8 +23,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.remitos.app.RemitosApplication
+import com.remitos.app.data.DatabaseManager
 import com.remitos.app.ui.screens.DashboardScreen
 import com.remitos.app.ui.screens.DebugScreen
+import com.remitos.app.ui.screens.DeviceSetupScreen
 import com.remitos.app.ui.screens.InboundCameraScreen
 import com.remitos.app.ui.screens.InboundDetailScreen
 import com.remitos.app.ui.screens.InboundHistoryScreen
@@ -53,6 +55,7 @@ fun RemitosApp() {
 
 private object Routes {
     const val Splash = "splash"
+    const val DeviceSetup = "device_setup"
     const val Login = "login"
     const val Dashboard = "dashboard"
     const val InboundScan = "inbound_scan"
@@ -109,36 +112,53 @@ private fun AppNavHost(navController: NavHostController) {
             enterTransition = { fadeIn(animationSpec = tween(0)) },
             exitTransition = { fadeOut(animationSpec = tween(NAV_ANIM_DURATION)) },
         ) {
+            var isDeviceRegistered by remember { mutableStateOf<Boolean?>(null) }
             var isAuthenticated by remember { mutableStateOf<Boolean?>(null) }
             
             LaunchedEffect(Unit) {
-                // Check if user is already logged in
-                val currentUser = app.authManager.getCurrentUser()
-                isAuthenticated = currentUser != null
+                try {
+                    val db = DatabaseManager.getOfflineDatabase(context)
+                    val device = db.localDeviceDao().getDevice()
+                    isDeviceRegistered = device != null
+                } catch (e: Exception) {
+                    isDeviceRegistered = false
+                }
                 
-                if (isAuthenticated == true) {
-                    // Initialize user context
-                    app.initializeCurrentUserContext()
+                if (isDeviceRegistered == true) {
+                    val currentUser = app.authManager.getCurrentUser()
+                    isAuthenticated = currentUser != null
+                    
+                    if (isAuthenticated == true) {
+                        app.initializeCurrentUserContext()
+                    }
                 }
             }
             
             SplashScreen(
                 onFinished = {
-                    when (isAuthenticated) {
-                        true -> {
-                            // User is logged in, go to dashboard
-                            navController.navigate(Routes.Dashboard) {
+                    when (isDeviceRegistered) {
+                        false -> {
+                            navController.navigate(Routes.DeviceSetup) {
                                 popUpTo(Routes.Splash) { inclusive = true }
                             }
                         }
-                        false -> {
-                            // No user logged in, go to login
-                            navController.navigate(Routes.Login) {
-                                popUpTo(Routes.Splash) { inclusive = true }
+                        true -> {
+                            when (isAuthenticated) {
+                                true -> {
+                                    navController.navigate(Routes.Dashboard) {
+                                        popUpTo(Routes.Splash) { inclusive = true }
+                                    }
+                                }
+                                false -> {
+                                    navController.navigate(Routes.Login) {
+                                        popUpTo(Routes.Splash) { inclusive = true }
+                                    }
+                                }
+                                null -> {
+                                }
                             }
                         }
                         null -> {
-                            // Still checking, stay on splash
                         }
                     }
                 },
@@ -287,6 +307,21 @@ private fun AppNavHost(navController: NavHostController) {
         }
         composable(Routes.ChecklistSample) {
             OutboundPreviewSampleScreen(onBack = { navController.popBackStack() })
+        }
+        
+        composable(Routes.DeviceSetup) {
+            DeviceSetupScreen(
+                onDeviceRegistered = {
+                    navController.navigate(Routes.Login) {
+                        popUpTo(Routes.DeviceSetup) { inclusive = true }
+                    }
+                },
+                onCancel = {
+                    navController.navigate(Routes.Login) {
+                        popUpTo(Routes.DeviceSetup) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }
