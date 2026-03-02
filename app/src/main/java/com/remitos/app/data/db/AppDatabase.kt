@@ -49,7 +49,7 @@ import com.remitos.app.data.db.entity.SyncQueueEntity
         LocalScannedCodeEntity::class,
         SyncQueueEntity::class,
     ],
-    version = 8
+    version = 9
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun inboundDao(): InboundDao
@@ -290,6 +290,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE local_users ADD COLUMN warehouse_id TEXT")
+            }
+        }
+
         /**
          * Build database with default name (for backward compatibility).
          * @deprecated Use DatabaseManager instead for multi-user support.
@@ -316,7 +322,8 @@ abstract class AppDatabase : RoomDatabase() {
                 MIGRATION_4_5,
                 MIGRATION_5_6,
                 MIGRATION_6_7,
-                MIGRATION_7_8
+                MIGRATION_7_8,
+                MIGRATION_8_9
             ).build()
         }
     }

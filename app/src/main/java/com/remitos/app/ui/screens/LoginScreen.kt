@@ -66,9 +66,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.R
 import com.remitos.app.RemitosApplication
-import com.remitos.app.data.DatabaseManager
 import com.remitos.app.data.UserInfo
 import com.remitos.app.data.db.entity.LocalDeviceEntity
+import com.remitos.app.data.db.entity.LocalUserEntity
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.Blue50
 import kotlinx.coroutines.Dispatchers
@@ -95,7 +95,7 @@ fun LoginScreen(
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             try {
-                val db = DatabaseManager.getOfflineDatabase(context)
+                val db = com.remitos.app.data.DatabaseManager.getOfflineDatabase(context)
                 deviceInfo = db.localDeviceDao().getDevice()
             } catch (e: Exception) {
                 // Device not registered
@@ -140,9 +140,76 @@ fun LoginScreen(
             deviceInfo = deviceInfo,
             accounts = accounts,
             uiState = uiState,
-            onLogin = { companyCode, username, password ->
+            onLogin = { companyCode, username, password, isOperator ->
                 scope.launch {
-                    viewModel.login(companyCode, username, password)
+                    if (isOperator) {
+                        // Offline operator login
+                        withContext(Dispatchers.IO) {
+                            try {
+                                val db = com.remitos.app.data.DatabaseManager.getOfflineDatabase(context)
+                                val device = db.localDeviceDao().getDevice()
+                                
+                                if (device == null) {
+                                    withContext(Dispatchers.Main) {
+                                        snackbarHostState.showSnackbar("Dispositivo no registrado")
+                                    }
+                                    return@withContext
+                                }
+                                
+                                val user = db.localUserDao().getByUsername(username)
+                                if (user == null) {
+                                    withContext(Dispatchers.Main) {
+                                        snackbarHostState.showSnackbar("Usuario no encontrado")
+                                    }
+                                    return@withContext
+                                }
+                                
+                                if (user.status != "active") {
+                                    withContext(Dispatchers.Main) {
+                                        snackbarHostState.showSnackbar("Usuario inactivo")
+                                    }
+                                    return@withContext
+                                }
+                                
+                                if (user.warehouseId != device.warehouseId) {
+                                    withContext(Dispatchers.Main) {
+                                        snackbarHostState.showSnackbar("Usuario no tiene acceso a este warehouse")
+                                    }
+                                    return@withContext
+                                }
+                                
+                                // Verify PIN
+                                user.pinHash?.let { hash ->
+                                    // Simple hash comparison for now - in production use proper hashing
+                                    if (hash != password) {
+                                        withContext(Dispatchers.Main) {
+                                            snackbarHostState.showSnackbar("PIN incorrecto")
+                                        }
+                                        return@withContext
+                                    }
+                                } ?: run {
+                                    if (user.pinHash == null && password.isNotEmpty()) {
+                                        // First time - set the PIN
+                                        db.localUserDao().update(user.copy(pinHash = password))
+                                    }
+                                }
+                                
+                                // Create local session - save user ID to auth manager
+                                app.authManager.setCurrentUser(user.id)
+                                app.initializeCurrentUserContext()
+                                
+                                withContext(Dispatchers.Main) {
+                                    onLoginSuccess()
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    snackbarHostState.showSnackbar("Error: ${e.message}")
+                                }
+                            }
+                        }
+                    } else {
+                        viewModel.login(companyCode, username, password)
+                    }
                 }
             },
             onSwitchAccount = { userId ->
@@ -163,7 +230,7 @@ private fun LoginContent(
     deviceInfo: LocalDeviceEntity?,
     accounts: List<UserInfo>,
     uiState: LoginUiState,
-    onLogin: (String, String, String) -> Unit,
+    onLogin: (String, String, String, Boolean) -> Unit,
     onSwitchAccount: (String) -> Unit,
     onContinueOffline: () -> Unit,
 ) {
@@ -430,7 +497,7 @@ private fun LoginContent(
             keyboardActions = KeyboardActions(
                 onDone = {
                     focusManager.clearFocus()
-                    onLogin(companyCode, username, password)
+                    onLogin(companyCode, username, password, isOperatorMode)
                 }
             ),
             trailingIcon = {
@@ -460,7 +527,7 @@ private fun LoginContent(
         
         // Login button
         Button(
-            onClick = { onLogin(companyCode, username, password) },
+            onClick = { onLogin(companyCode, username, password, isOperatorMode) },
             enabled = companyCode.isNotBlank() && username.isNotBlank() && password.isNotBlank() && !isLoading,
             modifier = Modifier
                 .fillMaxWidth()
@@ -472,7 +539,7 @@ private fun LoginContent(
                     modifier = Modifier.height(24.dp),
                 )
             } else {
-                Text("Iniciar sesión")
+                Text(if (isOperatorMode) "Iniciar sesión como Operador" else "Iniciar sesión")
             }
         }
         

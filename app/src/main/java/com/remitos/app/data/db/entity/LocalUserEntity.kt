@@ -21,6 +21,8 @@ data class LocalUserEntity(
     val pinHash: String?,
     @ColumnInfo(name = "status")
     val status: String,
+    @ColumnInfo(name = "warehouse_id")
+    val warehouseId: String?,
     @ColumnInfo(name = "last_synced_at")
     val lastSyncedAt: Long
 )
