@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,6 +35,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -170,6 +172,19 @@ private fun LoginContent(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
+    var isOperatorMode by remember { mutableStateOf(false) }
+    
+    // Update username when toggle changes
+    LaunchedEffect(isOperatorMode) {
+        username = if (isOperatorMode) "operator" else "admin"
+    }
+    
+    // Pre-fill company code from device info
+    LaunchedEffect(deviceInfo) {
+        deviceInfo?.let {
+            companyCode = it.companyId
+        }
+    }
     
     val focusManager = LocalFocusManager.current
     val isLoading = uiState is LoginUiState.Loading
@@ -255,6 +270,38 @@ private fun LoginContent(
                         )
                     }
                 }
+            }
+        }
+        
+        // Login mode toggle (shown when device is registered)
+        AnimatedVisibility(
+            visible = deviceInfo != null,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Administrador",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (!isOperatorMode) BrandBlue else Color.Gray,
+                )
+                Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                Switch(
+                    checked = isOperatorMode,
+                    onCheckedChange = { isOperatorMode = it }
+                )
+                Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                Text(
+                    text = "Operador",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isOperatorMode) BrandBlue else Color.Gray,
+                )
             }
         }
         
@@ -344,6 +391,7 @@ private fun LoginContent(
             value = username,
             onValueChange = { username = it },
             label = { Text("Usuario") },
+            placeholder = { Text(if (isOperatorMode) "operator" else "admin") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -368,6 +416,12 @@ private fun LoginContent(
                 VisualTransformation.None
             } else {
                 PasswordVisualTransformation()
+            },
+            supportingText = {
+                Text(
+                    text = if (isOperatorMode) "Contraseña de operador" else "Contraseña de administrador",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
