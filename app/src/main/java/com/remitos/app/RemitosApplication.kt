@@ -37,7 +37,7 @@ class RemitosApplication : Application() {
         super.onCreate()
 
         // Configure backend mode
-        FeatureFlags.configureBackendMode("https://remitos-api-3wjjt7hd6a-rj.a.run.app")
+        FeatureFlags.configureBackendMode("https://remitos-api-865349418409.southamerica-east1.run.app")
 
         // Initialize session manager
         sessionManager = SessionManager(

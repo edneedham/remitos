@@ -64,10 +64,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.R
 import com.remitos.app.RemitosApplication
+import com.remitos.app.data.DatabaseManager
 import com.remitos.app.data.UserInfo
+import com.remitos.app.data.db.entity.LocalDeviceEntity
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.Blue50
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Login screen for user authentication.
@@ -82,6 +86,20 @@ fun LoginScreen(
     val app = context.applicationContext as RemitosApplication
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    
+    var deviceInfo by remember { mutableStateOf<LocalDeviceEntity?>(null) }
+    
+    // Load device info from local database
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            try {
+                val db = DatabaseManager.getOfflineDatabase(context)
+                deviceInfo = db.localDeviceDao().getDevice()
+            } catch (e: Exception) {
+                // Device not registered
+            }
+        }
+    }
     
     val viewModel: LoginViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
@@ -117,6 +135,7 @@ fun LoginScreen(
     ) { padding ->
         LoginContent(
             modifier = Modifier.padding(padding),
+            deviceInfo = deviceInfo,
             accounts = accounts,
             uiState = uiState,
             onLogin = { companyCode, username, password ->
@@ -139,6 +158,7 @@ fun LoginScreen(
 @Composable
 private fun LoginContent(
     modifier: Modifier = Modifier,
+    deviceInfo: LocalDeviceEntity?,
     accounts: List<UserInfo>,
     uiState: LoginUiState,
     onLogin: (String, String, String) -> Unit,
@@ -193,7 +213,52 @@ private fun LoginContent(
             }
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        // Device info header (if device is registered)
+        AnimatedVisibility(
+            visible = deviceInfo != null,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            deviceInfo?.let { device ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(BrandBlue.copy(alpha = 0.1f))
+                        .padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = "Dispositivo registrado",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = BrandBlue,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Empresa: ${device.companyId}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        device.warehouseId?.let { warehouseId ->
+                            Text(
+                                text = "Warehouse: $warehouseId",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray,
+                            )
+                        }
+                        Text(
+                            text = "ID: ${device.deviceId.take(8)}...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                        )
+                    }
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
         
         // Login form content
         Column(

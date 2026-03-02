@@ -50,9 +50,10 @@ interface RemitosApiService {
 
     /**
      * Get warehouses for the current user's company.
+     * @param companyCode Optional company code to get warehouses without auth
      */
     @GET("warehouses")
-    suspend fun getWarehouses(): Response<List<WarehouseDto>>
+    suspend fun getWarehouses(@Query("company_code") companyCode: String? = null): Response<List<WarehouseDto>>
 
     // ==================== INBOUND NOTES ====================
 
