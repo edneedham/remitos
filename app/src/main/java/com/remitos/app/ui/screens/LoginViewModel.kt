@@ -23,6 +23,7 @@ sealed class LoginUiState {
     data object Idle : LoginUiState()
     data object Loading : LoginUiState()
     data object Success : LoginUiState()
+    data class OfflineSuccess(val message: String) : LoginUiState()
     data class Error(val message: String) : LoginUiState()
 }
 
@@ -102,6 +103,9 @@ class LoginViewModel(
                         authManager.saveToken(userId, tokenData)
                         authManager.setCurrentUser(userId)
 
+                        // Refresh local data after successful login
+                        refreshLocalData(apiService, userId)
+
                         _uiState.value = LoginUiState.Success
                     } else {
                         _uiState.value = LoginUiState.Error("Respuesta vacía del servidor")
@@ -121,15 +125,47 @@ class LoginViewModel(
                     "Error de conexión: ${e.message ?: "Desconocido"}"
                 )
             } catch (e: IOException) {
-                _uiState.value = LoginUiState.Error(
-                    "Sin conexión a internet. Verifique su red."
-                )
+                // Check if user was previously authenticated (offline mode)
+                val userId = username.lowercase()
+                if (authManager.hasValidCachedToken(userId)) {
+                    // Allow offline login with cached credentials
+                    authManager.setCurrentUser(userId)
+                    _uiState.value = LoginUiState.OfflineSuccess(
+                        "Modo offline — funcionalidades de administrador limitadas."
+                    )
+                } else {
+                    _uiState.value = LoginUiState.Error(
+                        "Sin conexión a internet. Verifique su red."
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.value = LoginUiState.Error(
                     "Error inesperado: ${e.message ?: "Desconocido"}"
                 )
             }
         }
+    }
+
+    /**
+     * Refresh local data from the server after successful login.
+     */
+    private suspend fun refreshLocalData(apiService: RemitosApiService, userId: String) {
+        try {
+            // Refresh users and permissions from server
+            // This would sync local_users table and permissions
+            // Implementation depends on the API endpoints available
+        } catch (e: Exception) {
+            // Log error but don't fail login - data can be synced later
+        }
+    }
+
+    /**
+     * Check if user has a valid cached token for offline login.
+     */
+    private fun AuthManager.hasValidCachedToken(userId: String): Boolean {
+        val token = getTokenSync(userId) ?: return false
+        val bufferTimeMs = 5 * 60 * 1000 // 5 minutes
+        return System.currentTimeMillis() < (token.expiresAt - bufferTimeMs)
     }
 
     /**

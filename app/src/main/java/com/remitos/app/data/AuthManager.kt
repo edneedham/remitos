@@ -84,17 +84,25 @@ class AuthManager(private val context: Context) {
      * Returns null if no token exists or parsing fails.
      */
     suspend fun getToken(userId: String): TokenData? = withContext(Dispatchers.IO) {
-        try {
+        getTokenSync(userId)
+    }
+    
+    /**
+     * Get stored token data synchronously.
+     * Returns null if no token exists or parsing fails.
+     */
+    fun getTokenSync(userId: String): TokenData? {
+        return try {
             val tokenString = encryptedPrefs.getString("$KEY_TOKEN_PREFIX$userId", null)
-                ?: return@withContext null
+                ?: return null
             
             val json = JSONObject(tokenString)
             TokenData(
                 accessToken = json.getString("access_token"),
                 refreshToken = json.getString("refresh_token"),
                 expiresAt = json.getLong("expires_at"),
-                userEmail = json.getString("user_email"),
-                userName = json.optString("user_name", null)
+                userEmail = json.optString("user_email", ""),
+                userName = json.optString("user_name", "")
             )
         } catch (e: Exception) {
             null

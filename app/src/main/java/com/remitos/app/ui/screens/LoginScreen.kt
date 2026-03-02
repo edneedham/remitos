@@ -117,10 +117,18 @@ fun LoginScreen(
     
     // Handle navigation on successful login
     LaunchedEffect(uiState) {
-        if (uiState is LoginUiState.Success) {
-            // Initialize user context before navigating
-            app.initializeCurrentUserContext()
-            onLoginSuccess()
+        val state = uiState
+        when (state) {
+            is LoginUiState.Success -> {
+                app.initializeCurrentUserContext()
+                onLoginSuccess()
+            }
+            is LoginUiState.OfflineSuccess -> {
+                snackbarHostState.showSnackbar(state.message)
+                app.initializeCurrentUserContext()
+                onLoginSuccess()
+            }
+            else -> {}
         }
     }
     
