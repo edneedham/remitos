@@ -68,6 +68,7 @@ import com.remitos.app.R
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.UserInfo
 import com.remitos.app.data.db.entity.LocalDeviceEntity
+import com.remitos.app.data.db.entity.LocalSessionEntity
 import com.remitos.app.data.db.entity.LocalUserEntity
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.Blue50
@@ -120,6 +121,27 @@ fun LoginScreen(
         val state = uiState
         when (state) {
             is LoginUiState.Success -> {
+                // Save local session
+                withContext(Dispatchers.IO) {
+                    try {
+                        val db = com.remitos.app.data.DatabaseManager.getOfflineDatabase(context)
+                        val role = app.authManager.getCurrentUserRole() ?: "operator"
+                        val userId = app.authManager.getCurrentUser() ?: "admin"
+                        val device = db.localDeviceDao().getDevice()
+                        
+                        db.localSessionDao().insert(
+                            LocalSessionEntity(
+                                userId = userId,
+                                role = role,
+                                warehouseId = device?.warehouseId,
+                                loginTime = System.currentTimeMillis(),
+                                lastActivityTime = System.currentTimeMillis()
+                            )
+                        )
+                    } catch (e: Exception) {
+                        // Log error but don't fail login
+                    }
+                }
                 app.initializeCurrentUserContext()
                 onLoginSuccess()
             }
@@ -202,8 +224,17 @@ fun LoginScreen(
                                     }
                                 }
                                 
-                                // Create local session - save user ID to auth manager
+                                // Create local session
                                 app.authManager.setCurrentUser(user.id)
+                                db.localSessionDao().insert(
+                                    LocalSessionEntity(
+                                        userId = user.id,
+                                        role = user.role,
+                                        warehouseId = device.warehouseId,
+                                        loginTime = System.currentTimeMillis(),
+                                        lastActivityTime = System.currentTimeMillis()
+                                    )
+                                )
                                 app.initializeCurrentUserContext()
                                 
                                 withContext(Dispatchers.Main) {

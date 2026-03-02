@@ -13,6 +13,7 @@ import com.remitos.app.data.db.dao.InboundDao
 import com.remitos.app.data.db.dao.LocalDeviceDao
 import com.remitos.app.data.db.dao.LocalDocumentDao
 import com.remitos.app.data.db.dao.LocalScannedCodeDao
+import com.remitos.app.data.db.dao.LocalSessionDao
 import com.remitos.app.data.db.dao.LocalUserDao
 import com.remitos.app.data.db.dao.OutboundDao
 import com.remitos.app.data.db.dao.SequenceDao
@@ -24,6 +25,7 @@ import com.remitos.app.data.db.entity.LocalDeviceEntity
 import com.remitos.app.data.db.entity.LocalDocumentEntity
 import com.remitos.app.data.db.entity.LocalDocumentItemEntity
 import com.remitos.app.data.db.entity.LocalScannedCodeEntity
+import com.remitos.app.data.db.entity.LocalSessionEntity
 import com.remitos.app.data.db.entity.LocalUserEntity
 import com.remitos.app.data.db.entity.OutboundLineEditHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineEntity
@@ -44,12 +46,13 @@ import com.remitos.app.data.db.entity.SyncQueueEntity
         DebugLogEntity::class,
         LocalDeviceEntity::class,
         LocalUserEntity::class,
+        LocalSessionEntity::class,
         LocalDocumentEntity::class,
         LocalDocumentItemEntity::class,
         LocalScannedCodeEntity::class,
         SyncQueueEntity::class,
     ],
-    version = 9
+    version = 10
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun inboundDao(): InboundDao
@@ -58,6 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun debugLogDao(): DebugLogDao
     abstract fun localDeviceDao(): LocalDeviceDao
     abstract fun localUserDao(): LocalUserDao
+    abstract fun localSessionDao(): LocalSessionDao
     abstract fun localDocumentDao(): LocalDocumentDao
     abstract fun localScannedCodeDao(): LocalScannedCodeDao
     abstract fun syncQueueDao(): SyncQueueDao
@@ -296,6 +300,23 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS local_session (
+                        id TEXT PRIMARY KEY NOT NULL,
+                        user_id TEXT NOT NULL,
+                        role TEXT NOT NULL,
+                        warehouse_id TEXT,
+                        login_time INTEGER NOT NULL,
+                        last_activity_time INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         /**
          * Build database with default name (for backward compatibility).
          * @deprecated Use DatabaseManager instead for multi-user support.
@@ -323,7 +344,8 @@ abstract class AppDatabase : RoomDatabase() {
                 MIGRATION_5_6,
                 MIGRATION_6_7,
                 MIGRATION_7_8,
-                MIGRATION_8_9
+                MIGRATION_8_9,
+                MIGRATION_9_10
             ).build()
         }
     }
