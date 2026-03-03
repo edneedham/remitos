@@ -274,6 +274,13 @@ fun DashboardScreen(
             },
             dismissButton = {
                 TextButton(onClick = {
+                    // Clear session before logout
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val db = DatabaseManager.getOfflineDatabase(context)
+                            db.localSessionDao().clearSession()
+                        } catch (e: Exception) { }
+                    }
                     onLogout()
                 }) {
                     Text("Cerrar sesión")
