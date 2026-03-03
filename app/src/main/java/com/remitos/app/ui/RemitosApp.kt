@@ -204,6 +204,11 @@ private fun AppNavHost(navController: NavHostController) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
+                onDeviceRevoked = {
+                    navController.navigate(Routes.DeviceSetup) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
             )
         }
         composable(Routes.InboundScan) {

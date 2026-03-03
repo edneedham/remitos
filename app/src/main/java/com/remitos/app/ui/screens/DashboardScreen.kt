@@ -83,6 +83,7 @@ fun DashboardScreen(
     onActivity: () -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
+    onDeviceRevoked: () -> Unit,
 ) {
     val context = LocalContext.current
     
@@ -190,10 +191,13 @@ fun DashboardScreen(
                         CoroutineScope(Dispatchers.IO).launch {
                             try {
                                 val db = DatabaseManager.getOfflineDatabase(context)
+                                // Clear session
                                 db.localSessionDao().clearSession()
+                                // Clear local users
+                                db.localUserDao().deleteAll()
                             } catch (e: Exception) { }
                         }
-                        onLogout()
+                        onDeviceRevoked()
                     }) {
                         Text("Aceptar")
                     }
