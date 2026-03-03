@@ -66,6 +66,11 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.collectAsState
+import com.remitos.app.data.NetworkMonitor
+import com.remitos.app.data.SyncManager
+import com.remitos.app.data.SyncState
+import com.remitos.app.ui.components.SyncModal
 
 private const val AUTO_LOCK_TIMEOUT_MS = 5 * 60 * 1000L // 5 minutes
 
@@ -114,6 +119,88 @@ fun DashboardScreen(
     // Reset activity on any interaction
     LaunchedEffect(Unit) {
         lastActivityTime = System.currentTimeMillis()
+    }
+    
+    // Initialize sync manager
+    val app = context.applicationContext as RemitosApplication
+    val syncManager = remember {
+        SyncManager(context, app.authManager, NetworkMonitor(context))
+    }
+    
+    // Start network monitoring for sync
+    LaunchedEffect(Unit) {
+        syncManager.startMonitoring()
+    }
+    
+    // Collect sync state
+    val syncState by syncManager.syncState.collectAsState()
+    val isSyncing by syncManager.isSyncing.collectAsState()
+    
+    // Handle sync state changes - force logout if suspended/revoked
+    LaunchedEffect(syncState) {
+        when (syncState) {
+            is SyncState.UserSuspended -> {
+                // Will show dialog below
+            }
+            is SyncState.DeviceRevoked -> {
+                // Will show dialog below
+            }
+            else -> { }
+        }
+    }
+    
+    // Show sync modal while syncing
+    if (isSyncing) {
+        SyncModal(
+            isVisible = true,
+            message = "Sincronizando..."
+        )
+    }
+    
+    // Handle force logout for suspended/revoked
+    when (syncState) {
+        is SyncState.UserSuspended -> {
+            AlertDialog(
+                onDismissRequest = { },
+                title = { Text("Cuenta desactivada") },
+                text = { Text("Tu cuenta ha sido desactivada. Por favor contacta al administrador.") },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        // Clear session and logout
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                val db = DatabaseManager.getOfflineDatabase(context)
+                                db.localSessionDao().clearSession()
+                            } catch (e: Exception) { }
+                        }
+                        onLogout()
+                    }) {
+                        Text("Aceptar")
+                    }
+                }
+            )
+        }
+        is SyncState.DeviceRevoked -> {
+            AlertDialog(
+                onDismissRequest = { },
+                title = { Text("Dispositivo revocado") },
+                text = { Text("Tu dispositivo ha sido revocado. Por favor contacta al administrador.") },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                val db = DatabaseManager.getOfflineDatabase(context)
+                                db.localSessionDao().clearSession()
+                            } catch (e: Exception) { }
+                        }
+                        onLogout()
+                    }) {
+                        Text("Aceptar")
+                    }
+                }
+            )
+        }
+        else -> { }
     }
     
     if (showUnlockDialog) {

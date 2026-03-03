@@ -253,6 +253,16 @@ data class SyncResponse(
     val conflicts: List<ConflictDto>
 )
 
+data class UserStatusResponse(
+    @SerializedName("user_status")
+    val userStatus: String,
+    
+    @SerializedName("device_status")
+    val deviceStatus: String,
+    
+    val message: String? = null
+)
+
 data class ConflictDto(
     val type: String,
     @SerializedName("local_id")

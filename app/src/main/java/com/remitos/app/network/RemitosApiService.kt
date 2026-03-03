@@ -161,6 +161,12 @@ interface RemitosApiService {
     // ==================== SYNC ====================
 
     /**
+     * Get current user status (active/suspended).
+     */
+    @GET("user/status")
+    suspend fun getUserStatus(): Response<UserStatusResponse>
+
+    /**
      * Perform bidirectional sync with backend.
      * Sends local changes and receives remote changes.
      */
