@@ -64,13 +64,22 @@ data class RegisterDeviceRequest(
     @SerializedName("os_version")
     val osVersion: String? = null,
     @SerializedName("app_version")
-    val appVersion: String? = null
+    val appVersion: String? = null,
+    @SerializedName("device_name")
+    val deviceName: String? = null,
+    val username: String? = null,
+    val password: String? = null
 )
 
 data class DeviceRegistrationResponse(
-    val message: String,
     @SerializedName("device_id")
-    val deviceId: String
+    val deviceId: String,
+    @SerializedName("access_token")
+    val accessToken: String? = null,
+    @SerializedName("refresh_token")
+    val refreshToken: String? = null,
+    @SerializedName("expires_in")
+    val expiresIn: Int? = null
 )
 
 data class WarehouseDto(

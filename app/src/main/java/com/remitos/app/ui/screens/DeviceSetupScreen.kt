@@ -29,7 +29,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.remitos.app.R
 import com.remitos.app.RemitosApplication
+import com.remitos.app.data.AuthManager
 import com.remitos.app.data.DatabaseManager
+import com.remitos.app.data.TokenData
 import com.remitos.app.data.db.entity.LocalDeviceEntity
 import com.remitos.app.network.ApiClient
 import com.remitos.app.network.LoginRequest
@@ -394,12 +396,16 @@ fun DeviceSetupScreen(
                                                     deviceUuid = deviceUuid,
                                                     platform = "android",
                                                     warehouseId = warehouse.id,
-                                                    model = deviceName
+                                                    model = deviceName,
+                                                    deviceName = deviceName,
+                                                    username = username,
+                                                    password = password
                                                 )
                                             )
                                         }
                                         
                                         if (response.isSuccessful) {
+                                            val deviceResponse = response.body()
                                             // Save device to local database
                                             val database = DatabaseManager.getOfflineDatabase(app)
                                             database.localDeviceDao().insert(
@@ -410,6 +416,23 @@ fun DeviceSetupScreen(
                                                     registeredAt = System.currentTimeMillis()
                                                 )
                                             )
+                                            
+                                            // If tokens returned, save them for auto-login
+                                            deviceResponse?.let { resp ->
+                                                if (resp.accessToken != null && resp.refreshToken != null) {
+                                                    val expiresAt = System.currentTimeMillis() + (resp.expiresIn ?: 3600) * 1000
+                                                    val tokenData = TokenData(
+                                                        accessToken = resp.accessToken,
+                                                        refreshToken = resp.refreshToken,
+                                                        expiresAt = expiresAt,
+                                                        userEmail = username,
+                                                        userName = username
+                                                    )
+                                                    app.authManager.saveToken(username.lowercase(), tokenData)
+                                                    app.authManager.setCurrentUser(username.lowercase())
+                                                }
+                                            }
+                                            
                                             onDeviceRegistered()
                                         } else {
                                             errorMessage = "Error al registrar dispositivo: ${response.code()}"
