@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -30,20 +31,43 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.remitos.app.R
+import com.remitos.app.RemitosApplication
+import com.remitos.app.data.DatabaseManager
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.Blue100
 import com.remitos.app.ui.theme.Blue50
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.OutlinedTextField
+
+private const val AUTO_LOCK_TIMEOUT_MS = 5 * 60 * 1000L // 5 minutes
 
 @Composable
 fun DashboardScreen(
@@ -53,7 +77,124 @@ fun DashboardScreen(
     onOutboundHistory: () -> Unit,
     onActivity: () -> Unit,
     onSettings: () -> Unit,
+    onLogout: () -> Unit,
 ) {
+    val context = LocalContext.current
+    
+    var showUnlockDialog by remember { mutableStateOf(false) }
+    var lastActivityTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var userName by remember { mutableStateOf("Usuario") }
+    var unlockPin by remember { mutableStateOf("") }
+    var unlockError by remember { mutableStateOf<String?>(null) }
+    
+    // Load session info
+    LaunchedEffect(Unit) {
+        try {
+            val db = DatabaseManager.getOfflineDatabase(context)
+            val session = db.localSessionDao().getSession()
+            session?.let {
+                userName = it.userId
+            }
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+    
+    // Auto-lock timer
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(5000) // Check every 5 seconds
+            if (System.currentTimeMillis() - lastActivityTime > AUTO_LOCK_TIMEOUT_MS) {
+                showUnlockDialog = true
+                break
+            }
+        }
+    }
+    
+    // Reset activity on any interaction
+    LaunchedEffect(Unit) {
+        lastActivityTime = System.currentTimeMillis()
+    }
+    
+    if (showUnlockDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = { Text("Sesión bloqueada") },
+            text = {
+                Column {
+                    Text("Usuario: $userName")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = unlockPin,
+                        onValueChange = { 
+                            unlockPin = it
+                            unlockError = null
+                        },
+                        label = { Text("PIN") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.NumberPassword,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    try {
+                                        val db = DatabaseManager.getOfflineDatabase(context)
+                                        val user = db.localUserDao().getById(userName)
+                                        if (user?.pinHash == unlockPin) {
+                                            db.localSessionDao().updateLastActivity(System.currentTimeMillis())
+                                            lastActivityTime = System.currentTimeMillis()
+                                            showUnlockDialog = false
+                                            unlockPin = ""
+                                        } else {
+                                            unlockError = "PIN incorrecto"
+                                        }
+                                    } catch (e: Exception) {
+                                        unlockError = "Error de verificación"
+                                    }
+                                }
+                            }
+                        ),
+                        isError = unlockError != null,
+                        supportingText = unlockError?.let { { Text(it) } },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val db = DatabaseManager.getOfflineDatabase(context)
+                            val user = db.localUserDao().getById(userName)
+                            if (user?.pinHash == unlockPin) {
+                                db.localSessionDao().updateLastActivity(System.currentTimeMillis())
+                                lastActivityTime = System.currentTimeMillis()
+                                showUnlockDialog = false
+                                unlockPin = ""
+                            } else {
+                                unlockError = "PIN incorrecto"
+                            }
+                        } catch (e: Exception) {
+                            unlockError = "Error de verificación"
+                        }
+                    }
+                }) {
+                    Text("Desbloquear")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    onLogout()
+                }) {
+                    Text("Cerrar sesión")
+                }
+            }
+        )
+    }
+    
     Scaffold { padding ->
         Column(
             modifier = Modifier

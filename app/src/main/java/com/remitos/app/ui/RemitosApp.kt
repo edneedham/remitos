@@ -40,6 +40,7 @@ import com.remitos.app.ui.screens.OutboundListScreen
 import com.remitos.app.ui.screens.OutboundPreviewScreen
 import com.remitos.app.ui.screens.SettingsScreen
 import com.remitos.app.ui.screens.SplashScreen
+import com.remitos.app.ui.screens.UnlockScreen
 import com.remitos.app.ui.theme.RemitosTheme
 import kotlinx.coroutines.launch
 
@@ -57,6 +58,7 @@ private object Routes {
     const val Splash = "splash"
     const val DeviceSetup = "device_setup"
     const val Login = "login"
+    const val Unlock = "unlock"
     const val Dashboard = "dashboard"
     const val InboundScan = "inbound_scan"
     const val InboundCamera = "inbound_camera"
@@ -196,6 +198,11 @@ private fun AppNavHost(navController: NavHostController) {
                 onOutboundHistory = { navController.navigate(Routes.OutboundHistory) },
                 onActivity = { navController.navigate(Routes.Activity) },
                 onSettings = { navController.navigate(Routes.Settings) },
+                onLogout = {
+                    navController.navigate(Routes.Login) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
             )
         }
         composable(Routes.InboundScan) {
