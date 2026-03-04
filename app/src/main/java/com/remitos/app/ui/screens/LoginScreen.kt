@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -341,39 +342,40 @@ private fun LoginContent(
             exit = fadeOut(),
         ) {
             deviceInfo?.let { device ->
-                Box(
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(BrandBlue.copy(alpha = 0.1f))
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    shape = MaterialTheme.shapes.small,
+                    color = BrandBlue.copy(alpha = 0.1f),
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
                     ) {
                         Text(
                             text = "Dispositivo registrado",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelSmall,
                             color = BrandBlue,
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Empresa: ${device.companyId}",
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = " · ",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray,
+                        )
+                        Text(
+                            text = device.companyId,
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
                         )
                         device.warehouseId?.let { warehouseId ->
                             Text(
-                                text = "Warehouse: $warehouseId",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = " · $warehouseId",
+                                style = MaterialTheme.typography.labelSmall,
                                 color = Color.Gray,
                             )
                         }
-                        Text(
-                            text = "ID: ${device.deviceId.take(8)}...",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray,
-                        )
                     }
                 }
             }
