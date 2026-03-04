@@ -30,17 +30,17 @@ val Red200 = Color(0xFFF4C5CC)
 val Red100 = Color(0xFFFBE4E8)
 val Red50 = Color(0xFFFEF2F4)
 
-// Neutral palette
+// Neutral palette - increased contrast
 val Neutral50 = Color(0xFFFAFAFA)
 val Neutral100 = Color(0xFFF5F5F5)
-val Neutral200 = Color(0xFFEEEEEE)
-val Neutral300 = Color(0xFFE0E0E0)
-val Neutral400 = Color(0xFFBDBDBD)
-val Neutral500 = Color(0xFF9E9E9E)
-val Neutral600 = Color(0xFF757575)
-val Neutral700 = Color(0xFF616161)
-val Neutral800 = Color(0xFF424242)
-val Neutral900 = Color(0xFF212121)
+val Neutral200 = Color(0xFFE8E8E8)
+val Neutral300 = Color(0xFFBDBDBD)
+val Neutral400 = Color(0xFF9E9E9E)
+val Neutral500 = Color(0xFF757575)
+val Neutral600 = Color(0xFF616161)
+val Neutral700 = Color(0xFF424242)
+val Neutral800 = Color(0xFF2D2D2D)
+val Neutral900 = Color(0xFF1A1A1A)
 
 // Semantic colors
 val Success500 = Color(0xFF43A047)
