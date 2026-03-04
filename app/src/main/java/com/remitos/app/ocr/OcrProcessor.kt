@@ -46,6 +46,12 @@ data class OcrResult(
     val source: String = "mlkit"
 )
 
+data class OcrComparisonResult(
+    val localResult: OcrResult,
+    val cloudResult: OcrResult?,
+    val hasSignificantDifference: Boolean
+)
+
 data class OcrDebugInfo(
     val preprocessTimeMs: Long,
     val imageWidth: Int,
@@ -114,6 +120,67 @@ class OcrProcessor {
         } else {
             mlKitResult
         }
+    }
+
+    /**
+     * Process image with cloud comparison.
+     * Runs local OCR immediately, then simultaneously uploads to cloud.
+     * Returns local result plus comparison info.
+     */
+    suspend fun processWithCloudComparison(
+        context: Context,
+        uri: Uri,
+        enableCorrection: Boolean = true,
+    ): OcrComparisonResult {
+        val localResult = processImage(context, uri, enableCorrection)
+        
+        // Try cloud OCR in background
+        val cloudResult = try {
+            tryProcessWithBackend(context, uri, localResult)
+        } catch (e: Exception) {
+            null
+        }
+        
+        // Check if there's a significant difference
+        val hasDifference = cloudResult != null && hasSignificantDifference(localResult, cloudResult)
+        
+        return OcrComparisonResult(
+            localResult = localResult,
+            cloudResult = cloudResult,
+            hasSignificantDifference = hasDifference
+        )
+    }
+
+    /**
+     * Check if cloud result differs significantly from local result.
+     */
+    private fun hasSignificantDifference(local: OcrResult, cloud: OcrResult): Boolean {
+        val keyFields = listOf(
+            OcrFieldKeys.SenderCuit,
+            OcrFieldKeys.SenderNombre,
+            OcrFieldKeys.SenderApellido,
+            OcrFieldKeys.DestNombre,
+            OcrFieldKeys.DestApellido,
+            OcrFieldKeys.DestDireccion,
+            OcrFieldKeys.RemitoNumCliente,
+            OcrFieldKeys.CantBultosTotal
+        )
+        
+        var differences = 0
+        for (key in keyFields) {
+            val localValue = local.fields[key]
+            val cloudValue = cloud.fields[key]
+            
+            // If one is missing and other isn't, or values differ
+            if ((localValue == null && cloudValue != null) || 
+                (localValue != null && cloudValue == null) ||
+                (localValue != null && cloudValue != null && localValue != cloudValue)) {
+                differences++
+            }
+        }
+        
+        // Consider significant if 2+ fields differ
+        return differences >= 2
     }
 
     private suspend fun tryProcessWithBackend(

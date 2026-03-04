@@ -10,6 +10,11 @@ import retrofit2.http.*
  */
 interface RemitosApiService {
 
+    // ==================== HEALTH ====================
+
+    @GET("health")
+    suspend fun healthCheck(): Response<Unit>
+
     // ==================== AUTH ====================
 
     /**

@@ -23,6 +23,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+import com.remitos.app.network.NetworkChecker
+
 private const val CuitRegex = "\\b\\d{2}-\\d{8}-\\d{1}\\b"
 
 class InboundViewModel(
@@ -30,6 +32,7 @@ class InboundViewModel(
     private val settingsStore: SettingsStore? = null,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val ocrProcessor: OcrProcessor = OcrProcessor(),
+    private val authManager: com.remitos.app.data.AuthManager? = null,
 ) : ViewModel() {
     private var lastOcrFields: Map<String, String> = emptyMap()
 
@@ -58,6 +61,7 @@ class InboundViewModel(
         private set
 
     var showManualEntryPrompt by mutableStateOf(false)
+    var showOfflineModeMessage by mutableStateOf(false)
         private set
 
     fun updateDraft(value: InboundDraftState) {
@@ -73,12 +77,23 @@ class InboundViewModel(
     fun processImage(context: Context) {
         val uri = selectedImageUri ?: return
         isProcessing = true
+        showOfflineModeMessage = false
         val startTimeMs = SystemClock.elapsedRealtime()
         val scanId = startTimeMs
 
         viewModelScope.launch {
             var parseSuccess = false
             var debugLog: DebugLogEntity? = null
+            
+            var isOffline = false
+            if (authManager != null) {
+                val isReachable = NetworkChecker.isServerReachable(authManager)
+                if (!isReachable) {
+                    isOffline = true
+                    showOfflineModeMessage = true
+                }
+            }
+            
             try {
                 withContext(ioDispatcher) {
                     settingsStore?.recordScanStarted()
