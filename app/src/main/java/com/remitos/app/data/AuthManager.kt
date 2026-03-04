@@ -36,11 +36,12 @@ data class UserInfo(
  */
 class AuthManager(private val context: Context) {
     companion object {
-        private const val PREFS_FILE = "auth_encrypted"
-        private const val KEY_CURRENT_USER = "current_user_id"
-        private const val KEY_USERS_LIST = "users_list"
+        private const val PREFS_FILE = "remitos_auth"
         private const val KEY_TOKEN_PREFIX = "token_"
-        private const val BUFFER_TIME_MS = 5 * 60 * 1000L // Refresh 5 min before expiry
+        private const val KEY_CURRENT_USER = "current_user"
+        private const val KEY_USERS_LIST = "users_list"
+        private const val KEY_DEVICE_REVOKED = "device_revoked"
+        private const val BUFFER_TIME_MS = 5 * 60 * 1000 // 5 minutes buffer before expiry
     }
     
     private val masterKey: MasterKey by lazy {
@@ -126,6 +127,35 @@ class AuthManager(private val context: Context) {
         if (getCurrentUser() == userId) {
             setCurrentUser("")
         }
+    }
+    
+    /**
+     * Clear all auth data and require device re-registration.
+     * Called when refresh token fails (device revoked).
+     */
+    suspend fun revokeDeviceAndReRegister(userId: String) = withContext(Dispatchers.IO) {
+        // Remove all tokens
+        encryptedPrefs.edit().clear().apply()
+        
+        // Mark device as revoked
+        encryptedPrefs.edit().putBoolean(KEY_DEVICE_REVOKED, true).apply()
+        
+        // Clear current user
+        setCurrentUser("")
+    }
+    
+    /**
+     * Check if device was revoked and needs re-registration.
+     */
+    fun isDeviceRevoked(): Boolean {
+        return encryptedPrefs.getBoolean(KEY_DEVICE_REVOKED, false)
+    }
+    
+    /**
+     * Clear device revoked flag after re-registration.
+     */
+    fun clearDeviceRevokedFlag() {
+        encryptedPrefs.edit().putBoolean(KEY_DEVICE_REVOKED, false).apply()
     }
     
     /**

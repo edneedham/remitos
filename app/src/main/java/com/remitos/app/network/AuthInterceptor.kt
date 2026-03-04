@@ -7,17 +7,27 @@ import okhttp3.Interceptor
 import okhttp3.Response
 
 /**
+ * Result of token refresh attempt.
+ */
+sealed class RefreshResult {
+    data object Success : RefreshResult()
+    data object DeviceRevoked : RefreshResult()
+    data object Failed : RefreshResult()
+}
+
+/**
  * OkHttp interceptor that adds JWT authentication header to requests.
  * Handles token expiration and refresh.
+ * On refresh failure (device revoked), triggers re-registration flow.
  */
 class AuthInterceptor(
-    private val authManager: AuthManager
+    private val authManager: AuthManager,
+    private val onDeviceRevoked: (() -> Unit)? = null
 ) : Interceptor {
 
     companion object {
         private const val AUTHORIZATION_HEADER = "Authorization"
         private const val BEARER_PREFIX = "Bearer "
-        private const val RETRY_COUNT = 1
     }
 
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -29,15 +39,12 @@ class AuthInterceptor(
         }
 
         val userId = authManager.getCurrentUser()
-            ?: return chain.proceed(originalRequest) // No user, proceed without auth
+            ?: return chain.proceed(originalRequest)
 
         // Get token
         val tokenData = runBlocking { authManager.getToken(userId) }
-            ?: return chain.proceed(originalRequest) // No token, proceed without auth
+            ?: return chain.proceed(originalRequest)
 
-        // Check if token needs refresh (proactively, before expiry buffer)
-        val isExpired = runBlocking { authManager.isTokenExpired(userId) }
-        
         // Build request with authorization header
         val authenticatedRequest = originalRequest.newBuilder()
             .header(AUTHORIZATION_HEADER, BEARER_PREFIX + tokenData.accessToken)
@@ -51,21 +58,29 @@ class AuthInterceptor(
             response.close()
             
             // Try to refresh token
-            val refreshed = runBlocking { tryRefreshToken(userId, tokenData.refreshToken) }
+            val refreshResult = runBlocking { tryRefreshToken(userId, tokenData.refreshToken) }
             
-            if (refreshed) {
-                // Retry request with new token
-                val newToken = runBlocking { authManager.getToken(userId) }
-                if (newToken != null) {
-                    val retryRequest = originalRequest.newBuilder()
-                        .header(AUTHORIZATION_HEADER, BEARER_PREFIX + newToken.accessToken)
-                        .build()
-                    return chain.proceed(retryRequest)
+            when (refreshResult) {
+                is RefreshResult.Success -> {
+                    // Retry request with new token
+                    val newToken = runBlocking { authManager.getToken(userId) }
+                    if (newToken != null) {
+                        val retryRequest = originalRequest.newBuilder()
+                            .header(AUTHORIZATION_HEADER, BEARER_PREFIX + newToken.accessToken)
+                            .build()
+                        return chain.proceed(retryRequest)
+                    }
+                }
+                is RefreshResult.DeviceRevoked -> {
+                    // Device revoked - clear all and trigger re-registration
+                    runBlocking { authManager.revokeDeviceAndReRegister(userId) }
+                    onDeviceRevoked?.invoke()
+                }
+                is RefreshResult.Failed -> {
+                    // Refresh failed for other reasons - clear session
+                    runBlocking { authManager.removeToken(userId) }
                 }
             }
-            
-            // Refresh failed - clear session and return original 401
-            runBlocking { authManager.removeToken(userId) }
         }
 
         return response
@@ -73,32 +88,29 @@ class AuthInterceptor(
 
     /**
      * Check if the request requires authentication.
-     * Public endpoints like login/register don't need auth.
      */
     private fun requiresAuth(request: okhttp3.Request): Boolean {
         val path = request.url.encodedPath
-        
-        // List of public endpoints that don't require authentication
         val publicEndpoints = listOf(
             "/auth/register",
             "/auth/login",
             "/auth/device",
             "/auth/refresh"
         )
-        
         return publicEndpoints.none { path.endsWith(it) }
     }
 
     /**
      * Try to refresh the access token.
-     * @return true if refresh successful, false otherwise
+     * @return RefreshResult indicating success, device revoked, or failure
      */
-    private suspend fun tryRefreshToken(userId: String, refreshToken: String): Boolean {
+    private suspend fun tryRefreshToken(userId: String, refreshToken: String): RefreshResult {
         return try {
             val service = ApiClient.getApiService(authManager)
             val response = service.refreshToken(RefreshTokenRequest(refreshToken))
+            val statusCode = response.code()
             
-            if (response.isSuccessful) {
+            if (statusCode == 200 || statusCode == 201) {
                 val authResponse = response.body()
                 if (authResponse != null) {
                     val expiresAt = System.currentTimeMillis() + (authResponse.expiresIn * 1000)
@@ -111,15 +123,18 @@ class AuthInterceptor(
                         role = authManager.getTokenSync(userId)?.role
                     )
                     authManager.saveToken(userId, newTokenData)
-                    true
+                    RefreshResult.Success
                 } else {
-                    false
+                    RefreshResult.Failed
                 }
+            } else if (statusCode == 401) {
+                // Refresh token invalid/expired - device revoked
+                RefreshResult.DeviceRevoked
             } else {
-                false
+                RefreshResult.Failed
             }
         } catch (e: Exception) {
-            false
+            RefreshResult.Failed
         }
     }
 }

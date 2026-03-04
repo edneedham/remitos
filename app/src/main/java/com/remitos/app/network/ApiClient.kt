@@ -121,8 +121,8 @@ object ApiClient {
             readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 
-            // Add auth interceptor
-            addInterceptor(AuthInterceptor(authManager))
+            // Add auth interceptor (callback not used - check isDeviceRevoked instead)
+            addInterceptor(AuthInterceptor(authManager, null))
 
             // Add logging interceptor in debug builds
             if (com.remitos.app.BuildConfig.DEBUG) {

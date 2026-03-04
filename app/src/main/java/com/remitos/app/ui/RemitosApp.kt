@@ -127,7 +127,18 @@ private fun AppNavHost(navController: NavHostController) {
                     isDeviceRegistered = false
                 }
                 
-                if (isDeviceRegistered == true) {
+                // Check if device was revoked (refresh token expired)
+                if (app.authManager.isDeviceRevoked()) {
+                    // Device revoked - go to device setup
+                    isDeviceRegistered = false
+                    isAuthenticated = false
+                    // Clear local users since device is revoked
+                    try {
+                        val db = DatabaseManager.getOfflineDatabase(context)
+                        db.localUserDao().deleteAll()
+                        db.localSessionDao().clearSession()
+                    } catch (e: Exception) { }
+                } else if (isDeviceRegistered == true) {
                     val currentUser = app.authManager.getCurrentUser()
                     isAuthenticated = currentUser != null
                     
@@ -327,6 +338,8 @@ private fun AppNavHost(navController: NavHostController) {
         composable(Routes.DeviceSetup) {
             DeviceSetupScreen(
                 onDeviceRegistered = {
+                    // Clear device revoked flag after successful registration
+                    app.authManager.clearDeviceRevokedFlag()
                     navController.navigate(Routes.Login) {
                         popUpTo(Routes.DeviceSetup) { inclusive = true }
                     }
