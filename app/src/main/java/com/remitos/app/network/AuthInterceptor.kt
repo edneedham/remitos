@@ -1,6 +1,7 @@
 package com.remitos.app.network
 
 import com.remitos.app.data.AuthManager
+import com.remitos.app.data.TokenData
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -34,7 +35,7 @@ class AuthInterceptor(
         val tokenData = runBlocking { authManager.getToken(userId) }
             ?: return chain.proceed(originalRequest) // No token, proceed without auth
 
-        // Check if token needs refresh
+        // Check if token needs refresh (proactively, before expiry buffer)
         val isExpired = runBlocking { authManager.isTokenExpired(userId) }
         
         // Build request with authorization header
@@ -81,6 +82,7 @@ class AuthInterceptor(
         val publicEndpoints = listOf(
             "/auth/register",
             "/auth/login",
+            "/auth/device",
             "/auth/refresh"
         )
         
@@ -93,10 +95,29 @@ class AuthInterceptor(
      */
     private suspend fun tryRefreshToken(userId: String, refreshToken: String): Boolean {
         return try {
-            // Note: This would need to be injected or use a static API client
-            // For now, we'll assume the token refresh is handled elsewhere
-            // This is a placeholder for the refresh logic
-            false
+            val service = ApiClient.getApiService(authManager)
+            val response = service.refreshToken(RefreshTokenRequest(refreshToken))
+            
+            if (response.isSuccessful) {
+                val authResponse = response.body()
+                if (authResponse != null) {
+                    val expiresAt = System.currentTimeMillis() + (authResponse.expiresIn * 1000)
+                    val newTokenData = TokenData(
+                        accessToken = authResponse.token,
+                        refreshToken = authResponse.refreshToken,
+                        expiresAt = expiresAt,
+                        userEmail = authManager.getTokenSync(userId)?.userEmail ?: "",
+                        userName = authManager.getTokenSync(userId)?.userName,
+                        role = authManager.getTokenSync(userId)?.role
+                    )
+                    authManager.saveToken(userId, newTokenData)
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
         } catch (e: Exception) {
             false
         }
