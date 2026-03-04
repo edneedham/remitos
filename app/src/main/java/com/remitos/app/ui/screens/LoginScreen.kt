@@ -313,12 +313,12 @@ private fun LoginContent(
                         ),
                     ),
                 )
-                .padding(horizontal = 24.dp, vertical = 48.dp),
+                .padding(horizontal = 24.dp, vertical = 24.dp),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_logo_wordmark),
@@ -345,7 +345,7 @@ private fun LoginContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(BrandBlue.copy(alpha = 0.1f))
-                        .padding(16.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -356,7 +356,7 @@ private fun LoginContent(
                             style = MaterialTheme.typography.labelMedium,
                             color = BrandBlue,
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "Empresa: ${device.companyId}",
                             style = MaterialTheme.typography.bodyMedium,
