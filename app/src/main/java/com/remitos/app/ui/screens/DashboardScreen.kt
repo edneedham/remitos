@@ -60,6 +60,7 @@ import androidx.compose.ui.window.Dialog
 import com.remitos.app.R
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.DatabaseManager
+import com.remitos.app.ui.components.BrandedBackground
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.BrandRed
 import kotlinx.coroutines.CoroutineScope
@@ -367,18 +368,8 @@ fun DashboardScreen(
 private fun DashboardHeader(
     onLogout: () -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White,
-                        Color(0xFFF6F7F9),
-                    ),
-                ),
-            )
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+    BrandedBackground(
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
