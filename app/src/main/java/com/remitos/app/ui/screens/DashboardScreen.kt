@@ -274,7 +274,7 @@ fun DashboardScreen(
                                 }
                                 onLogout()
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = BrandRed,
                                 contentColor = Color.White,
@@ -301,7 +301,7 @@ fun DashboardScreen(
                                     }
                                 }
                             },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).fillMaxWidth()
                         ) {
                             Text("Desbloquear")
                         }
