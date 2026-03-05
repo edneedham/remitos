@@ -52,6 +52,7 @@ import com.remitos.app.data.OutboundLineStatus
 import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.print.OutboundListPrinter
+import com.remitos.app.ui.components.EmptyState
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.theme.BrandBlue
 import java.time.Instant
@@ -145,34 +146,11 @@ fun OutboundHistoryScreen(onBack: () -> Unit) {
             }
 
             if (outboundLists.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Route,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.outlineVariant,
-                        )
-                        Text(
-                            text = "No se encontraron listas",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = "Probá ajustando la búsqueda o filtros",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                    }
-                }
+                EmptyState(
+                    icon = Icons.Outlined.Route,
+                    title = "No se encontraron listas",
+                    subtitle = "Probá ajustando la búsqueda o filtros",
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),

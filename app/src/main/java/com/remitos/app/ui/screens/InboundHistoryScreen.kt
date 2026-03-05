@@ -55,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.InboundNoteStatus
 import com.remitos.app.data.db.entity.InboundNoteEntity
+import com.remitos.app.ui.components.EmptyState
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.theme.BrandBlue
@@ -158,34 +159,11 @@ fun InboundHistoryScreen(
 
             if (notes.isEmpty()) {
                 // Empty state
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Inbox,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.outlineVariant,
-                        )
-                        Text(
-                            text = "No se encontraron ingresos",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = "Los ingresos escaneados apareceran aqui",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                    }
-                }
+                EmptyState(
+                    icon = Icons.Outlined.Inbox,
+                    title = "No se encontraron ingresos",
+                    subtitle = "Los ingresos escaneados apareceran aqui",
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.padding(horizontal = 20.dp),
