@@ -15,6 +15,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import com.remitos.app.ui.theme.BrandBlue
 
+enum class RemitosTextFieldVariant {
+    Branded,  // Blue background, white text
+    Surface,   // White background, dark text
+}
+
 @Composable
 fun RemitosTextField(
     value: String,
@@ -30,7 +35,14 @@ fun RemitosTextField(
     singleLine: Boolean = true,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingIcon: @Composable (() -> Unit)? = null,
+    variant: RemitosTextFieldVariant = RemitosTextFieldVariant.Surface,
 ) {
+    val isBranded = variant == RemitosTextFieldVariant.Branded
+    val textColor = if (isBranded) Color.White else MaterialTheme.colorScheme.onSurface
+    val labelColor = if (isBranded) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+    val borderColor = if (isBranded) Color.White else MaterialTheme.colorScheme.outline
+    val iconTint = if (isBranded) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -40,7 +52,7 @@ fun RemitosTextField(
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = if (isError) MaterialTheme.colorScheme.error else iconTint,
                 )
             }
         } else {
@@ -60,13 +72,13 @@ fun RemitosTextField(
         visualTransformation = visualTransformation,
         shape = MaterialTheme.shapes.small,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color.White,
-            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-            focusedLabelColor = Color.White,
-            unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-            cursorColor = Color.White,
-            focusedTextColor = Color.White,
-            unfocusedTextColor = Color.White,
+            focusedBorderColor = borderColor,
+            unfocusedBorderColor = borderColor,
+            focusedLabelColor = labelColor,
+            unfocusedLabelColor = labelColor,
+            cursorColor = if (isBranded) Color.White else MaterialTheme.colorScheme.primary,
+            focusedTextColor = textColor,
+            unfocusedTextColor = textColor,
         ),
         modifier = modifier.fillMaxWidth(),
     )
