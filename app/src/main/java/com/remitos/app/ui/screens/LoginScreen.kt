@@ -32,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
@@ -475,7 +476,11 @@ private fun LoginContent(
         }
         
         // Company Code field
-        OutlinedTextField(
+        Surface(
+            color = BrandBlue,
+            shape = MaterialTheme.shapes.small,
+        ) {
+            OutlinedTextField(
             value = companyCode,
             onValueChange = { companyCode = it.uppercase() },
             label = { Text("Código de empresa") },
@@ -489,12 +494,26 @@ private fun LoginContent(
             ),
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.White,
+                unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                focusedLabelColor = Color.White,
+                unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                cursorColor = Color.White,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+            ),
         )
+        }
         
         Spacer(modifier = Modifier.height(16.dp))
         
         // Username field
-        OutlinedTextField(
+        Surface(
+            color = BrandBlue,
+            shape = MaterialTheme.shapes.small,
+        ) {
+            OutlinedTextField(
             value = username,
             onValueChange = { username = it },
             label = { Text("Usuario") },
@@ -509,12 +528,26 @@ private fun LoginContent(
             ),
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.White,
+                unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                focusedLabelColor = Color.White,
+                unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                cursorColor = Color.White,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+            ),
         )
+        }
         
         Spacer(modifier = Modifier.height(16.dp))
         
         // Password field
-        OutlinedTextField(
+        Surface(
+            color = BrandBlue,
+            shape = MaterialTheme.shapes.small,
+        ) {
+            OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Contraseña") },
@@ -561,7 +594,17 @@ private fun LoginContent(
             },
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.White,
+                unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                focusedLabelColor = Color.White,
+                unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                cursorColor = Color.White,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+            ),
         )
+        }
         
         Spacer(modifier = Modifier.height(8.dp))
         
