@@ -346,7 +346,7 @@ private fun LoginContent(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 8.dp),
                     shape = MaterialTheme.shapes.small,
-                    color = BrandBlue.copy(alpha = 0.1f),
+                    color = BrandBlue,
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -356,23 +356,24 @@ private fun LoginContent(
                         Text(
                             text = "Dispositivo registrado",
                             style = MaterialTheme.typography.labelSmall,
-                            color = BrandBlue,
+                            color = Color.White,
                         )
                         Text(
                             text = " · ",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.Gray,
+                            color = Color.White.copy(alpha = 0.7f),
                         )
                         Text(
                             text = device.companyId,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
+                            color = Color.White,
                         )
                         device.warehouseId?.let { warehouseId ->
                             Text(
                                 text = " · $warehouseId",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.Gray,
+                                color = Color.White.copy(alpha = 0.7f),
                             )
                         }
                     }
