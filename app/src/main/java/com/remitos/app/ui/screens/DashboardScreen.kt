@@ -142,6 +142,7 @@ fun DashboardScreen(
     // Collect sync state
     val syncState by syncManager.syncState.collectAsState()
     val isSyncing by syncManager.isSyncing.collectAsState()
+    val syncMessage by syncManager.syncMessage.collectAsState()
     
     // Handle sync state changes - force logout if suspended/revoked
     LaunchedEffect(syncState) {
@@ -160,7 +161,7 @@ fun DashboardScreen(
     if (isSyncing) {
         SyncModal(
             isVisible = true,
-            message = "Sincronizando..."
+            message = syncMessage ?: "Sincronizando..."
         )
     }
     

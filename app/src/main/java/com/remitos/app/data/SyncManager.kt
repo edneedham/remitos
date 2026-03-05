@@ -30,6 +30,9 @@ class SyncManager(
     private val _syncState = MutableStateFlow<SyncState>(SyncState.Idle)
     val syncState: StateFlow<SyncState> = _syncState.asStateFlow()
 
+    private val _syncMessage = MutableStateFlow<String?>(null)
+    val syncMessage: StateFlow<String?> = _syncMessage.asStateFlow()
+
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
 
@@ -57,6 +60,7 @@ class SyncManager(
             try {
                 _isSyncing.value = true
                 _syncState.value = SyncState.Syncing
+                _syncMessage.value = "Verificando estado..."
 
                 // Check user status first
                 val statusResponse = checkUserStatus()
@@ -65,21 +69,26 @@ class SyncManager(
                     when {
                         statusResponse.userStatus != "active" -> {
                             _syncState.value = SyncState.UserSuspended
+                            _syncMessage.value = null
                             return@launch
                         }
                         statusResponse.deviceStatus == "revoked" -> {
                             _syncState.value = SyncState.DeviceRevoked
+                            _syncMessage.value = null
                             return@launch
                         }
                     }
                 }
 
                 // If user is active, do full sync
+                _syncMessage.value = "Sincronizando datos..."
                 performFullSync()
 
                 _syncState.value = SyncState.Success
+                _syncMessage.value = null
             } catch (e: Exception) {
                 _syncState.value = SyncState.Error(e.message ?: "Error de sincronización")
+                _syncMessage.value = null
             } finally {
                 _isSyncing.value = false
             }
