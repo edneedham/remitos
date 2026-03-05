@@ -61,6 +61,7 @@ import com.remitos.app.R
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.DatabaseManager
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.BrandRed
 import com.remitos.app.ui.theme.Blue100
 import com.remitos.app.ui.theme.Blue50
 import kotlinx.coroutines.CoroutineScope
@@ -276,8 +277,8 @@ fun DashboardScreen(
                             },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                containerColor = BrandRed,
+                                contentColor = Color.White,
                             )
                         ) {
                             Text("Cerrar sesión")
