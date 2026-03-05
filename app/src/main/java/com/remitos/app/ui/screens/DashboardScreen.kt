@@ -217,6 +217,7 @@ fun DashboardScreen(
         AlertDialog(
             onDismissRequest = { },
             title = { Text("Sesión bloqueada") },
+            containerColor = MaterialTheme.colorScheme.surface,
             text = {
                 Column {
                     Text("Usuario: $userName")
