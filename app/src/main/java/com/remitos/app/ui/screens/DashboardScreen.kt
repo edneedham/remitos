@@ -302,15 +302,6 @@ fun DashboardScreen(
         topBar = {
             TopAppBar(
                 title = { },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.Logout,
-                            contentDescription = "Cerrar sesión",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                 ),
@@ -324,7 +315,7 @@ fun DashboardScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            DashboardHeader()
+            DashboardHeader(onLogout = onLogout)
 
             Column(
                 modifier = Modifier.padding(horizontal = 20.dp),
@@ -365,7 +356,9 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun DashboardHeader() {
+private fun DashboardHeader(
+    onLogout: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -377,18 +370,32 @@ private fun DashboardHeader() {
                     ),
                 ),
             )
-            .padding(horizontal = 24.dp, vertical = 24.dp),
+            .padding(horizontal = 24.dp, vertical = 16.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_logo_wordmark),
-                contentDescription = "en punto",
-                modifier = Modifier.size(width = 200.dp, height = 52.dp),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Spacer(modifier = Modifier.width(48.dp))
+                Image(
+                    painter = painterResource(id = R.drawable.ic_logo_wordmark),
+                    contentDescription = "en punto",
+                    modifier = Modifier.size(width = 160.dp, height = 42.dp),
+                )
+                IconButton(onClick = onLogout) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.Logout,
+                        contentDescription = "Cerrar sesión",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
             Text(
                 text = "Remitos",
                 style = MaterialTheme.typography.bodyMedium,
