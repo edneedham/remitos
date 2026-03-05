@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
-    primary = Blue800,
+    primary = BrandBlue,
     onPrimary = Color.White,
     primaryContainer = BrandBlue,
     onPrimaryContainer = Color.White,
@@ -30,7 +30,7 @@ private val LightColorScheme = lightColorScheme(
     onError = Color.White,
     errorContainer = Error100,
     onErrorContainer = Color(0xFF8B0000),
-    inverseSurface = Blue900,
+    inverseSurface = BrandBlue,
     inverseOnSurface = Color.White,
     inversePrimary = Blue300,
     surfaceTint = BrandBlue,
