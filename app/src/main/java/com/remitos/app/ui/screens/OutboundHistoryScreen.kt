@@ -52,12 +52,10 @@ import com.remitos.app.data.OutboundLineStatus
 import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.print.OutboundListPrinter
+import com.remitos.app.ui.components.DateUtils
 import com.remitos.app.ui.components.EmptyState
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.theme.BrandBlue
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -231,10 +229,7 @@ private fun OutboundHistoryCard(
     list: OutboundListEntity,
     onReprint: () -> Unit,
 ) {
-    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-    val date = Instant.ofEpochMilli(list.issueDate)
-        .atZone(ZoneId.systemDefault())
-        .toLocalDate()
+    val dateStr = DateUtils.formatDate(list.issueDate)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -308,7 +303,7 @@ private fun OutboundHistoryCard(
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = formatter.format(date),
+                    text = dateStr,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                 )

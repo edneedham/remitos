@@ -55,13 +55,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.InboundNoteStatus
 import com.remitos.app.data.db.entity.InboundNoteEntity
+import com.remitos.app.ui.components.DateUtils
 import com.remitos.app.ui.components.EmptyState
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.theme.BrandBlue
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -200,10 +198,7 @@ private fun InboundHistoryCard(
     note: InboundNoteEntity,
     onOpenDetail: () -> Unit,
 ) {
-    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-    val date = Instant.ofEpochMilli(note.createdAt)
-        .atZone(ZoneId.systemDefault())
-        .toLocalDate()
+    val dateStr = DateUtils.formatDate(note.createdAt)
 
     Card(
         onClick = onOpenDetail,
@@ -300,7 +295,7 @@ private fun InboundHistoryCard(
             // Date badge
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = formatter.format(date),
+                text = dateStr,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
             )
