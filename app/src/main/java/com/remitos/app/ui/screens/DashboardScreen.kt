@@ -436,20 +436,12 @@ private fun PrimaryActionCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .background(Color.White),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = BrandBlue,
-                    modifier = Modifier.size(26.dp),
-                )
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(32.dp),
+            )
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -545,20 +537,12 @@ private fun ActionTile(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .background(Color.White),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = BrandBlue,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp),
+            )
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
