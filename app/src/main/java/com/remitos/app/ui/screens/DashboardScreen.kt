@@ -62,7 +62,6 @@ import com.remitos.app.RemitosApplication
 import com.remitos.app.data.DatabaseManager
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.BrandRed
-import com.remitos.app.ui.theme.Blue100
 import com.remitos.app.ui.theme.Blue50
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -442,7 +441,7 @@ private fun PrimaryActionCard(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(MaterialTheme.shapes.small)
-                    .background(Blue100),
+                    .background(Color.White),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -457,12 +456,12 @@ private fun PrimaryActionCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = Color.White,
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.8f),
                 )
             }
         }
@@ -538,7 +537,7 @@ private fun ActionTile(
             .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = MaterialTheme.shapes.medium,
@@ -551,7 +550,7 @@ private fun ActionTile(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                    .background(Color.White),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -564,14 +563,14 @@ private fun ActionTile(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = Color.White,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.8f),
                 maxLines = 2,
             )
         }
