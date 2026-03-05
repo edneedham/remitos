@@ -32,7 +32,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
@@ -490,19 +489,6 @@ private fun LoginContent(
             ),
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = BrandBlue,
-                unfocusedContainerColor = BrandBlue,
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-                focusedLabelColor = Color.White,
-                unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                focusedPlaceholderColor = Color.White.copy(alpha = 0.7f),
-                unfocusedPlaceholderColor = Color.White.copy(alpha = 0.5f),
-                cursorColor = Color.White,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-            ),
         )
         
         Spacer(modifier = Modifier.height(16.dp))
@@ -523,19 +509,6 @@ private fun LoginContent(
             ),
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = BrandBlue,
-                unfocusedContainerColor = BrandBlue,
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-                focusedLabelColor = Color.White,
-                unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                focusedPlaceholderColor = Color.White.copy(alpha = 0.7f),
-                unfocusedPlaceholderColor = Color.White.copy(alpha = 0.5f),
-                cursorColor = Color.White,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-            ),
         )
         
         Spacer(modifier = Modifier.height(16.dp))
@@ -588,19 +561,6 @@ private fun LoginContent(
             },
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = BrandBlue,
-                unfocusedContainerColor = BrandBlue,
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-                focusedLabelColor = Color.White,
-                unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                focusedPlaceholderColor = Color.White.copy(alpha = 0.7f),
-                unfocusedPlaceholderColor = Color.White.copy(alpha = 0.5f),
-                cursorColor = Color.White,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-            ),
         )
         
         Spacer(modifier = Modifier.height(8.dp))
