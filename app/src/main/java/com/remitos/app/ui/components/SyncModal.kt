@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -22,40 +21,8 @@ import androidx.compose.ui.window.Dialog
 @Composable
 fun SyncModal(
     isVisible: Boolean,
-    message: String = "Sincronizando..."
-) {
-    if (isVisible) {
-        Dialog(onDismissRequest = { }) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(48.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun SyncModalWithMessage(
-    isVisible: Boolean,
     message: String = "Sincronizando...",
-    detailMessage: String? = null
+    detailMessage: String? = null,
 ) {
     if (isVisible) {
         Dialog(onDismissRequest = { }) {
