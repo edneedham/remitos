@@ -25,6 +25,8 @@ import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -257,44 +259,57 @@ fun DashboardScreen(
                         supportingText = unlockError?.let { { Text(it) } },
                         modifier = Modifier.fillMaxWidth()
                     )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        try {
-                            val db = DatabaseManager.getOfflineDatabase(context)
-                            val user = db.localUserDao().getById(userName)
-                            if (user?.pinHash == unlockPin) {
-                                db.localSessionDao().updateLastActivity(System.currentTimeMillis())
-                                lastActivityTime = System.currentTimeMillis()
-                                showUnlockDialog = false
-                                unlockPin = ""
-                            } else {
-                                unlockError = "PIN incorrecto"
-                            }
-                        } catch (e: Exception) {
-                            unlockError = "Error de verificación"
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    try {
+                                        val db = DatabaseManager.getOfflineDatabase(context)
+                                        db.localSessionDao().clearSession()
+                                    } catch (e: Exception) { }
+                                }
+                                onLogout()
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            )
+                        ) {
+                            Text("Cerrar sesión")
+                        }
+                        Button(
+                            onClick = {
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    try {
+                                        val db = DatabaseManager.getOfflineDatabase(context)
+                                        val user = db.localUserDao().getById(userName)
+                                        if (user?.pinHash == unlockPin) {
+                                            db.localSessionDao().updateLastActivity(System.currentTimeMillis())
+                                            lastActivityTime = System.currentTimeMillis()
+                                            showUnlockDialog = false
+                                            unlockPin = ""
+                                        } else {
+                                            unlockError = "PIN incorrecto"
+                                        }
+                                    } catch (e: Exception) {
+                                        unlockError = "Error de verificación"
+                                    }
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Desbloquear")
                         }
                     }
-                }) {
-                    Text("Desbloquear")
                 }
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    // Clear session before logout
-                    CoroutineScope(Dispatchers.IO).launch {
-                        try {
-                            val db = DatabaseManager.getOfflineDatabase(context)
-                            db.localSessionDao().clearSession()
-                        } catch (e: Exception) { }
-                    }
-                    onLogout()
-                }) {
-                    Text("Cerrar sesión")
-                }
-            }
+            confirmButton = { },
+            dismissButton = { }
         )
     }
     
