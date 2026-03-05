@@ -72,7 +72,6 @@ import com.remitos.app.data.db.entity.LocalDeviceEntity
 import com.remitos.app.data.db.entity.LocalSessionEntity
 import com.remitos.app.data.db.entity.LocalUserEntity
 import com.remitos.app.ui.theme.BrandBlue
-import com.remitos.app.ui.theme.Blue50
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -309,7 +308,7 @@ private fun LoginContent(
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Blue50,
+                            Color.White,
                             Color(0xFFF6F7F9),
                         ),
                     ),

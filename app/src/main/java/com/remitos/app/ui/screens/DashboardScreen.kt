@@ -62,7 +62,6 @@ import com.remitos.app.RemitosApplication
 import com.remitos.app.data.DatabaseManager
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.BrandRed
-import com.remitos.app.ui.theme.Blue50
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -372,7 +371,7 @@ private fun DashboardHeader(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Blue50,
+                        Color.White,
                         Color(0xFFF6F7F9),
                     ),
                 ),

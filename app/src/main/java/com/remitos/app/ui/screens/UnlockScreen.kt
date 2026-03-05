@@ -22,7 +22,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.remitos.app.ui.theme.BrandBlue
-import com.remitos.app.ui.theme.Blue50
 
 @Composable
 fun UnlockScreen(
@@ -41,7 +40,7 @@ fun UnlockScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(Blue50, Color(0xFFF6F7F9)),
+                    colors = listOf(Color.White, Color(0xFFF6F7F9)),
                 ),
             ),
         horizontalAlignment = Alignment.CenterHorizontally,

@@ -37,7 +37,6 @@ import com.remitos.app.network.ApiClient
 import com.remitos.app.network.LoginRequest
 import com.remitos.app.network.RegisterDeviceRequest
 import com.remitos.app.network.WarehouseDto
-import com.remitos.app.ui.theme.Blue50
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -84,7 +83,7 @@ fun DeviceSetupScreen(
                         .fillMaxWidth()
                         .background(
                             brush = Brush.verticalGradient(
-                                colors = listOf(Blue50, Color(0xFFF6F7F9)),
+                                colors = listOf(Color.White, Color(0xFFF6F7F9)),
                             ),
                         )
                         .padding(horizontal = 24.dp, vertical = 48.dp),
@@ -274,7 +273,7 @@ fun DeviceSetupScreen(
                         .fillMaxWidth()
                         .background(
                             brush = Brush.verticalGradient(
-                                colors = listOf(Blue50, Color(0xFFF6F7F9)),
+                                colors = listOf(Color.White, Color(0xFFF6F7F9)),
                             ),
                         )
                         .padding(horizontal = 24.dp, vertical = 48.dp),
