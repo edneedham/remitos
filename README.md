@@ -98,24 +98,6 @@ docker-compose up -d
 ## Arquitectura de Ramas
 
 - **`main`** - Versión offline estable (actualmente monorepo con todo)
-- Las características de backend se controlan mediante Feature Flags
-
-## Feature Flags
-
-El sistema de flags permite controlar el modo offline vs backend:
-
-```kotlin
-// Modo offline (predeterminado en main)
-FeatureFlags.configureOfflineMode()
-
-// Modo con backend (cuando esté disponible)
-FeatureFlags.configureBackendMode("https://api.example.com")
-```
-
-Flags disponibles:
-- `enableBackendOcr` - Usar OCR del backend
-- `enableImageUpload` - Subir imágenes al backend
-- `enableCloudSync` - Sincronizar auditoría con backend
 
 ## Licencia
 
