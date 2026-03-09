@@ -11,4 +11,12 @@
 local.properties
 /opencv-*-android-sdk.zip
 /opencv-sdk/
+/android/opencv-sdk/
 /todo/
+
+# Large binaries that should use LFS or not be tracked
+*.zip
+*.tar.gz
+*.so
+*.dylib
+*.dll
