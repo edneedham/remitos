@@ -1,8 +1,29 @@
-# Remitos App
+# Remitos Monorepo
+
+Aplicación completa para el manejo de remitos y repartos. Incluye aplicación Android para escaneo OCR y backend Go para sincronización y API.
+
+## Estructura del Monorepo
+
+```
+remitos/
+├── android/          # Aplicación Android (Kotlin + Jetpack Compose)
+│   ├── app/          # Código fuente de la app
+│   ├── build.gradle.kts
+│   └── gradlew
+├── backend/          # Servidor backend (Go)
+│   ├── internal/     # Paquetes internos
+│   ├── main.go       # Punto de entrada
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── scripts/          # Scripts compartidos
+└── README.md
+```
+
+## Android App
 
 Aplicación Android para el manejo de remitos y repartos. Escanea remitos usando OCR, gestiona listas de reparto y realiza seguimiento de entregas.
 
-## Estado Actual
+### Estado Actual
 
 **Versión Beta Offline (0.1.15)**
 
@@ -11,42 +32,73 @@ La aplicación funciona completamente offline con todas las operaciones locales:
 - Gestión de notas de ingreso y bultos
 - Creación y cierre de listas de reparto
 - Seguimiento de estados de entrega (en depósito, en tránsito, entregado)
+- Escaneo de códigos de barras GS1
 - Auditoría de cambios con historial completo
 
 **Tag de la versión beta:** `v0.1.15-offline-beta`
 
-## Arquitectura de Ramas
+### Características Principales
 
-- **`main`** - Versión offline estable. Solo correcciones de errores críticos.
-- **`backend-integration`** - Desarrollo activo para integración con backend.
-
-## Características Principales
-
-### Ingresos
+#### Ingresos
 - Escaneo de remitos con captura de imagen
 - OCR automático de campos (CUIT, nombre, dirección, etc.)
+- Escaneo de códigos de barras GS1 para cada bulto
+- Exportación a CSV
 - Edición de campos capturados
 - Seguimiento de bultos disponibles
 
-### Repartos
+#### Repartos
 - Creación de listas de reparto
 - Asignación de remitos a listas
 - Firma de checklist
 - Cierre de lista cuando todos los items están entregados
 - Historial de estados por item
 
-### Auditoría
+#### Auditoría
 - Historial de cambios de estado
 - Historial de ediciones de campos
 - Fechas y razones de modificaciones
 
-## Tecnologías
+### Tecnologías
 
 - **UI:** Jetpack Compose
 - **Base de datos:** Room (SQLite)
 - **OCR:** ML Kit Text Recognition + OpenCV (preprocesamiento)
+- **Escaneo de códigos:** ML Kit Barcode Scanning
 - **Arquitectura:** MVVM con ViewModels
 - **Inyección de dependencias:** Manual (factory pattern)
+
+### Construcción
+
+```bash
+cd android
+./gradlew :app:assembleDebug
+./gradlew :app:testDebugUnitTest
+./gradlew :app:installDebug
+```
+
+## Backend
+
+Servidor Go para API REST y sincronización de datos con el backend.
+
+### Características
+
+- API REST para sincronización de remitos
+- Autenticación JWT
+- WebSocket para tiempo real
+- Docker y docker-compose para deployment
+
+### Construcción
+
+```bash
+cd backend
+docker-compose up -d
+```
+
+## Arquitectura de Ramas
+
+- **`main`** - Versión offline estable. Solo correcciones de errores críticos.
+- **`backend-integration`** - Desarrollo activo para integración con backend.
 
 ## Feature Flags
 
@@ -64,30 +116,6 @@ Flags disponibles:
 - `enableBackendOcr` - Usar OCR del backend
 - `enableImageUpload` - Subir imágenes al backend
 - `enableCloudSync` - Sincronizar auditoría con backend
-
-## Construcción
-
-```bash
-# Debug APK
-./gradlew :app:assembleDebug
-
-# Tests
-./gradlew :app:testDebugUnitTest
-
-# Instalación en dispositivo
-./gradlew :app:installDebug
-```
-
-## Estructura del Proyecto
-
-```
-app/src/main/java/com/remitos/app/
-├── ui/           # Pantallas y componentes Compose
-├── data/         # Repositorios y acceso a datos
-├── data/db/      # Entidades y DAOs de Room
-├── ocr/          # Procesamiento OCR
-└── print/        # Impresión de listas
-```
 
 ## Licencia
 

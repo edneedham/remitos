@@ -1,0 +1,164 @@
+package repository
+
+import (
+	"context"
+	"errors"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"server/internal/models"
+)
+
+var (
+	ErrUserExists = errors.New("user already exists")
+)
+
+type UserRepository struct {
+	pool *pgxpool.Pool
+}
+
+func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
+	return &UserRepository{pool: pool}
+}
+
+func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
+	query := `
+		INSERT INTO users (id, company_id, warehouse_id, email, username, password_hash, role, role_id, status, is_verified, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+	`
+	_, err := r.pool.Exec(ctx, query,
+		user.ID,
+		user.CompanyID,
+		user.WarehouseID,
+		user.Email,
+		user.Username,
+		user.PasswordHash,
+		user.Role,
+		user.RoleID,
+		user.Status,
+		user.IsVerified,
+		user.CreatedAt,
+		user.UpdatedAt,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+	query := `
+		SELECT id, company_id, warehouse_id, email, username, password_hash, role, role_id, status, is_verified, created_at, updated_at
+		FROM users WHERE email = $1
+	`
+	var user models.User
+	err := r.pool.QueryRow(ctx, query, email).Scan(
+		&user.ID,
+		&user.CompanyID,
+		&user.WarehouseID,
+		&user.Email,
+		&user.Username,
+		&user.PasswordHash,
+		&user.Role,
+		&user.RoleID,
+		&user.Status,
+		&user.IsVerified,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepository) GetByEmailAndCompanyID(ctx context.Context, email string, companyID uuid.UUID) (*models.User, error) {
+	query := `
+		SELECT id, company_id, warehouse_id, email, username, password_hash, role, role_id, status, is_verified, created_at, updated_at
+		FROM users WHERE email = $1 AND company_id = $2
+	`
+	var user models.User
+	err := r.pool.QueryRow(ctx, query, email, companyID).Scan(
+		&user.ID,
+		&user.CompanyID,
+		&user.WarehouseID,
+		&user.Email,
+		&user.Username,
+		&user.PasswordHash,
+		&user.Role,
+		&user.RoleID,
+		&user.Status,
+		&user.IsVerified,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepository) GetByUsernameAndCompanyID(ctx context.Context, username string, companyID uuid.UUID) (*models.User, error) {
+	query := `
+		SELECT id, company_id, warehouse_id, email, username, password_hash, role, role_id, status, is_verified, created_at, updated_at
+		FROM users WHERE username = $1 AND company_id = $2
+	`
+	var user models.User
+	err := r.pool.QueryRow(ctx, query, username, companyID).Scan(
+		&user.ID,
+		&user.CompanyID,
+		&user.WarehouseID,
+		&user.Email,
+		&user.Username,
+		&user.PasswordHash,
+		&user.Role,
+		&user.RoleID,
+		&user.Status,
+		&user.IsVerified,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	query := `
+		SELECT id, company_id, warehouse_id, email, username, password_hash, role, role_id, status, is_verified, created_at, updated_at
+		FROM users WHERE id = $1
+	`
+	var user models.User
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&user.ID,
+		&user.CompanyID,
+		&user.WarehouseID,
+		&user.Email,
+		&user.Username,
+		&user.PasswordHash,
+		&user.Role,
+		&user.RoleID,
+		&user.Status,
+		&user.IsVerified,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
