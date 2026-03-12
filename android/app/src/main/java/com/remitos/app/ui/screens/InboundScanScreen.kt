@@ -1,5 +1,7 @@
 package com.remitos.app.ui.screens
 
+import androidx.compose.ui.res.stringResource
+import com.remitos.app.R
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -151,7 +153,7 @@ fun InboundScanScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             RemitosTopBar(
-                title = "Ingreso por OCR",
+                title = stringResource(R.string.ingreso_por_ocr),
                 onBack = onBack,
                 scrollBehavior = scrollBehavior,
             )
@@ -169,7 +171,7 @@ fun InboundScanScreen(
 
             // Scan actions section
             SectionCard(
-                title = "Escanear documento",
+                title = stringResource(R.string.escanear_documento),
                 icon = Icons.Outlined.DocumentScanner,
             ) {
                 Row(
@@ -194,7 +196,7 @@ fun InboundScanScreen(
                             tint = if (uiState.isProcessing) DisabledButtonContent else Color.White,
                         )
                         Spacer(modifier = Modifier.size(6.dp))
-                        Text("Galeria", color = if (uiState.isProcessing) DisabledButtonContent else Color.White)
+                        Text(stringResource(R.string.galeria), color = if (uiState.isProcessing) DisabledButtonContent else Color.White)
                     }
                     FilledTonalButton(
                         onClick = {
@@ -225,7 +227,7 @@ fun InboundScanScreen(
                             tint = if (uiState.isProcessing) DisabledButtonContent else Color.White,
                         )
                         Spacer(modifier = Modifier.size(6.dp))
-                        Text("Camara", color = if (uiState.isProcessing) DisabledButtonContent else Color.White)
+                        Text(stringResource(R.string.camara), color = if (uiState.isProcessing) DisabledButtonContent else Color.White)
                     }
                 }
                 AnimatedVisibility(
@@ -261,7 +263,7 @@ fun InboundScanScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Red inestable. Procesando localmente.",
+                                text = stringResource(R.string.red_inestable_procesando_localmente),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = BrandBlue,
                             )
@@ -272,13 +274,13 @@ fun InboundScanScreen(
 
             // Sender section
             SectionCard(
-                title = "Remitente",
+                title = stringResource(R.string.remitente),
                 icon = Icons.Outlined.Person,
             ) {
                 RemitosTextField(
                     value = draft.senderCuit,
                     onValueChange = { viewModel.updateDraft(draft.copy(senderCuit = it)) },
-                    label = "CUIT Remitente",
+                    label = stringResource(R.string.cuit_remitente),
                     leadingIcon = Icons.Outlined.Badge,
                     isError = errorMessage(MissingField.Cuit) != null,
                     errorMessage = errorMessage(MissingField.Cuit),
@@ -288,7 +290,7 @@ fun InboundScanScreen(
                     RemitosTextField(
                         value = draft.senderNombre,
                         onValueChange = { viewModel.updateDraft(draft.copy(senderNombre = it)) },
-                        label = "Nombre",
+                        label = stringResource(R.string.nombre),
                         leadingIcon = Icons.Outlined.Person,
                         modifier = Modifier.weight(1f),
                         isError = errorMessage(MissingField.SenderNombre) != null,
@@ -298,7 +300,7 @@ fun InboundScanScreen(
                     RemitosTextField(
                         value = draft.senderApellido,
                         onValueChange = { viewModel.updateDraft(draft.copy(senderApellido = it)) },
-                        label = "Apellido",
+                        label = stringResource(R.string.apellido),
                         modifier = Modifier.weight(1f),
                         isError = errorMessage(MissingField.SenderApellido) != null,
                         errorMessage = errorMessage(MissingField.SenderApellido),
@@ -309,14 +311,14 @@ fun InboundScanScreen(
 
             // Destination section
             SectionCard(
-                title = "Destinatario",
+                title = stringResource(R.string.destinatario),
                 icon = Icons.Outlined.Home,
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RemitosTextField(
                         value = draft.destNombre,
                         onValueChange = { viewModel.updateDraft(draft.copy(destNombre = it)) },
-                        label = "Nombre",
+                        label = stringResource(R.string.nombre),
                         leadingIcon = Icons.Outlined.Person,
                         modifier = Modifier.weight(1f),
                         isError = errorMessage(MissingField.DestNombre) != null,
@@ -326,7 +328,7 @@ fun InboundScanScreen(
                     RemitosTextField(
                         value = draft.destApellido,
                         onValueChange = { viewModel.updateDraft(draft.copy(destApellido = it)) },
-                        label = "Apellido",
+                        label = stringResource(R.string.apellido),
                         modifier = Modifier.weight(1f),
                         isError = errorMessage(MissingField.DestApellido) != null,
                         errorMessage = errorMessage(MissingField.DestApellido),
@@ -336,7 +338,7 @@ fun InboundScanScreen(
                 RemitosTextField(
                     value = draft.destDireccion,
                     onValueChange = { viewModel.updateDraft(draft.copy(destDireccion = it)) },
-                    label = "Direccion",
+                    label = stringResource(R.string.direccion),
                     leadingIcon = Icons.Outlined.Home,
                     isError = errorMessage(MissingField.DestDireccion) != null,
                     errorMessage = errorMessage(MissingField.DestDireccion),
@@ -345,7 +347,7 @@ fun InboundScanScreen(
                 RemitosTextField(
                     value = draft.destTelefono,
                     onValueChange = { viewModel.updateDraft(draft.copy(destTelefono = it)) },
-                    label = "Telefono",
+                    label = stringResource(R.string.telefono),
                     leadingIcon = Icons.Outlined.Phone,
                     keyboardType = KeyboardType.Phone,
                     isError = errorMessage(MissingField.DestTelefono) != null,
@@ -356,13 +358,13 @@ fun InboundScanScreen(
 
             // Package & remito section
             SectionCard(
-                title = "Datos del remito",
+                title = stringResource(R.string.datos_del_remito),
                 icon = Icons.Outlined.Description,
             ) {
                 RemitosTextField(
                     value = draft.cantBultosTotal,
                     onValueChange = { viewModel.updateDraft(draft.copy(cantBultosTotal = it)) },
-                    label = "Cantidad de bultos",
+                    label = stringResource(R.string.cantidad_de_bultos),
                     leadingIcon = Icons.Outlined.Inventory2,
                     keyboardType = KeyboardType.Number,
                     isError = errorMessage(MissingField.CantBultos) != null,
@@ -372,7 +374,7 @@ fun InboundScanScreen(
                 RemitosTextField(
                     value = draft.remitoNumCliente,
                     onValueChange = { viewModel.updateDraft(draft.copy(remitoNumCliente = it)) },
-                    label = "Número de remito de cliente",
+                    label = stringResource(R.string.n_mero_de_remito_de_cliente),
                     leadingIcon = Icons.Outlined.Numbers,
                     isError = errorMessage(MissingField.RemitoCliente) != null,
                     errorMessage = errorMessage(MissingField.RemitoCliente),
@@ -409,7 +411,7 @@ fun InboundScanScreen(
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
-                    "Guardar ingreso",
+                    stringResource(R.string.guardar_ingreso),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (uiState.isSaving) DisabledButtonContent else Color.White,
                 )
@@ -432,10 +434,10 @@ fun InboundScanScreen(
         AlertDialog(
             onDismissRequest = { showCameraPermissionDialog = false },
             confirmButton = {
-                TextButton(onClick = { showCameraPermissionDialog = false }) { Text("Aceptar") }
+                TextButton(onClick = { showCameraPermissionDialog = false }) { Text(stringResource(R.string.aceptar)) }
             },
-            title = { Text("Permiso de camara") },
-            text = { Text("Se necesita acceso a la camara para tomar la foto.") },
+            title = { Text(stringResource(R.string.permiso_de_camara)) },
+            text = { Text(stringResource(R.string.se_necesita_acceso_a_la_camara_para_tomar_la_foto)) },
         )
     }
 
@@ -443,10 +445,10 @@ fun InboundScanScreen(
         AlertDialog(
             onDismissRequest = { viewModel.clearManualEntryPrompt() },
             confirmButton = {
-                TextButton(onClick = { viewModel.clearManualEntryPrompt() }) { Text("Aceptar") }
+                TextButton(onClick = { viewModel.clearManualEntryPrompt() }) { Text(stringResource(R.string.aceptar)) }
             },
-            title = { Text("No se pudo leer el documento") },
-            text = { Text("Completá los datos manualmente.") },
+            title = { Text(stringResource(R.string.no_se_pudo_leer_el_documento)) },
+            text = { Text(stringResource(R.string.complet_los_datos_manualmente)) },
         )
     }
 
@@ -464,9 +466,9 @@ fun InboundScanScreen(
             AlertDialog(
                 onDismissRequest = { viewModel.clearSaveState() },
                 confirmButton = {
-                    TextButton(onClick = { viewModel.clearSaveState() }) { Text("Aceptar") }
+                    TextButton(onClick = { viewModel.clearSaveState() }) { Text(stringResource(R.string.aceptar)) }
                 },
-                title = { Text("Error al guardar") },
+                title = { Text(stringResource(R.string.error_al_guardar)) },
                 text = { Text(state.message) },
             )
         }
@@ -483,9 +485,9 @@ private fun MissingFieldsDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text("Aceptar") }
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.aceptar)) }
         },
-        title = { Text("Completar datos faltantes") },
+        title = { Text(stringResource(R.string.completar_datos_faltantes)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 missing.forEach { field ->

@@ -1,5 +1,7 @@
 package com.remitos.app.ui.screens
 
+import androidx.compose.ui.res.stringResource
+import com.remitos.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -104,7 +106,7 @@ fun OutboundListScreen(
         containerColor = Color.White,
         topBar = {
             RemitosTopBar(
-                title = "Nueva lista de reparto",
+                title = stringResource(R.string.nueva_lista_de_reparto),
                 onBack = onBack,
                 scrollBehavior = scrollBehavior,
             )
@@ -123,14 +125,14 @@ fun OutboundListScreen(
 
             // Driver section
             RepartoCard(
-                title = "Datos del chofer",
+                title = stringResource(R.string.datos_del_chofer),
                 icon = Icons.Outlined.LocalShipping,
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RemitosTextField(
                         value = draft.driverNombre,
                         onValueChange = { viewModel.updateDriverNombre(it) },
-                        label = "Nombre",
+                        label = stringResource(R.string.nombre),
                         leadingIcon = Icons.Outlined.Person,
                         modifier = Modifier.weight(1f),
                         variant = RemitosTextFieldVariant.Reversed,
@@ -138,7 +140,7 @@ fun OutboundListScreen(
                     RemitosTextField(
                         value = draft.driverApellido,
                         onValueChange = { viewModel.updateDriverApellido(it) },
-                        label = "Apellido",
+                        label = stringResource(R.string.apellido),
                         modifier = Modifier.weight(1f),
                         variant = RemitosTextFieldVariant.Reversed,
                     )
@@ -172,7 +174,7 @@ fun OutboundListScreen(
                             ) {
                                 Icon(
                                     Icons.Outlined.Delete,
-                                    contentDescription = "Eliminar remito",
+                                    contentDescription = stringResource(R.string.eliminar_remito),
                                     tint = BrandBlue,
                                 )
                             }
@@ -188,7 +190,7 @@ fun OutboundListScreen(
                         OutlinedTextField(
                             value = selectedInbound?.label ?: "",
                             onValueChange = {},
-                            label = { Text("Seleccionar remito", color = BrandBlue) },
+                            label = { Text(stringResource(R.string.seleccionar_remito), color = BrandBlue) },
                             trailingIcon = {
                                 ExposedDropdownMenuDefaults.TrailingIcon(
                                     expanded = expandedLineId == line.id,
@@ -246,7 +248,7 @@ fun OutboundListScreen(
                         onValueChange = { value ->
                             viewModel.updateLine(line.id) { it.copy(deliveryNumber = value) }
                         },
-                        label = "N° Entrega",
+                        label = stringResource(R.string.n_entrega),
                         leadingIcon = Icons.Outlined.Numbers,
                         variant = RemitosTextFieldVariant.Reversed,
                     )
@@ -255,7 +257,7 @@ fun OutboundListScreen(
                         onValueChange = { value ->
                             viewModel.updateLine(line.id) { it.copy(recipientNombre = value) }
                         },
-                        label = "Nombre destinatario",
+                        label = stringResource(R.string.nombre_destinatario_1),
                         leadingIcon = Icons.Outlined.Person,
                         variant = RemitosTextFieldVariant.Reversed,
                     )
@@ -264,7 +266,7 @@ fun OutboundListScreen(
                         onValueChange = { value ->
                             viewModel.updateLine(line.id) { it.copy(recipientApellido = value) }
                         },
-                        label = "Apellido",
+                        label = stringResource(R.string.apellido),
                         variant = RemitosTextFieldVariant.Reversed,
                     )
                     RemitosTextField(
@@ -272,7 +274,7 @@ fun OutboundListScreen(
                         onValueChange = { value ->
                             viewModel.updateLine(line.id) { it.copy(recipientDireccion = value) }
                         },
-                        label = "Direccion",
+                        label = stringResource(R.string.direccion),
                         leadingIcon = Icons.Outlined.Home,
                         variant = RemitosTextFieldVariant.Reversed,
                     )
@@ -281,7 +283,7 @@ fun OutboundListScreen(
                         onValueChange = { value ->
                             viewModel.updateLine(line.id) { it.copy(recipientTelefono = value) }
                         },
-                        label = "Telefono",
+                        label = stringResource(R.string.telefono),
                         leadingIcon = Icons.Outlined.Phone,
                         keyboardType = KeyboardType.Phone,
                         variant = RemitosTextFieldVariant.Reversed,
@@ -291,7 +293,7 @@ fun OutboundListScreen(
                         onValueChange = { value ->
                             viewModel.updateLine(line.id) { it.copy(cantidadBultos = value) }
                         },
-                        label = "Bultos",
+                        label = stringResource(R.string.bultos),
                         leadingIcon = Icons.Outlined.Inventory2,
                         keyboardType = KeyboardType.Number,
                         variant = RemitosTextFieldVariant.Reversed,
@@ -312,7 +314,7 @@ fun OutboundListScreen(
                     tint = BrandBlue,
                 )
                 Spacer(modifier = Modifier.size(6.dp))
-                Text("Agregar remito", color = BrandBlue)
+                Text(stringResource(R.string.agregar_remito), color = BrandBlue)
             }
 
             // Save button
@@ -334,7 +336,7 @@ fun OutboundListScreen(
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
-                    "Guardar lista",
+                    stringResource(R.string.guardar_lista),
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
@@ -366,7 +368,7 @@ fun OutboundListScreen(
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.size(4.dp))
-                        Text("Imprimir")
+                        Text(stringResource(R.string.imprimir))
                     }
                 },
                 dismissButton = {
@@ -392,7 +394,7 @@ fun OutboundListScreen(
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(modifier = Modifier.size(4.dp))
-                            Text("Guardar PDF")
+                            Text(stringResource(R.string.guardar_pdf))
                         }
                         TextButton(
                             onClick = {
@@ -401,21 +403,21 @@ fun OutboundListScreen(
                                 onBack()
                             },
                         ) {
-                            Text("Cerrar")
+                            Text(stringResource(R.string.cerrar))
                         }
                     }
                 },
-                title = { Text("Lista guardada") },
-                text = { Text("La lista de reparto se guardo correctamente.") },
+                title = { Text(stringResource(R.string.lista_guardada)) },
+                text = { Text(stringResource(R.string.la_lista_de_reparto_se_guardo_correctamente)) },
             )
         }
         is OutboundSaveState.Error -> {
             AlertDialog(
                 onDismissRequest = { viewModel.clearSaveState() },
                 confirmButton = {
-                    TextButton(onClick = { viewModel.clearSaveState() }) { Text("Aceptar") }
+                    TextButton(onClick = { viewModel.clearSaveState() }) { Text(stringResource(R.string.aceptar)) }
                 },
-                title = { Text("Error al guardar") },
+                title = { Text(stringResource(R.string.error_al_guardar)) },
                 text = { Text(state.message) },
             )
         }
