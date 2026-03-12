@@ -63,6 +63,8 @@ import com.remitos.app.data.DatabaseManager
 import com.remitos.app.ui.components.BrandedBackground
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.BrandRed
+import com.remitos.app.ui.theme.DisabledButtonBackground
+import com.remitos.app.ui.theme.DisabledButtonContent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -428,6 +430,9 @@ private fun PrimaryActionCard(
             .height(116.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = BrandBlue,
+            disabledContainerColor = DisabledButtonBackground,
+            contentColor = Color.White,
+            disabledContentColor = DisabledButtonContent
         ),
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = 4.dp,

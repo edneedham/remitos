@@ -71,6 +71,12 @@ import com.remitos.app.ocr.OcrProcessor
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.components.SectionCard
+import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.DisabledButtonBackground
+import com.remitos.app.ui.theme.DisabledButtonContent
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.graphics.Color
+import com.remitos.app.ui.components.RemitosTextFieldVariant
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -172,14 +178,21 @@ fun InboundScanScreen(
                         onClick = { imagePicker.launch("image/*") },
                         enabled = !viewModel.isProcessing,
                         modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = BrandBlue,
+                            disabledContainerColor = DisabledButtonBackground,
+                            contentColor = Color.White,
+                            disabledContentColor = DisabledButtonContent
+                        )
                     ) {
                         Icon(
                             Icons.Outlined.PhotoLibrary,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
+                            tint = if (viewModel.isProcessing) DisabledButtonContent else Color.White,
                         )
                         Spacer(modifier = Modifier.size(6.dp))
-                        Text("Galeria")
+                        Text("Galeria", color = if (viewModel.isProcessing) DisabledButtonContent else Color.White)
                     }
                     FilledTonalButton(
                         onClick = {
@@ -196,14 +209,21 @@ fun InboundScanScreen(
                         },
                         enabled = !viewModel.isProcessing,
                         modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = BrandBlue,
+                            disabledContainerColor = DisabledButtonBackground,
+                            contentColor = Color.White,
+                            disabledContentColor = DisabledButtonContent
+                        )
                     ) {
                         Icon(
                             Icons.Outlined.CameraAlt,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
+                            tint = if (viewModel.isProcessing) DisabledButtonContent else Color.White,
                         )
                         Spacer(modifier = Modifier.size(6.dp))
-                        Text("Camara")
+                        Text("Camara", color = if (viewModel.isProcessing) DisabledButtonContent else Color.White)
                     }
                 }
                 AnimatedVisibility(
@@ -213,8 +233,8 @@ fun InboundScanScreen(
                 ) {
                     LinearProgressIndicator(
                         modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.secondary,
-                        trackColor = MaterialTheme.colorScheme.secondaryContainer,
+                        color = Color.White,
+                        trackColor = Color.White,
                     )
                 }
                 
@@ -225,7 +245,7 @@ fun InboundScanScreen(
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        color = Color.White,
                         shape = MaterialTheme.shapes.small,
                     ) {
                         Row(
@@ -235,13 +255,13 @@ fun InboundScanScreen(
                             Icon(
                                 imageVector = Icons.Outlined.WifiOff,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                tint = BrandBlue,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Red inestable. Procesando localmente.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                color = BrandBlue,
                             )
                         }
                     }
@@ -260,6 +280,7 @@ fun InboundScanScreen(
                     leadingIcon = Icons.Outlined.Badge,
                     isError = errorMessage(MissingField.Cuit) != null,
                     errorMessage = errorMessage(MissingField.Cuit),
+                    variant = RemitosTextFieldVariant.Reversed
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RemitosTextField(
@@ -270,6 +291,7 @@ fun InboundScanScreen(
                         modifier = Modifier.weight(1f),
                         isError = errorMessage(MissingField.SenderNombre) != null,
                         errorMessage = errorMessage(MissingField.SenderNombre),
+                        variant = RemitosTextFieldVariant.Reversed
                     )
                     RemitosTextField(
                         value = draft.senderApellido,
@@ -278,6 +300,7 @@ fun InboundScanScreen(
                         modifier = Modifier.weight(1f),
                         isError = errorMessage(MissingField.SenderApellido) != null,
                         errorMessage = errorMessage(MissingField.SenderApellido),
+                        variant = RemitosTextFieldVariant.Reversed
                     )
                 }
             }
@@ -296,6 +319,7 @@ fun InboundScanScreen(
                         modifier = Modifier.weight(1f),
                         isError = errorMessage(MissingField.DestNombre) != null,
                         errorMessage = errorMessage(MissingField.DestNombre),
+                        variant = RemitosTextFieldVariant.Reversed
                     )
                     RemitosTextField(
                         value = draft.destApellido,
@@ -304,6 +328,7 @@ fun InboundScanScreen(
                         modifier = Modifier.weight(1f),
                         isError = errorMessage(MissingField.DestApellido) != null,
                         errorMessage = errorMessage(MissingField.DestApellido),
+                        variant = RemitosTextFieldVariant.Reversed
                     )
                 }
                 RemitosTextField(
@@ -313,6 +338,7 @@ fun InboundScanScreen(
                     leadingIcon = Icons.Outlined.Home,
                     isError = errorMessage(MissingField.DestDireccion) != null,
                     errorMessage = errorMessage(MissingField.DestDireccion),
+                    variant = RemitosTextFieldVariant.Reversed
                 )
                 RemitosTextField(
                     value = draft.destTelefono,
@@ -322,6 +348,7 @@ fun InboundScanScreen(
                     keyboardType = KeyboardType.Phone,
                     isError = errorMessage(MissingField.DestTelefono) != null,
                     errorMessage = errorMessage(MissingField.DestTelefono),
+                    variant = RemitosTextFieldVariant.Reversed
                 )
             }
 
@@ -338,6 +365,7 @@ fun InboundScanScreen(
                     keyboardType = KeyboardType.Number,
                     isError = errorMessage(MissingField.CantBultos) != null,
                     errorMessage = errorMessage(MissingField.CantBultos),
+                    variant = RemitosTextFieldVariant.Reversed
                 )
                 RemitosTextField(
                     value = draft.remitoNumCliente,
@@ -346,6 +374,7 @@ fun InboundScanScreen(
                     leadingIcon = Icons.Outlined.Numbers,
                     isError = errorMessage(MissingField.RemitoCliente) != null,
                     errorMessage = errorMessage(MissingField.RemitoCliente),
+                    variant = RemitosTextFieldVariant.Reversed
                 )
             }
 
@@ -363,16 +392,24 @@ fun InboundScanScreen(
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = BrandBlue,
+                    disabledContainerColor = DisabledButtonBackground,
+                    contentColor = Color.White,
+                    disabledContentColor = DisabledButtonContent
+                )
             ) {
                 Icon(
                     Icons.Outlined.Save,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
+                    tint = if (viewModel.isSaving) DisabledButtonContent else Color.White,
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
                     "Guardar ingreso",
                     style = MaterialTheme.typography.labelLarge,
+                    color = if (viewModel.isSaving) DisabledButtonContent else Color.White,
                 )
             }
 
