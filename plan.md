@@ -32,7 +32,7 @@ This document outlines the recommended actions to improve the structural, archit
 
 - [ ] **Extract Hardcoded Strings:** There are over 130 instances of hardcoded Spanish strings directly embedded in Composables (e.g., `Text("Anular ingreso")`), severely impacting maintainability.
   - *Action:* Extract all hardcoded UI strings to `res/values/strings.xml` and use `stringResource(R.string.key)`.
-- [ ] **Fix State Autoboxing in Compose:** Several screens use `mutableStateOf(0L)` or `mutableStateOf(0)`, which causes continuous boxing/unboxing overhead on the JVM during recompositions.
+- [x] **Fix State Autoboxing in Compose:** Several screens use `mutableStateOf(0L)` or `mutableStateOf(0)`, which causes continuous boxing/unboxing overhead on the JVM during recompositions.
   - *Action:* Swap these for primitive state holders: `mutableLongStateOf` and `mutableIntStateOf`.
-- [ ] **Handle Exceptions Specifically:** `InboundViewModel.processImage` catches a generic `Exception`, which can swallow unexpected system crashes (like `OutOfMemoryError`).
+- [x] **Handle Exceptions Specifically:** `InboundViewModel.processImage` catches a generic `Exception`, which can swallow unexpected system crashes (like `OutOfMemoryError`).
   - *Action:* Catch specific exceptions where expected and integrate a crash reporting mechanism (like Crashlytics) for unexpected failures.

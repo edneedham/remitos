@@ -19,6 +19,7 @@ import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.ocr.OcrFieldKeys
 import com.remitos.app.ocr.OcrProcessor
 import com.remitos.app.ocr.OcrProcessingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -135,6 +136,34 @@ class InboundViewModel(
                     deviceModel = Build.MODEL,
                     parsingErrorSummary = null,
                 )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: java.io.IOException) {
+                Log.e("InboundViewModel", "Error de red/IO al procesar OCR", error)
+                debugLog = DebugLogEntity(
+                    createdAt = System.currentTimeMillis(),
+                    scanId = scanId,
+                    ocrConfidenceJson = null,
+                    preprocessTimeMs = null,
+                    failureReason = error.message ?: "Error de IO",
+                    imageWidth = null,
+                    imageHeight = null,
+                    deviceModel = Build.MODEL,
+                    parsingErrorSummary = null,
+                )
+            } catch (error: IllegalStateException) {
+                Log.e("InboundViewModel", "Error de estado al procesar OCR", error)
+                debugLog = DebugLogEntity(
+                    createdAt = System.currentTimeMillis(),
+                    scanId = scanId,
+                    ocrConfidenceJson = null,
+                    preprocessTimeMs = null,
+                    failureReason = error.message ?: "Estado inválido",
+                    imageWidth = null,
+                    imageHeight = null,
+                    deviceModel = Build.MODEL,
+                    parsingErrorSummary = null,
+                )
             } catch (error: Exception) {
                 Log.e("InboundViewModel", "Error al procesar OCR", error)
                 debugLog = DebugLogEntity(
@@ -233,6 +262,12 @@ class InboundViewModel(
                     showMissingErrors = false,
                     showManualEntryPrompt = false
                 ) }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: java.io.IOException) {
+                _uiState.update { it.copy(saveState = SaveState.Error("No se pudo guardar el ingreso debido a un error de conexión/archivo.")) }
+            } catch (error: IllegalStateException) {
+                _uiState.update { it.copy(saveState = SaveState.Error("Estado inválido al guardar el ingreso.")) }
             } catch (error: Exception) {
                 _uiState.update { it.copy(saveState = SaveState.Error("No se pudo guardar el ingreso. Intentá de nuevo.")) }
             } finally {
