@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -64,7 +65,7 @@ fun InboundCameraScreen(
     val mainExecutor = remember { ContextCompat.getMainExecutor(context) }
     val focusGate = remember { FocusGate() }
     var focusReady by remember { mutableStateOf(false) }
-    var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
+    var nowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var cameraControl by remember { mutableStateOf<androidx.camera.core.CameraControl?>(null) }
 
     LaunchedEffect(cameraProviderFuture) {

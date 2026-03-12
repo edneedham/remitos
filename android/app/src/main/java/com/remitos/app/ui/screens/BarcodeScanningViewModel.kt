@@ -2,6 +2,8 @@ package com.remitos.app.ui.screens
 
 import android.content.Context
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -37,10 +39,10 @@ class BarcodeScanningViewModel : ViewModel() {
     private val _scannedItems = mutableStateListOf<ScannedBarcodeItem>()
     val scannedItems: List<ScannedBarcodeItem> = _scannedItems
 
-    private val _expectedCount = mutableStateOf(0)
-    val expectedCount: Int get() = _expectedCount.value
+    private val _expectedCount = mutableIntStateOf(0)
+    val expectedCount: Int get() = _expectedCount.intValue
 
-    private val _progress = mutableStateOf(0f)
+    private val _progress = mutableFloatStateOf(0f)
     val progress: State<Float> = _progress
 
     private var inboundNoteId: Long = 0
@@ -101,8 +103,8 @@ class BarcodeScanningViewModel : ViewModel() {
      * Update progress calculation.
      */
     private fun updateProgress() {
-        _progress.value = if (_expectedCount.value > 0) {
-            (_scannedItems.size.toFloat() / _expectedCount.value).coerceIn(0f, 1f)
+        _progress.floatValue = if (_expectedCount.intValue > 0) {
+            (_scannedItems.size.toFloat() / _expectedCount.intValue).coerceIn(0f, 1f)
         } else {
             0f
         }
