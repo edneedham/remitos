@@ -65,6 +65,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.remitos.app.RemitosApplication
 import com.remitos.app.network.NetworkChecker
 import com.remitos.app.ocr.OcrProcessor
@@ -99,7 +100,8 @@ fun InboundScanScreen(
         },
     )
 
-    val draft = viewModel.draft
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val draft = uiState.draft
     var showMissingDialog by remember { mutableStateOf(false) }
     var showCameraPermissionDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -134,7 +136,7 @@ fun InboundScanScreen(
     }
 
     val missing = draft.missingFields()
-    val missingForDisplay = if (viewModel.showMissingErrors) missing else emptyList()
+    val missingForDisplay = if (uiState.showMissingErrors) missing else emptyList()
 
     fun errorMessage(field: MissingField): String? {
         if (!missingForDisplay.contains(field)) return null
@@ -176,7 +178,7 @@ fun InboundScanScreen(
                 ) {
                     FilledTonalButton(
                         onClick = { imagePicker.launch("image/*") },
-                        enabled = !viewModel.isProcessing,
+                        enabled = !uiState.isProcessing,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = BrandBlue,
@@ -189,10 +191,10 @@ fun InboundScanScreen(
                             Icons.Outlined.PhotoLibrary,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = if (viewModel.isProcessing) DisabledButtonContent else Color.White,
+                            tint = if (uiState.isProcessing) DisabledButtonContent else Color.White,
                         )
                         Spacer(modifier = Modifier.size(6.dp))
-                        Text("Galeria", color = if (viewModel.isProcessing) DisabledButtonContent else Color.White)
+                        Text("Galeria", color = if (uiState.isProcessing) DisabledButtonContent else Color.White)
                     }
                     FilledTonalButton(
                         onClick = {
@@ -207,7 +209,7 @@ fun InboundScanScreen(
                                 cameraPermissionLauncher.launch(permission)
                             }
                         },
-                        enabled = !viewModel.isProcessing,
+                        enabled = !uiState.isProcessing,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = BrandBlue,
@@ -220,14 +222,14 @@ fun InboundScanScreen(
                             Icons.Outlined.CameraAlt,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = if (viewModel.isProcessing) DisabledButtonContent else Color.White,
+                            tint = if (uiState.isProcessing) DisabledButtonContent else Color.White,
                         )
                         Spacer(modifier = Modifier.size(6.dp))
-                        Text("Camara", color = if (viewModel.isProcessing) DisabledButtonContent else Color.White)
+                        Text("Camara", color = if (uiState.isProcessing) DisabledButtonContent else Color.White)
                     }
                 }
                 AnimatedVisibility(
-                    visible = viewModel.isProcessing,
+                    visible = uiState.isProcessing,
                     enter = fadeIn(),
                     exit = fadeOut(),
                 ) {
@@ -239,7 +241,7 @@ fun InboundScanScreen(
                 }
                 
                 AnimatedVisibility(
-                    visible = viewModel.showOfflineModeMessage,
+                    visible = uiState.showOfflineModeMessage,
                     enter = fadeIn() + slideInVertically(),
                     exit = fadeOut() + slideOutVertically(),
                 ) {
@@ -387,7 +389,7 @@ fun InboundScanScreen(
                         viewModel.save()
                     }
                 },
-                enabled = !viewModel.isSaving,
+                enabled = !uiState.isSaving,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -403,13 +405,13 @@ fun InboundScanScreen(
                     Icons.Outlined.Save,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
-                    tint = if (viewModel.isSaving) DisabledButtonContent else Color.White,
+                    tint = if (uiState.isSaving) DisabledButtonContent else Color.White,
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
                     "Guardar ingreso",
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (viewModel.isSaving) DisabledButtonContent else Color.White,
+                    color = if (uiState.isSaving) DisabledButtonContent else Color.White,
                 )
             }
 
@@ -437,7 +439,7 @@ fun InboundScanScreen(
         )
     }
 
-    if (viewModel.showManualEntryPrompt) {
+    if (uiState.showManualEntryPrompt) {
         AlertDialog(
             onDismissRequest = { viewModel.clearManualEntryPrompt() },
             confirmButton = {
@@ -448,7 +450,7 @@ fun InboundScanScreen(
         )
     }
 
-    when (val state = viewModel.saveState) {
+    when (val state = uiState.saveState) {
         is SaveState.Success -> {
             LaunchedEffect(state) {
                 scope.launch {

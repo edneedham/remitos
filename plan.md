@@ -20,12 +20,12 @@ This document outlines the recommended actions to improve the structural, archit
 
 ## 3. Architecture & Separation of Concerns
 
-- [ ] **Break Down "God" Repository:** `RemitosRepository.kt` has become a God object, managing everything from inbound notes and outbound lists to debug logs and allocation logic.
+- [x] **Break Down "God" Repository:** `RemitosRepository.kt` has become a God object, managing everything from inbound notes and outbound lists to debug logs and allocation logic.
   - *Action:* Break it down into domain-specific repositories (e.g., `InboundRepository`, `OutboundRepository`, `SyncRepository`).
   - *Action:* Abstract complex cross-domain logic (like creating outbounds with inventory allocations) into dedicated Use Cases / Interactors.
-- [ ] **Hoist Business Logic from Composables:** Screens like `OutboundListScreen.kt` directly manage complex form mutations (adding, removing, editing draft lines, and ID counters) within the UI.
+- [x] **Hoist Business Logic from Composables:** Screens like `OutboundListScreen.kt` directly manage complex form mutations (adding, removing, editing draft lines, and ID counters) within the UI.
   - *Action:* Hoist this complex state completely into the `OutboundViewModel`. The UI should only render the state and emit events/intents to the ViewModel.
-- [ ] **Refactor ViewModel State Management:** ViewModels (like `InboundViewModel.kt`) rely heavily on Compose's `var ... by mutableStateOf(...)` for individual properties.
+- [x] **Refactor ViewModel State Management:** ViewModels (like `InboundViewModel.kt`) rely heavily on Compose's `var ... by mutableStateOf(...)` for individual properties.
   - *Action:* Transition to the recommended MVI-style `StateFlow` approach (`MutableStateFlow<UiState>`). This ensures a single source of truth, avoids partial state updates, and cleanly decouples the ViewModel from Jetpack Compose.
 
 ## 4. Code Smells & UI Practices

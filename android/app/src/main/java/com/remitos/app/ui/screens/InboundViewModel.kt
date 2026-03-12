@@ -5,11 +5,12 @@ import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
 import android.os.Build
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import com.remitos.app.data.InboundNoteStatus
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.SettingsStore
@@ -27,6 +28,19 @@ import com.remitos.app.network.NetworkChecker
 
 private const val CuitRegex = "\\b\\d{2}-\\d{8}-\\d{1}\\b"
 
+data class InboundUiState(
+    val draft: InboundDraftState = InboundDraftState(),
+    val selectedImageUri: Uri? = null,
+    val isProcessing: Boolean = false,
+    val ocrTextBlob: String? = null,
+    val ocrConfidenceJson: String? = null,
+    val isSaving: Boolean = false,
+    val saveState: SaveState? = null,
+    val showMissingErrors: Boolean = false,
+    val showManualEntryPrompt: Boolean = false,
+    val showOfflineModeMessage: Boolean = false
+)
+
 class InboundViewModel(
     private val repository: RemitosRepository,
     private val settingsStore: SettingsStore? = null,
@@ -36,48 +50,27 @@ class InboundViewModel(
 ) : ViewModel() {
     private var lastOcrFields: Map<String, String> = emptyMap()
 
-    var draft by mutableStateOf(InboundDraftState())
-        private set
-
-    var selectedImageUri by mutableStateOf<Uri?>(null)
-        private set
-
-    var isProcessing by mutableStateOf(false)
-        private set
-
-    var ocrTextBlob by mutableStateOf<String?>(null)
-        private set
-
-    var ocrConfidenceJson by mutableStateOf<String?>(null)
-        private set
-
-    var isSaving by mutableStateOf(false)
-        private set
-
-    var saveState by mutableStateOf<SaveState?>(null)
-        private set
-
-    var showMissingErrors by mutableStateOf(false)
-        private set
-
-    var showManualEntryPrompt by mutableStateOf(false)
-    var showOfflineModeMessage by mutableStateOf(false)
-        private set
+    private val _uiState = MutableStateFlow(InboundUiState())
+    val uiState: StateFlow<InboundUiState> = _uiState.asStateFlow()
 
     fun updateDraft(value: InboundDraftState) {
-        draft = value
+        _uiState.update { it.copy(draft = value) }
     }
 
     fun updateImageUri(value: Uri?) {
-        selectedImageUri = value
-        showMissingErrors = false
-        showManualEntryPrompt = false
+        _uiState.update { it.copy(
+            selectedImageUri = value,
+            showMissingErrors = false,
+            showManualEntryPrompt = false
+        ) }
     }
 
     fun processImage(context: Context) {
-        val uri = selectedImageUri ?: return
-        isProcessing = true
-        showOfflineModeMessage = false
+        val uri = _uiState.value.selectedImageUri ?: return
+        _uiState.update { it.copy(
+            isProcessing = true,
+            showOfflineModeMessage = false
+        ) }
         val startTimeMs = SystemClock.elapsedRealtime()
         val scanId = startTimeMs
 
@@ -90,7 +83,7 @@ class InboundViewModel(
                 val isReachable = NetworkChecker.isServerReachable(authManager)
                 if (!isReachable) {
                     isOffline = true
-                    showOfflineModeMessage = true
+                    _uiState.update { it.copy(showOfflineModeMessage = true) }
                 }
             }
             
@@ -106,17 +99,18 @@ class InboundViewModel(
                 lastOcrFields = result.fields
                 val confidenceJson = confidenceToJson(result.confidence)
                 updateOcrMetadata(result.text, result.confidence)
-                draft = draft.copy(
-                    senderCuit = result.fields[OcrFieldKeys.SenderCuit] ?: draft.senderCuit,
-                    senderNombre = result.fields[OcrFieldKeys.SenderNombre] ?: draft.senderNombre,
-                    senderApellido = result.fields[OcrFieldKeys.SenderApellido] ?: draft.senderApellido,
-                    destNombre = result.fields[OcrFieldKeys.DestNombre] ?: draft.destNombre,
-                    destApellido = result.fields[OcrFieldKeys.DestApellido] ?: draft.destApellido,
-                    destDireccion = result.fields[OcrFieldKeys.DestDireccion] ?: draft.destDireccion,
-                    destTelefono = result.fields[OcrFieldKeys.DestTelefono] ?: draft.destTelefono,
-                    cantBultosTotal = result.fields[OcrFieldKeys.CantBultosTotal] ?: draft.cantBultosTotal,
-                    remitoNumCliente = result.fields[OcrFieldKeys.RemitoNumCliente] ?: draft.remitoNumCliente
-                )
+                val currentDraft = _uiState.value.draft
+                _uiState.update { it.copy(draft = currentDraft.copy(
+                    senderCuit = result.fields[OcrFieldKeys.SenderCuit] ?: currentDraft.senderCuit,
+                    senderNombre = result.fields[OcrFieldKeys.SenderNombre] ?: currentDraft.senderNombre,
+                    senderApellido = result.fields[OcrFieldKeys.SenderApellido] ?: currentDraft.senderApellido,
+                    destNombre = result.fields[OcrFieldKeys.DestNombre] ?: currentDraft.destNombre,
+                    destApellido = result.fields[OcrFieldKeys.DestApellido] ?: currentDraft.destApellido,
+                    destDireccion = result.fields[OcrFieldKeys.DestDireccion] ?: currentDraft.destDireccion,
+                    destTelefono = result.fields[OcrFieldKeys.DestTelefono] ?: currentDraft.destTelefono,
+                    cantBultosTotal = result.fields[OcrFieldKeys.CantBultosTotal] ?: currentDraft.cantBultosTotal,
+                    remitoNumCliente = result.fields[OcrFieldKeys.RemitoNumCliente] ?: currentDraft.remitoNumCliente
+                )) }
                 debugLog = DebugLogEntity(
                     createdAt = System.currentTimeMillis(),
                     scanId = scanId,
@@ -160,16 +154,20 @@ class InboundViewModel(
                     settingsStore?.recordScanResult(durationMs, parseSuccess)
                     debugLog?.let { repository.insertDebugLog(it) }
                 }
-                isProcessing = false
-                showMissingErrors = true
-                showManualEntryPrompt = !parseSuccess
+                _uiState.update { it.copy(
+                    isProcessing = false,
+                    showMissingErrors = true,
+                    showManualEntryPrompt = !parseSuccess
+                ) }
             }
         }
     }
 
     fun updateOcrMetadata(text: String?, confidence: Map<String, Double>?) {
-        ocrTextBlob = text
-        ocrConfidenceJson = confidenceToJson(confidence)
+        _uiState.update { it.copy(
+            ocrTextBlob = text,
+            ocrConfidenceJson = confidenceToJson(confidence)
+        ) }
     }
 
     private fun confidenceToJson(confidence: Map<String, Double>?): String? {
@@ -180,42 +178,43 @@ class InboundViewModel(
     }
 
     fun save() {
-        if (isSaving) return
+        val currentState = _uiState.value
+        if (currentState.isSaving) return
 
-        val cantBultos = draft.cantBultosTotal.toIntOrNull() ?: 0
+        val cantBultos = currentState.draft.cantBultosTotal.toIntOrNull() ?: 0
         if (cantBultos <= 0) {
-            saveState = SaveState.Error("La cantidad de bultos debe ser mayor a cero.")
+            _uiState.update { it.copy(saveState = SaveState.Error("La cantidad de bultos debe ser mayor a cero.")) }
             return
         }
 
-        isSaving = true
-        saveState = null
+        _uiState.update { it.copy(isSaving = true, saveState = null) }
 
         viewModelScope.launch {
             try {
+                val stateSnapshot = _uiState.value
                 val now = System.currentTimeMillis()
-                val manualCorrection = hasManualCorrections(lastOcrFields, draft)
+                val manualCorrection = hasManualCorrections(lastOcrFields, stateSnapshot.draft)
                 val note = InboundNoteEntity(
-                    senderCuit = draft.senderCuit.trim(),
-                    senderNombre = draft.senderNombre.trim(),
-                    senderApellido = draft.senderApellido.trim(),
-                    destNombre = draft.destNombre.trim(),
-                    destApellido = draft.destApellido.trim(),
-                    destDireccion = draft.destDireccion.trim(),
-                    destTelefono = draft.destTelefono.trim(),
+                    senderCuit = stateSnapshot.draft.senderCuit.trim(),
+                    senderNombre = stateSnapshot.draft.senderNombre.trim(),
+                    senderApellido = stateSnapshot.draft.senderApellido.trim(),
+                    destNombre = stateSnapshot.draft.destNombre.trim(),
+                    destApellido = stateSnapshot.draft.destApellido.trim(),
+                    destDireccion = stateSnapshot.draft.destDireccion.trim(),
+                    destTelefono = stateSnapshot.draft.destTelefono.trim(),
                     cantBultosTotal = cantBultos,
-                    remitoNumCliente = draft.remitoNumCliente.trim(),
+                    remitoNumCliente = stateSnapshot.draft.remitoNumCliente.trim(),
                     remitoNumInterno = "",
                     status = InboundNoteStatus.Activa,
-                    scanImagePath = selectedImageUri?.toString(),
-                    ocrTextBlob = ocrTextBlob,
-                    ocrConfidenceJson = ocrConfidenceJson,
+                    scanImagePath = stateSnapshot.selectedImageUri?.toString(),
+                    ocrTextBlob = stateSnapshot.ocrTextBlob,
+                    ocrConfidenceJson = stateSnapshot.ocrConfidenceJson,
                     createdAt = now,
                     updatedAt = now
                 )
 
                 val noteId: Long
-                val cantBultos = draft.cantBultosTotal.trim().toIntOrNull() ?: 0
+                val cantBultosParsed = stateSnapshot.draft.cantBultosTotal.trim().toIntOrNull() ?: 0
 
                 withContext(ioDispatcher) {
                     noteId = repository.createInboundNote(note)
@@ -224,28 +223,30 @@ class InboundViewModel(
                     }
                 }
 
-                draft = InboundDraftState()
-                selectedImageUri = null
-                ocrTextBlob = null
-                ocrConfidenceJson = null
                 lastOcrFields = emptyMap()
-                saveState = SaveState.Success(noteId, cantBultos)
-                showMissingErrors = false
-                showManualEntryPrompt = false
+                _uiState.update { it.copy(
+                    draft = InboundDraftState(),
+                    selectedImageUri = null,
+                    ocrTextBlob = null,
+                    ocrConfidenceJson = null,
+                    saveState = SaveState.Success(noteId, cantBultosParsed),
+                    showMissingErrors = false,
+                    showManualEntryPrompt = false
+                ) }
             } catch (error: Exception) {
-                saveState = SaveState.Error("No se pudo guardar el ingreso. Intentá de nuevo.")
+                _uiState.update { it.copy(saveState = SaveState.Error("No se pudo guardar el ingreso. Intentá de nuevo.")) }
             } finally {
-                isSaving = false
+                _uiState.update { it.copy(isSaving = false) }
             }
         }
     }
 
     fun clearManualEntryPrompt() {
-        showManualEntryPrompt = false
+        _uiState.update { it.copy(showManualEntryPrompt = false) }
     }
 
     fun clearSaveState() {
-        saveState = null
+        _uiState.update { it.copy(saveState = null) }
     }
 }
 
