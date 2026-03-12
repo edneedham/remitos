@@ -91,22 +91,11 @@ fun OutboundListScreen(
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
     val printPayload by viewModel.printPayload.collectAsStateWithLifecycle()
 
-    var draft by remember {
-        mutableStateOf(OutboundDraftState(lines = listOf(OutboundLineDraft(id = 0L))))
-    }
-    var nextLineId by remember { mutableStateOf(1L) }
+    val draft by viewModel.draftState.collectAsStateWithLifecycle()
     var expandedLineId by remember { mutableStateOf<Long?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scope = rememberCoroutineScope()
-
-    fun updateLine(lineId: Long, updater: (OutboundLineDraft) -> OutboundLineDraft) {
-        draft = draft.copy(
-            lines = draft.lines.map { line ->
-                if (line.id == lineId) updater(line) else line
-            }
-        )
-    }
 
     Scaffold(
         modifier = Modifier
@@ -140,7 +129,7 @@ fun OutboundListScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RemitosTextField(
                         value = draft.driverNombre,
-                        onValueChange = { draft = draft.copy(driverNombre = it) },
+                        onValueChange = { viewModel.updateDriverNombre(it) },
                         label = "Nombre",
                         leadingIcon = Icons.Outlined.Person,
                         modifier = Modifier.weight(1f),
@@ -148,7 +137,7 @@ fun OutboundListScreen(
                     )
                     RemitosTextField(
                         value = draft.driverApellido,
-                        onValueChange = { draft = draft.copy(driverApellido = it) },
+                        onValueChange = { viewModel.updateDriverApellido(it) },
                         label = "Apellido",
                         modifier = Modifier.weight(1f),
                         variant = RemitosTextFieldVariant.Reversed,
@@ -175,7 +164,7 @@ fun OutboundListScreen(
                         ) {
                             IconButton(
                                 onClick = {
-                                    draft = draft.copy(lines = draft.lines.filter { it.id != line.id })
+                                    viewModel.removeLine(line.id)
                                     if (expandedLineId == line.id) {
                                         expandedLineId = null
                                     }
@@ -234,7 +223,7 @@ fun OutboundListScreen(
                                         )
                                     },
                                     onClick = {
-                                        updateLine(line.id) {
+                                        viewModel.updateLine(line.id) {
                                             it.copy(selectedInboundNoteId = option.inboundNoteId)
                                         }
                                         expandedLineId = null
@@ -255,7 +244,7 @@ fun OutboundListScreen(
                     RemitosTextField(
                         value = line.deliveryNumber,
                         onValueChange = { value ->
-                            updateLine(line.id) { it.copy(deliveryNumber = value) }
+                            viewModel.updateLine(line.id) { it.copy(deliveryNumber = value) }
                         },
                         label = "N° Entrega",
                         leadingIcon = Icons.Outlined.Numbers,
@@ -264,7 +253,7 @@ fun OutboundListScreen(
                     RemitosTextField(
                         value = line.recipientNombre,
                         onValueChange = { value ->
-                            updateLine(line.id) { it.copy(recipientNombre = value) }
+                            viewModel.updateLine(line.id) { it.copy(recipientNombre = value) }
                         },
                         label = "Nombre destinatario",
                         leadingIcon = Icons.Outlined.Person,
@@ -273,7 +262,7 @@ fun OutboundListScreen(
                     RemitosTextField(
                         value = line.recipientApellido,
                         onValueChange = { value ->
-                            updateLine(line.id) { it.copy(recipientApellido = value) }
+                            viewModel.updateLine(line.id) { it.copy(recipientApellido = value) }
                         },
                         label = "Apellido",
                         variant = RemitosTextFieldVariant.Reversed,
@@ -281,7 +270,7 @@ fun OutboundListScreen(
                     RemitosTextField(
                         value = line.recipientDireccion,
                         onValueChange = { value ->
-                            updateLine(line.id) { it.copy(recipientDireccion = value) }
+                            viewModel.updateLine(line.id) { it.copy(recipientDireccion = value) }
                         },
                         label = "Direccion",
                         leadingIcon = Icons.Outlined.Home,
@@ -290,7 +279,7 @@ fun OutboundListScreen(
                     RemitosTextField(
                         value = line.recipientTelefono,
                         onValueChange = { value ->
-                            updateLine(line.id) { it.copy(recipientTelefono = value) }
+                            viewModel.updateLine(line.id) { it.copy(recipientTelefono = value) }
                         },
                         label = "Telefono",
                         leadingIcon = Icons.Outlined.Phone,
@@ -300,7 +289,7 @@ fun OutboundListScreen(
                     RemitosTextField(
                         value = line.cantidadBultos,
                         onValueChange = { value ->
-                            updateLine(line.id) { it.copy(cantidadBultos = value) }
+                            viewModel.updateLine(line.id) { it.copy(cantidadBultos = value) }
                         },
                         label = "Bultos",
                         leadingIcon = Icons.Outlined.Inventory2,
@@ -312,10 +301,7 @@ fun OutboundListScreen(
 
             TextButton(
                 onClick = {
-                    draft = draft.copy(
-                        lines = draft.lines + OutboundLineDraft(id = nextLineId)
-                    )
-                    nextLineId += 1
+                    viewModel.addLine()
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -331,7 +317,7 @@ fun OutboundListScreen(
 
             // Save button
             Button(
-                onClick = { viewModel.save(draft, inboundOptions) },
+                onClick = { viewModel.save(inboundOptions) },
                 enabled = !isSaving,
                 modifier = Modifier
                     .fillMaxWidth()
