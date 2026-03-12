@@ -1,8 +1,9 @@
 package com.remitos.app.ui.screens
 
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -69,7 +70,7 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-private const val DETAIL_MAX_EDGE_PX = 1200
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -278,14 +279,6 @@ private fun InboundDetailHeader(state: InboundDetailUiState) {
 @Composable
 private fun InboundDetailImage(scanImagePath: String?) {
     val context = LocalContext.current
-    val configuration = LocalConfiguration.current
-    val targetWidth = (configuration.screenWidthDp * context.resources.displayMetrics.density).toInt()
-    val targetHeight = (targetWidth * 0.75f).toInt().coerceAtLeast(1)
-    val image by produceState<Bitmap?>(initialValue = null, scanImagePath, targetWidth, targetHeight) {
-        value = withContext(Dispatchers.IO) {
-            scanImagePath?.let { loadBitmap(context, it, targetWidth, targetHeight) }
-        }
-    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -293,9 +286,12 @@ private fun InboundDetailImage(scanImagePath: String?) {
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = MaterialTheme.shapes.medium,
     ) {
-        if (image != null) {
-            Image(
-                bitmap = image!!.asImageBitmap(),
+        if (scanImagePath != null) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(Uri.parse(scanImagePath))
+                    .crossfade(true)
+                    .build(),
                 contentDescription = "Imagen escaneada",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -432,33 +428,7 @@ private fun InboundDetailForm(
     }
 }
 
-private fun loadBitmap(
-    context: android.content.Context,
-    path: String,
-    targetWidth: Int,
-    targetHeight: Int,
-): Bitmap? {
-    return runCatching {
-        val cacheKey = "detail|$path|$targetWidth|$targetHeight"
-        ImageCache.get(cacheKey)?.let { return it }
-        val uri = Uri.parse(path)
-        val source = ImageDecoder.createSource(context.contentResolver, uri)
-        ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
-            decoder.isMutableRequired = false
-            val maxEdge = max(info.size.width, info.size.height).coerceAtLeast(1)
-            val desiredEdge = max(targetWidth, targetHeight).coerceAtLeast(1)
-            val maxAllowed = minOf(desiredEdge, DETAIL_MAX_EDGE_PX)
-            if (maxEdge > maxAllowed) {
-                val scale = maxAllowed.toFloat() / maxEdge.toFloat()
-                val scaledWidth = (info.size.width * scale).roundToInt().coerceAtLeast(1)
-                val scaledHeight = (info.size.height * scale).roundToInt().coerceAtLeast(1)
-                decoder.setTargetSize(scaledWidth, scaledHeight)
-            }
-        }.also { decoded ->
-            ImageCache.put(cacheKey, decoded)
-        }
-    }.getOrNull()
-}
+
 
 @Composable
 private fun BarcodeScanSection(

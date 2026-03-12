@@ -57,6 +57,9 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.6.2")
     implementation("androidx.compose.animation:animation:1.6.2")
     implementation("com.google.android.material:material:1.11.0")
+    
+    // Coil for Image Loading
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
