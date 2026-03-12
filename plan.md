@@ -13,7 +13,7 @@ This document outlines the recommended actions to improve the structural, archit
 
 - [x] **Migrate KAPT to KSP:** The project currently uses `kapt` for Room compilation (`androidx.room:room-compiler`).
   - *Action:* Migrate to **KSP** (Kotlin Symbol Processing). It provides significant performance improvements and drastically reduces build times.
-- [ ] **Address 16 KB Page Alignment (Future-proofing):** The ML Kit native libraries (`barcode-scanning` and `text-recognition`) are flagged in lint as not being 16 KB aligned, which can crash the app on newer Android 15+ devices enforcing this standard.
+- [x] **Address 16 KB Page Alignment (Future-proofing):** The ML Kit native libraries (`barcode-scanning` and `text-recognition`) are flagged in lint as not being 16 KB aligned, which can crash the app on newer Android 15+ devices enforcing this standard.
   - *Action:* Update ML Kit dependencies to their latest available versions where Google has patched this for bundled SDKs.
 - [ ] **Enable Room Schema Export:** `AppDatabase` generates a compiler warning because schema export is not configured.
   - *Action:* Enable `room.schemaLocation` in `build.gradle.kts` and commit the schemas to version control to enable and enforce safe automated migration testing.
