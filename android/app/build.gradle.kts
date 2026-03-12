@@ -8,6 +8,10 @@ android {
     namespace = "com.remitos.app"
     compileSdk = 34
 
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
+
     defaultConfig {
         applicationId = "com.remitos.app"
         minSdk = 26
