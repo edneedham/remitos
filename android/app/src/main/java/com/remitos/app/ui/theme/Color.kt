@@ -53,3 +53,7 @@ val Error100 = Color(0xFFFFCDD2)
 // Surface & background - no blue tint
 val SurfaceLight = Color(0xFFFAFAFA)
 val SurfaceDim = Color(0xFFF5F5F5)
+
+// Disabled button colors
+val DisabledButtonBackground = Color(0xFFE1E2E4)
+val DisabledButtonContent = Color(0xFF919194)

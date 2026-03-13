@@ -1,8 +1,11 @@
 package com.remitos.app.ui.screens
 
+import androidx.compose.ui.res.stringResource
+import com.remitos.app.R
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -69,7 +72,7 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-private const val DETAIL_MAX_EDGE_PX = 1200
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,7 +107,7 @@ fun InboundDetailScreen(
         modifier = Modifier,
         topBar = {
             RemitosTopBar(
-                title = "Detalle de ingreso",
+                title = stringResource(R.string.detalle_de_ingreso),
                 onBack = onBack,
                 scrollBehavior = scrollBehavior,
             )
@@ -120,7 +123,7 @@ fun InboundDetailScreen(
             when {
                 uiState.isLoading -> {
                     Text(
-                        text = "Cargando ingreso…",
+                        text = stringResource(R.string.cargando_ingreso),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -206,16 +209,16 @@ fun InboundDetailScreen(
                         viewModel.voidNote()
                     }
                 ) {
-                    Text("Anular")
+                    Text(stringResource(R.string.anular))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showVoidDialog = false }) {
-                    Text("Cancelar")
+                    Text(stringResource(R.string.cancelar))
                 }
             },
-            title = { Text("Anular ingreso") },
-            text = { Text("Este ingreso quedará anulado y no podrá asignarse a repartos.") },
+            title = { Text(stringResource(R.string.anular_ingreso)) },
+            text = { Text(stringResource(R.string.este_ingreso_quedar_anulado_y_no_podr_asignarse_a_repartos)) },
         )
     }
 }
@@ -278,14 +281,6 @@ private fun InboundDetailHeader(state: InboundDetailUiState) {
 @Composable
 private fun InboundDetailImage(scanImagePath: String?) {
     val context = LocalContext.current
-    val configuration = LocalConfiguration.current
-    val targetWidth = (configuration.screenWidthDp * context.resources.displayMetrics.density).toInt()
-    val targetHeight = (targetWidth * 0.75f).toInt().coerceAtLeast(1)
-    val image by produceState<Bitmap?>(initialValue = null, scanImagePath, targetWidth, targetHeight) {
-        value = withContext(Dispatchers.IO) {
-            scanImagePath?.let { loadBitmap(context, it, targetWidth, targetHeight) }
-        }
-    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -293,10 +288,13 @@ private fun InboundDetailImage(scanImagePath: String?) {
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = MaterialTheme.shapes.medium,
     ) {
-        if (image != null) {
-            Image(
-                bitmap = image!!.asImageBitmap(),
-                contentDescription = "Imagen escaneada",
+        if (scanImagePath != null) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(Uri.parse(scanImagePath))
+                    .crossfade(true)
+                    .build(),
+                contentDescription = stringResource(R.string.imagen_escaneada),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -322,7 +320,7 @@ private fun InboundDetailImage(scanImagePath: String?) {
                         modifier = Modifier.size(36.dp),
                     )
                     Text(
-                        text = "Sin imagen asociada",
+                        text = stringResource(R.string.sin_imagen_asociada),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -347,27 +345,27 @@ private fun InboundDetailForm(
         RemitosTextField(
             value = draft.senderCuit,
             onValueChange = { onDraftChange(draft.copy(senderCuit = it)) },
-            label = "CUIT Remitente",
+            label = stringResource(R.string.cuit_remitente),
             isError = missing.contains(MissingField.Cuit),
-            errorMessage = "Ingresá un CUIT válido.",
+            errorMessage = stringResource(R.string.ingres_un_cuit_v_lido),
             readOnly = readOnly,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RemitosTextField(
                 value = draft.senderNombre,
                 onValueChange = { onDraftChange(draft.copy(senderNombre = it)) },
-                label = "Nombre Remitente",
+                label = stringResource(R.string.nombre_remitente),
                 isError = missing.contains(MissingField.SenderNombre),
-                errorMessage = "Campo requerido.",
+                errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
             )
             RemitosTextField(
                 value = draft.senderApellido,
                 onValueChange = { onDraftChange(draft.copy(senderApellido = it)) },
-                label = "Apellido Remitente",
+                label = stringResource(R.string.apellido_remitente),
                 isError = missing.contains(MissingField.SenderApellido),
-                errorMessage = "Campo requerido.",
+                errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
             )
@@ -376,18 +374,18 @@ private fun InboundDetailForm(
             RemitosTextField(
                 value = draft.destNombre,
                 onValueChange = { onDraftChange(draft.copy(destNombre = it)) },
-                label = "Nombre Destinatario",
+                label = stringResource(R.string.nombre_destinatario),
                 isError = missing.contains(MissingField.DestNombre),
-                errorMessage = "Campo requerido.",
+                errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
             )
             RemitosTextField(
                 value = draft.destApellido,
                 onValueChange = { onDraftChange(draft.copy(destApellido = it)) },
-                label = "Apellido Destinatario",
+                label = stringResource(R.string.apellido_destinatario),
                 isError = missing.contains(MissingField.DestApellido),
-                errorMessage = "Campo requerido.",
+                errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
             )
@@ -395,26 +393,26 @@ private fun InboundDetailForm(
         RemitosTextField(
             value = draft.destDireccion,
             onValueChange = { onDraftChange(draft.copy(destDireccion = it)) },
-            label = "Dirección Destinatario",
+            label = stringResource(R.string.direcci_n_destinatario),
             isError = missing.contains(MissingField.DestDireccion),
-            errorMessage = "Campo requerido.",
+            errorMessage = stringResource(R.string.campo_requerido),
             readOnly = readOnly,
         )
         RemitosTextField(
             value = draft.destTelefono,
             onValueChange = { onDraftChange(draft.copy(destTelefono = it)) },
-            label = "Teléfono Destinatario",
+            label = stringResource(R.string.tel_fono_destinatario),
             isError = missing.contains(MissingField.DestTelefono),
-            errorMessage = "Campo requerido.",
+            errorMessage = stringResource(R.string.campo_requerido),
             readOnly = readOnly,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RemitosTextField(
                 value = draft.cantBultosTotal,
                 onValueChange = { onDraftChange(draft.copy(cantBultosTotal = it)) },
-                label = "Cantidad de bultos",
+                label = stringResource(R.string.cantidad_de_bultos),
                 isError = missing.contains(MissingField.CantBultos),
-                errorMessage = "Campo requerido.",
+                errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
@@ -422,9 +420,9 @@ private fun InboundDetailForm(
             RemitosTextField(
                 value = draft.remitoNumCliente,
                 onValueChange = { onDraftChange(draft.copy(remitoNumCliente = it)) },
-                label = "Número de remito de cliente",
+                label = stringResource(R.string.n_mero_de_remito_de_cliente),
                 isError = missing.contains(MissingField.RemitoCliente),
-                errorMessage = "Campo requerido.",
+                errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
             )
@@ -432,33 +430,7 @@ private fun InboundDetailForm(
     }
 }
 
-private fun loadBitmap(
-    context: android.content.Context,
-    path: String,
-    targetWidth: Int,
-    targetHeight: Int,
-): Bitmap? {
-    return runCatching {
-        val cacheKey = "detail|$path|$targetWidth|$targetHeight"
-        ImageCache.get(cacheKey)?.let { return it }
-        val uri = Uri.parse(path)
-        val source = ImageDecoder.createSource(context.contentResolver, uri)
-        ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
-            decoder.isMutableRequired = false
-            val maxEdge = max(info.size.width, info.size.height).coerceAtLeast(1)
-            val desiredEdge = max(targetWidth, targetHeight).coerceAtLeast(1)
-            val maxAllowed = minOf(desiredEdge, DETAIL_MAX_EDGE_PX)
-            if (maxEdge > maxAllowed) {
-                val scale = maxAllowed.toFloat() / maxEdge.toFloat()
-                val scaledWidth = (info.size.width * scale).roundToInt().coerceAtLeast(1)
-                val scaledHeight = (info.size.height * scale).roundToInt().coerceAtLeast(1)
-                decoder.setTargetSize(scaledWidth, scaledHeight)
-            }
-        }.also { decoded ->
-            ImageCache.put(cacheKey, decoded)
-        }
-    }.getOrNull()
-}
+
 
 @Composable
 private fun BarcodeScanSection(
@@ -486,21 +458,21 @@ private fun BarcodeScanSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Escaneo de códigos",
+                    text = stringResource(R.string.escaneo_de_c_digos),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 
                 if (scannedCount > 0) {
                     TextButton(onClick = onExportCsv) {
-                        Text("Exportar CSV")
+                        Text(stringResource(R.string.exportar_csv))
                     }
                 }
                 
                 // Show scan button if not all packages are scanned
                 if (scannedCount < totalCount && totalCount > 0) {
                     TextButton(onClick = onScanBarcodes) {
-                        Text("Escanear")
+                        Text(stringResource(R.string.escanear))
                     }
                 }
             }
@@ -513,7 +485,7 @@ private fun BarcodeScanSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Bultos escaneados",
+                    text = stringResource(R.string.bultos_escaneados),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
@@ -541,7 +513,7 @@ private fun BarcodeScanSection(
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "Escaneo completo",
+                        text = stringResource(R.string.escaneo_completo),
                         color = Color(0xFF2E7D32),
                         fontWeight = FontWeight.Medium,
                         style = MaterialTheme.typography.bodyMedium
@@ -553,7 +525,7 @@ private fun BarcodeScanSection(
             if (packages.any { it.barcodeRaw != null }) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Códigos escaneados:",
+                    text = stringResource(R.string.c_digos_escaneados),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

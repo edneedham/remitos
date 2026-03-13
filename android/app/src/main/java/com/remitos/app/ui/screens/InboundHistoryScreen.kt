@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -208,9 +209,9 @@ private fun InboundHistoryCard(
         onClick = onOpenDetail,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = BrandBlue,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = MaterialTheme.shapes.medium,
     ) {
         Row(
@@ -224,13 +225,13 @@ private fun InboundHistoryCard(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                    .background(Color.White.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Inventory2,
                     contentDescription = null,
-                    tint = BrandBlue,
+                    tint = Color.White,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -253,13 +254,14 @@ private fun InboundHistoryCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
+                        color = Color.White,
                     )
                     if (note.status == InboundNoteStatus.Anulada) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Anulado",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error,
+                            color = Color(0xFFFFCDD2),
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
@@ -267,12 +269,12 @@ private fun InboundHistoryCard(
                 Text(
                     text = note.senderCuit,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.8f),
                 )
                 Text(
                     text = "Dest: ${note.destApellido} ${note.destNombre}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.8f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -284,14 +286,14 @@ private fun InboundHistoryCard(
                     Text(
                         text = "Remito cliente: ${note.remitoNumCliente}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = Color.White.copy(alpha = 0.9f),
                         fontWeight = FontWeight.Medium,
                     )
                     Text(
                         text = "${note.cantBultosTotal} bultos",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = Color.White,
                     )
                 }
             }
@@ -301,7 +303,7 @@ private fun InboundHistoryCard(
             Text(
                 text = dateStr,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = Color.White.copy(alpha = 0.7f),
             )
             
             // Scan barcode button
@@ -314,7 +316,7 @@ private fun InboundHistoryCard(
                     Icon(
                         imageVector = Icons.Default.QrCodeScanner,
                         contentDescription = "Escanear códigos",
-                        tint = BrandBlue,
+                        tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                 }

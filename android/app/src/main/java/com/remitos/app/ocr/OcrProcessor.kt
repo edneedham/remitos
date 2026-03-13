@@ -5,8 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
-import android.graphics.ImageDecoder
 import android.net.Uri
+import com.remitos.app.util.BitmapUtils
 import android.os.SystemClock
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
@@ -248,18 +248,8 @@ class OcrProcessor {
     }
 
     private fun toGrayscaleBitmap(context: Context, uri: Uri): Bitmap {
-        val source = ImageDecoder.createSource(context.contentResolver, uri)
-        val decoded = ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
-            decoder.isMutableRequired = true
-            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-            val maxEdge = maxOf(info.size.width, info.size.height).coerceAtLeast(1)
-            if (maxEdge > maxTargetEdgePx) {
-                val scale = maxTargetEdgePx.toFloat() / maxEdge.toFloat()
-                val targetWidth = (info.size.width * scale).toInt().coerceAtLeast(1)
-                val targetHeight = (info.size.height * scale).toInt().coerceAtLeast(1)
-                decoder.setTargetSize(targetWidth, targetHeight)
-            }
-        }
+        val decoded = BitmapUtils.decodeBitmap(context, uri, maxTargetEdgePx, true)
+            ?: throw IllegalStateException("Could not decode image")
         val bitmap = if (decoded.config == Bitmap.Config.ARGB_8888) {
             decoded
         } else {

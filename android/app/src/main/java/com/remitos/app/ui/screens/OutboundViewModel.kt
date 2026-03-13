@@ -43,9 +43,45 @@ class OutboundViewModel(
     val saveState = MutableStateFlow<OutboundSaveState?>(null)
     val printPayload = MutableStateFlow<OutboundPrintPayload?>(null)
 
-    fun save(draft: OutboundDraftState, inboundOptions: List<InboundOption>) {
+    val draftState = MutableStateFlow(OutboundDraftState(lines = listOf(OutboundLineDraft(id = 0L))))
+    private var nextLineId = 1L
+
+    fun updateDriverNombre(nombre: String) {
+        draftState.value = draftState.value.copy(driverNombre = nombre)
+    }
+
+    fun updateDriverApellido(apellido: String) {
+        draftState.value = draftState.value.copy(driverApellido = apellido)
+    }
+
+    fun addLine() {
+        val currentDraft = draftState.value
+        draftState.value = currentDraft.copy(
+            lines = currentDraft.lines + OutboundLineDraft(id = nextLineId)
+        )
+        nextLineId++
+    }
+
+    fun removeLine(lineId: Long) {
+        val currentDraft = draftState.value
+        draftState.value = currentDraft.copy(
+            lines = currentDraft.lines.filter { it.id != lineId }
+        )
+    }
+
+    fun updateLine(lineId: Long, updater: (OutboundLineDraft) -> OutboundLineDraft) {
+        val currentDraft = draftState.value
+        draftState.value = currentDraft.copy(
+            lines = currentDraft.lines.map { line ->
+                if (line.id == lineId) updater(line) else line
+            }
+        )
+    }
+
+    fun save(inboundOptions: List<InboundOption>) {
         if (isSaving.value) return
 
+        val draft = draftState.value
         val error = validateDraft(draft, inboundOptions)
         if (error != null) {
             saveState.value = OutboundSaveState.Error(error)

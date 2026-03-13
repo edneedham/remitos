@@ -1,5 +1,6 @@
 package com.remitos.app.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -63,6 +64,8 @@ import com.remitos.app.data.DatabaseManager
 import com.remitos.app.ui.components.BrandedBackground
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.BrandRed
+import com.remitos.app.ui.theme.DisabledButtonBackground
+import com.remitos.app.ui.theme.DisabledButtonContent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -172,8 +175,8 @@ fun DashboardScreen(
         is SyncState.UserSuspended -> {
             AlertDialog(
                 onDismissRequest = { },
-                title = { Text("Cuenta desactivada") },
-                text = { Text("Tu cuenta ha sido desactivada. Por favor contacta al administrador.") },
+                title = { Text(stringResource(R.string.cuenta_desactivada)) },
+                text = { Text(stringResource(R.string.tu_cuenta_ha_sido_desactivada_por_favor_contacta_al_administrador)) },
                 confirmButton = {
                     androidx.compose.material3.TextButton(onClick = {
                         // Clear session and logout
@@ -185,7 +188,7 @@ fun DashboardScreen(
                         }
                         onLogout()
                     }) {
-                        Text("Aceptar")
+                        Text(stringResource(R.string.aceptar))
                     }
                 }
             )
@@ -193,8 +196,8 @@ fun DashboardScreen(
         is SyncState.DeviceRevoked -> {
             AlertDialog(
                 onDismissRequest = { },
-                title = { Text("Dispositivo revocado") },
-                text = { Text("Tu dispositivo ha sido revocado. Por favor contacta al administrador.") },
+                title = { Text(stringResource(R.string.dispositivo_revocado)) },
+                text = { Text(stringResource(R.string.tu_dispositivo_ha_sido_revocado_por_favor_contacta_al_administrador)) },
                 confirmButton = {
                     androidx.compose.material3.TextButton(onClick = {
                         CoroutineScope(Dispatchers.IO).launch {
@@ -208,7 +211,7 @@ fun DashboardScreen(
                         }
                         onDeviceRevoked()
                     }) {
-                        Text("Aceptar")
+                        Text(stringResource(R.string.aceptar))
                     }
                 }
             )
@@ -219,7 +222,7 @@ fun DashboardScreen(
     if (showUnlockDialog) {
         AlertDialog(
             onDismissRequest = { },
-            title = { Text("Sesión bloqueada") },
+            title = { Text(stringResource(R.string.sesi_n_bloqueada)) },
             containerColor = Color.White,
             tonalElevation = 0.dp,
             text = {
@@ -232,7 +235,7 @@ fun DashboardScreen(
                             unlockPassword = it
                             unlockError = null
                         },
-                        label = { Text("Contraseña") },
+                        label = { Text(stringResource(R.string.contrase_a)) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
@@ -290,7 +293,7 @@ fun DashboardScreen(
                                 contentColor = Color.White,
                             )
                         ) {
-                            Text("Cerrar sesión", maxLines = 1)
+                            Text(stringResource(R.string.cerrar_sesi_n), maxLines = 1)
                         }
                         Button(
                             onClick = {
@@ -313,7 +316,7 @@ fun DashboardScreen(
                             },
                             modifier = Modifier.weight(1f).height(52.dp)
                         ) {
-                            Text("Desbloquear", maxLines = 1)
+                            Text(stringResource(R.string.desbloquear), maxLines = 1)
                         }
                     }
                 }
@@ -340,15 +343,15 @@ fun DashboardScreen(
             ) {
                 PrimaryActionCard(
                     icon = Icons.Outlined.CameraAlt,
-                    title = "Nuevo ingreso",
-                    subtitle = "Escanear remito",
+                    title = stringResource(R.string.nuevo_ingreso),
+                    subtitle = stringResource(R.string.escanear_remito),
                     onClick = onScan,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(116.dp),
                 )
 
-                SectionLabel(text = "Acciones")
+                SectionLabel(text = stringResource(R.string.acciones))
 
                 ActionGrid(
                     onInboundHistory = onInboundHistory,
@@ -359,8 +362,8 @@ fun DashboardScreen(
 
                 ActionTile(
                     icon = Icons.Outlined.Settings,
-                    title = "Ajustes",
-                    subtitle = "Preferencias de lectura",
+                    title = stringResource(R.string.ajustes),
+                    subtitle = stringResource(R.string.preferencias_de_lectura),
                     onClick = onSettings,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -392,19 +395,19 @@ private fun DashboardHeader(
                 Spacer(modifier = Modifier.width(48.dp))
                 Image(
                     painter = painterResource(id = R.drawable.ic_logo_wordmark),
-                    contentDescription = "en punto",
+                    contentDescription = stringResource(R.string.en_punto),
                     modifier = Modifier.size(width = 160.dp, height = 42.dp),
                 )
                 IconButton(onClick = onLogout) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.Logout,
-                        contentDescription = "Cerrar sesión",
+                        contentDescription = stringResource(R.string.cerrar_sesi_n),
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
             }
             Text(
-                text = "Remitos",
+                text = stringResource(R.string.remitos),
                 style = MaterialTheme.typography.bodyLarge,
                 color = BrandBlue,
                 fontWeight = FontWeight.Medium,
@@ -428,6 +431,9 @@ private fun PrimaryActionCard(
             .height(116.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = BrandBlue,
+            disabledContainerColor = DisabledButtonBackground,
+            contentColor = Color.White,
+            disabledContentColor = DisabledButtonContent
         ),
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = 4.dp,
@@ -485,15 +491,15 @@ private fun ActionGrid(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ActionTile(
                 icon = Icons.Outlined.History,
-                title = "Historial",
-                subtitle = "Ver ingresos",
+                title = stringResource(R.string.historial),
+                subtitle = stringResource(R.string.ver_ingresos),
                 onClick = onInboundHistory,
                 modifier = Modifier.weight(1f),
             )
             ActionTile(
                 icon = Icons.Outlined.LocalShipping,
-                title = "Reparto",
-                subtitle = "Nueva lista",
+                title = stringResource(R.string.reparto),
+                subtitle = stringResource(R.string.nueva_lista),
                 onClick = onNewOutbound,
                 modifier = Modifier.weight(1f),
             )
@@ -501,15 +507,15 @@ private fun ActionGrid(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ActionTile(
                 icon = Icons.AutoMirrored.Outlined.ReceiptLong,
-                title = "Historial de reparto",
-                subtitle = "Reimprimir listas",
+                title = stringResource(R.string.historial_de_reparto),
+                subtitle = stringResource(R.string.reimprimir_listas),
                 onClick = onOutboundHistory,
                 modifier = Modifier.weight(1f),
             )
             ActionTile(
                 icon = Icons.Outlined.QueryStats,
-                title = "Actividad",
-                subtitle = "Ver métricas",
+                title = stringResource(R.string.actividad),
+                subtitle = stringResource(R.string.ver_m_tricas),
                 onClick = onActivity,
                 modifier = Modifier.weight(1f),
             )

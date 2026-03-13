@@ -1,5 +1,7 @@
 package com.remitos.app.ui.screens
 
+import androidx.compose.ui.res.stringResource
+import com.remitos.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,22 +93,11 @@ fun OutboundListScreen(
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
     val printPayload by viewModel.printPayload.collectAsStateWithLifecycle()
 
-    var draft by remember {
-        mutableStateOf(OutboundDraftState(lines = listOf(OutboundLineDraft(id = 0L))))
-    }
-    var nextLineId by remember { mutableStateOf(1L) }
+    val draft by viewModel.draftState.collectAsStateWithLifecycle()
     var expandedLineId by remember { mutableStateOf<Long?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scope = rememberCoroutineScope()
-
-    fun updateLine(lineId: Long, updater: (OutboundLineDraft) -> OutboundLineDraft) {
-        draft = draft.copy(
-            lines = draft.lines.map { line ->
-                if (line.id == lineId) updater(line) else line
-            }
-        )
-    }
 
     Scaffold(
         modifier = Modifier
@@ -115,7 +106,7 @@ fun OutboundListScreen(
         containerColor = Color.White,
         topBar = {
             RemitosTopBar(
-                title = "Nueva lista de reparto",
+                title = stringResource(R.string.nueva_lista_de_reparto),
                 onBack = onBack,
                 scrollBehavior = scrollBehavior,
             )
@@ -134,22 +125,22 @@ fun OutboundListScreen(
 
             // Driver section
             RepartoCard(
-                title = "Datos del chofer",
+                title = stringResource(R.string.datos_del_chofer),
                 icon = Icons.Outlined.LocalShipping,
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RemitosTextField(
                         value = draft.driverNombre,
-                        onValueChange = { draft = draft.copy(driverNombre = it) },
-                        label = "Nombre",
+                        onValueChange = { viewModel.updateDriverNombre(it) },
+                        label = stringResource(R.string.nombre),
                         leadingIcon = Icons.Outlined.Person,
                         modifier = Modifier.weight(1f),
                         variant = RemitosTextFieldVariant.Reversed,
                     )
                     RemitosTextField(
                         value = draft.driverApellido,
-                        onValueChange = { draft = draft.copy(driverApellido = it) },
-                        label = "Apellido",
+                        onValueChange = { viewModel.updateDriverApellido(it) },
+                        label = stringResource(R.string.apellido),
                         modifier = Modifier.weight(1f),
                         variant = RemitosTextFieldVariant.Reversed,
                     )
@@ -175,7 +166,7 @@ fun OutboundListScreen(
                         ) {
                             IconButton(
                                 onClick = {
-                                    draft = draft.copy(lines = draft.lines.filter { it.id != line.id })
+                                    viewModel.removeLine(line.id)
                                     if (expandedLineId == line.id) {
                                         expandedLineId = null
                                     }
@@ -183,7 +174,7 @@ fun OutboundListScreen(
                             ) {
                                 Icon(
                                     Icons.Outlined.Delete,
-                                    contentDescription = "Eliminar remito",
+                                    contentDescription = stringResource(R.string.eliminar_remito),
                                     tint = BrandBlue,
                                 )
                             }
@@ -199,7 +190,7 @@ fun OutboundListScreen(
                         OutlinedTextField(
                             value = selectedInbound?.label ?: "",
                             onValueChange = {},
-                            label = { Text("Seleccionar remito", color = BrandBlue) },
+                            label = { Text(stringResource(R.string.seleccionar_remito), color = BrandBlue) },
                             trailingIcon = {
                                 ExposedDropdownMenuDefaults.TrailingIcon(
                                     expanded = expandedLineId == line.id,
@@ -234,7 +225,7 @@ fun OutboundListScreen(
                                         )
                                     },
                                     onClick = {
-                                        updateLine(line.id) {
+                                        viewModel.updateLine(line.id) {
                                             it.copy(selectedInboundNoteId = option.inboundNoteId)
                                         }
                                         expandedLineId = null
@@ -255,44 +246,44 @@ fun OutboundListScreen(
                     RemitosTextField(
                         value = line.deliveryNumber,
                         onValueChange = { value ->
-                            updateLine(line.id) { it.copy(deliveryNumber = value) }
+                            viewModel.updateLine(line.id) { it.copy(deliveryNumber = value) }
                         },
-                        label = "N° Entrega",
+                        label = stringResource(R.string.n_entrega),
                         leadingIcon = Icons.Outlined.Numbers,
                         variant = RemitosTextFieldVariant.Reversed,
                     )
                     RemitosTextField(
                         value = line.recipientNombre,
                         onValueChange = { value ->
-                            updateLine(line.id) { it.copy(recipientNombre = value) }
+                            viewModel.updateLine(line.id) { it.copy(recipientNombre = value) }
                         },
-                        label = "Nombre destinatario",
+                        label = stringResource(R.string.nombre_destinatario_1),
                         leadingIcon = Icons.Outlined.Person,
                         variant = RemitosTextFieldVariant.Reversed,
                     )
                     RemitosTextField(
                         value = line.recipientApellido,
                         onValueChange = { value ->
-                            updateLine(line.id) { it.copy(recipientApellido = value) }
+                            viewModel.updateLine(line.id) { it.copy(recipientApellido = value) }
                         },
-                        label = "Apellido",
+                        label = stringResource(R.string.apellido),
                         variant = RemitosTextFieldVariant.Reversed,
                     )
                     RemitosTextField(
                         value = line.recipientDireccion,
                         onValueChange = { value ->
-                            updateLine(line.id) { it.copy(recipientDireccion = value) }
+                            viewModel.updateLine(line.id) { it.copy(recipientDireccion = value) }
                         },
-                        label = "Direccion",
+                        label = stringResource(R.string.direccion),
                         leadingIcon = Icons.Outlined.Home,
                         variant = RemitosTextFieldVariant.Reversed,
                     )
                     RemitosTextField(
                         value = line.recipientTelefono,
                         onValueChange = { value ->
-                            updateLine(line.id) { it.copy(recipientTelefono = value) }
+                            viewModel.updateLine(line.id) { it.copy(recipientTelefono = value) }
                         },
-                        label = "Telefono",
+                        label = stringResource(R.string.telefono),
                         leadingIcon = Icons.Outlined.Phone,
                         keyboardType = KeyboardType.Phone,
                         variant = RemitosTextFieldVariant.Reversed,
@@ -300,9 +291,9 @@ fun OutboundListScreen(
                     RemitosTextField(
                         value = line.cantidadBultos,
                         onValueChange = { value ->
-                            updateLine(line.id) { it.copy(cantidadBultos = value) }
+                            viewModel.updateLine(line.id) { it.copy(cantidadBultos = value) }
                         },
-                        label = "Bultos",
+                        label = stringResource(R.string.bultos),
                         leadingIcon = Icons.Outlined.Inventory2,
                         keyboardType = KeyboardType.Number,
                         variant = RemitosTextFieldVariant.Reversed,
@@ -312,10 +303,7 @@ fun OutboundListScreen(
 
             TextButton(
                 onClick = {
-                    draft = draft.copy(
-                        lines = draft.lines + OutboundLineDraft(id = nextLineId)
-                    )
-                    nextLineId += 1
+                    viewModel.addLine()
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -326,12 +314,12 @@ fun OutboundListScreen(
                     tint = BrandBlue,
                 )
                 Spacer(modifier = Modifier.size(6.dp))
-                Text("Agregar remito", color = BrandBlue)
+                Text(stringResource(R.string.agregar_remito), color = BrandBlue)
             }
 
             // Save button
             Button(
-                onClick = { viewModel.save(draft, inboundOptions) },
+                onClick = { viewModel.save(inboundOptions) },
                 enabled = !isSaving,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -348,7 +336,7 @@ fun OutboundListScreen(
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
-                    "Guardar lista",
+                    stringResource(R.string.guardar_lista),
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
@@ -380,7 +368,7 @@ fun OutboundListScreen(
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.size(4.dp))
-                        Text("Imprimir")
+                        Text(stringResource(R.string.imprimir))
                     }
                 },
                 dismissButton = {
@@ -406,7 +394,7 @@ fun OutboundListScreen(
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(modifier = Modifier.size(4.dp))
-                            Text("Guardar PDF")
+                            Text(stringResource(R.string.guardar_pdf))
                         }
                         TextButton(
                             onClick = {
@@ -415,21 +403,21 @@ fun OutboundListScreen(
                                 onBack()
                             },
                         ) {
-                            Text("Cerrar")
+                            Text(stringResource(R.string.cerrar))
                         }
                     }
                 },
-                title = { Text("Lista guardada") },
-                text = { Text("La lista de reparto se guardo correctamente.") },
+                title = { Text(stringResource(R.string.lista_guardada)) },
+                text = { Text(stringResource(R.string.la_lista_de_reparto_se_guardo_correctamente)) },
             )
         }
         is OutboundSaveState.Error -> {
             AlertDialog(
                 onDismissRequest = { viewModel.clearSaveState() },
                 confirmButton = {
-                    TextButton(onClick = { viewModel.clearSaveState() }) { Text("Aceptar") }
+                    TextButton(onClick = { viewModel.clearSaveState() }) { Text(stringResource(R.string.aceptar)) }
                 },
-                title = { Text("Error al guardar") },
+                title = { Text(stringResource(R.string.error_al_guardar)) },
                 text = { Text(state.message) },
             )
         }
