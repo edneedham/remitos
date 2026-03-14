@@ -61,6 +61,9 @@ import com.remitos.app.data.InboundNoteStatus
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Spacing
+import com.remitos.app.ui.theme.Success100
+import com.remitos.app.ui.theme.Success500
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -114,8 +117,8 @@ fun InboundDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = Spacing.ScreenPadding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.SectionSpacing),
         ) {
             when {
                 uiState.isLoading -> {
@@ -472,7 +475,7 @@ private fun BarcodeScanSection(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (scannedCount >= totalCount && totalCount > 0) 
-                Color(0xFFE8F5E9) else MaterialTheme.colorScheme.surface
+                Success100 else MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
@@ -521,7 +524,7 @@ private fun BarcodeScanSection(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = when {
-                        scannedCount >= totalCount && totalCount > 0 -> Color(0xFF2E7D32)
+                        scannedCount >= totalCount && totalCount > 0 -> Success500
                         scannedCount > 0 -> BrandBlue
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
@@ -537,12 +540,12 @@ private fun BarcodeScanSection(
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = Color(0xFF4CAF50),
+                        tint = Success500,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
                         text = "Escaneo completo",
-                        color = Color(0xFF2E7D32),
+                        color = Success500,
                         fontWeight = FontWeight.Medium,
                         style = MaterialTheme.typography.bodyMedium
                     )

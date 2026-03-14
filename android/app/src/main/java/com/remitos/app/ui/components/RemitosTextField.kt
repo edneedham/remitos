@@ -1,6 +1,7 @@
 package com.remitos.app.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +37,10 @@ fun RemitosTextField(
     singleLine: Boolean = true,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingIcon: @Composable (() -> Unit)? = null,
+    placeholder: @Composable (() -> Unit)? = null,
+    supportingText: @Composable (() -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     variant: RemitosTextFieldVariant = RemitosTextFieldVariant.Surface,
 ) {
     val isBranded = variant == RemitosTextFieldVariant.Branded
@@ -70,6 +75,7 @@ fun RemitosTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
+        placeholder = placeholder,
         leadingIcon = if (leadingIcon != null) {
             {
                 Icon(
@@ -86,9 +92,10 @@ fun RemitosTextField(
         supportingText = if (isError && errorMessage != null) {
             { Text(errorMessage) }
         } else {
-            null
+            supportingText
         },
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
         readOnly = readOnly,
         enabled = enabled,
         singleLine = singleLine,

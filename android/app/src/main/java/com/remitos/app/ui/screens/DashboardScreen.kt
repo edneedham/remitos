@@ -60,6 +60,8 @@ import androidx.compose.ui.window.Dialog
 import com.remitos.app.R
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.DatabaseManager
+import com.remitos.app.ui.components.RemitosCard
+import com.remitos.app.ui.theme.Spacing
 import com.remitos.app.ui.components.BrandedBackground
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.BrandRed
@@ -332,22 +334,20 @@ fun DashboardScreen(
                 .padding(padding)
                 .padding(top = 0.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.SectionSpacing),
         ) {
             DashboardHeader(onLogout = onLogout)
 
             Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(horizontal = Spacing.ScreenPadding),
+                verticalArrangement = Arrangement.spacedBy(Spacing.SectionSpacing),
             ) {
                 PrimaryActionCard(
                     icon = Icons.Outlined.CameraAlt,
                     title = "Nuevo ingreso",
                     subtitle = "Escanear remito",
                     onClick = onScan,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(116.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 SectionLabel(text = "Acciones")
@@ -423,46 +423,28 @@ private fun PrimaryActionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Button(
+    RemitosCard(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(116.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = BrandBlue,
-            disabledContainerColor = DisabledButtonBackground,
-            contentColor = Color.White,
-            disabledContentColor = DisabledButtonContent
-        ),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 4.dp,
-            pressedElevation = 8.dp,
-        ),
-        shape = MaterialTheme.shapes.medium,
+        modifier = modifier,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(32.dp),
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(32.dp).align(Alignment.CenterVertically),
+        )
+        Spacer(modifier = Modifier.width(Spacing.SectionSpacing))
+        Column(modifier = Modifier.weight(1f).align(Alignment.CenterVertically), verticalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
             )
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.8f),
-                )
-            }
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -530,39 +512,31 @@ private fun ActionTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Button(
+    RemitosCard(
         onClick = onClick,
-        modifier = modifier.height(104.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = BrandBlue,
-        ),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 3.dp,
-            pressedElevation = 6.dp,
-        ),
-        shape = MaterialTheme.shapes.medium,
+        modifier = modifier,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp),
             )
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
             )
         }

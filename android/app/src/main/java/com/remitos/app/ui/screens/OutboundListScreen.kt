@@ -67,7 +67,9 @@ import com.remitos.app.print.OutboundListPrinter
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTextFieldVariant
 import com.remitos.app.ui.components.RemitosTopBar
+import com.remitos.app.ui.components.SectionCard
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -111,8 +113,8 @@ fun OutboundListScreen(
     Scaffold(
         modifier = Modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection)
-            .background(Color.White),
-        containerColor = Color.White,
+            .background(MaterialTheme.colorScheme.background),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             RemitosTopBar(
                 title = "Nueva lista de reparto",
@@ -125,15 +127,15 @@ fun OutboundListScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(horizontal = 20.dp)
-                .background(Color.White)
+                .padding(horizontal = Spacing.ScreenPadding)
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.SectionSpacing),
         ) {
             Spacer(modifier = Modifier.height(4.dp))
 
             // Driver section
-            RepartoCard(
+            SectionCard(
                 title = "Datos del chofer",
                 icon = Icons.Outlined.LocalShipping,
             ) {
@@ -164,7 +166,7 @@ fun OutboundListScreen(
                     option.inboundNoteId == line.selectedInboundNoteId || !selectedIds.contains(option.inboundNoteId)
                 }
 
-                RepartoCard(
+                SectionCard(
                     title = "Remito ${index + 1}",
                     icon = Icons.Outlined.Description,
                 ) {
@@ -196,10 +198,10 @@ fun OutboundListScreen(
                             expandedLineId = if (expandedLineId == line.id) null else line.id
                         },
                     ) {
-                        OutlinedTextField(
+                        RemitosTextField(
                             value = selectedInbound?.label ?: "",
                             onValueChange = {},
-                            label = { Text("Seleccionar remito", color = BrandBlue) },
+                            label = "Seleccionar remito",
                             trailingIcon = {
                                 ExposedDropdownMenuDefaults.TrailingIcon(
                                     expanded = expandedLineId == line.id,
@@ -209,21 +211,12 @@ fun OutboundListScreen(
                                 .menuAnchor()
                                 .fillMaxWidth(),
                             readOnly = true,
-                            shape = MaterialTheme.shapes.small,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = BrandBlue,
-                                unfocusedBorderColor = BrandBlue,
-                                focusedLabelColor = BrandBlue,
-                                unfocusedLabelColor = BrandBlue,
-                                focusedTextColor = BrandBlue,
-                                unfocusedTextColor = BrandBlue,
-                                cursorColor = BrandBlue,
-                            ),
+                            variant = RemitosTextFieldVariant.Reversed,
                         )
                         ExposedDropdownMenu(
                             expanded = expandedLineId == line.id,
                             onDismissRequest = { expandedLineId = null },
-                            modifier = Modifier.background(Color.White),
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                         ) {
                             optionsForLine.forEach { option ->
                                 DropdownMenuItem(
@@ -437,41 +430,3 @@ fun OutboundListScreen(
     }
 }
 
-@Composable
-private fun RepartoCard(
-    title: String,
-    icon: ImageVector,
-    content: @Composable () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = Color.White,
-        shadowElevation = 2.dp,
-        shape = MaterialTheme.shapes.medium,
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .background(Color.White),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = BrandBlue,
-                    modifier = Modifier.size(20.dp),
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = BrandBlue,
-                )
-            }
-            content()
-        }
-    }
-}
