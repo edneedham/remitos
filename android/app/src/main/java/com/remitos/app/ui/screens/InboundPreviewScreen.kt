@@ -48,6 +48,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.remitos.app.ui.components.RemitosTopBar
+import com.remitos.app.ui.theme.Spacing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -102,11 +103,11 @@ fun InboundPreviewScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = Spacing.ScreenPadding)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.SectionSpacing),
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.ItemSpacing))
 
             if (isLoading) {
                 LinearProgressIndicator(
@@ -128,7 +129,7 @@ fun InboundPreviewScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing),
                 ) {
                     FilledTonalButton(
                         onClick = {
@@ -164,7 +165,7 @@ fun InboundPreviewScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing),
                 ) {
                     FilledTonalButton(
                         onClick = onRetake,
@@ -213,7 +214,7 @@ fun InboundPreviewScreen(
                 FilledTonalButton(onClick = onRetake) { Text("Volver a la camara") }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
         }
     }
 
