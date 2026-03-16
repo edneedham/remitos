@@ -62,6 +62,7 @@ import com.remitos.app.ui.components.EmptyState
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTextFieldVariant
 import com.remitos.app.ui.components.RemitosTopBar
+import com.remitos.app.ui.components.RemitosCard
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.Spacing
 
@@ -211,14 +212,10 @@ private fun InboundHistoryCard(
 ) {
     val dateStr = DateUtils.formatDate(note.createdAt)
 
-    Card(
+    RemitosCard(
         onClick = onOpenDetail,
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = BrandBlue,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = MaterialTheme.shapes.medium,
+        elevation = 2,
     ) {
         Row(
             modifier = Modifier
@@ -231,13 +228,13 @@ private fun InboundHistoryCard(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(MaterialTheme.shapes.small)
-                    .background(Color.White.copy(alpha = 0.2f)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Inventory2,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -260,14 +257,14 @@ private fun InboundHistoryCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     if (note.status == InboundNoteStatus.Anulada) {
                         Spacer(modifier = Modifier.width(Spacing.ItemSpacing))
                         Text(
                             text = "Anulado",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFFFFCDD2),
+                            color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
@@ -275,12 +272,12 @@ private fun InboundHistoryCard(
                 Text(
                     text = note.senderCuit,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = "Dest: ${note.destApellido} ${note.destNombre}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -293,7 +290,7 @@ private fun InboundHistoryCard(
                     Text(
                         text = "Remito cliente: ${note.remitoNumCliente}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.9f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -304,7 +301,7 @@ private fun InboundHistoryCard(
                         text = "${note.cantBultosTotal} bultos",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Medium,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                     )
                 }
@@ -316,7 +313,7 @@ private fun InboundHistoryCard(
                 Text(
                     text = dateStr,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 
                 // Scan barcode button

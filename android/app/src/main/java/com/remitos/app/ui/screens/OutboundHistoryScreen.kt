@@ -59,6 +59,7 @@ import com.remitos.app.ui.components.EmptyState
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTextFieldVariant
 import com.remitos.app.ui.components.RemitosTopBar
+import com.remitos.app.ui.components.RemitosCard
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.Spacing
 
@@ -235,13 +236,9 @@ private fun OutboundHistoryCard(
 ) {
     val dateStr = DateUtils.formatDate(list.issueDate)
 
-    Card(
+    RemitosCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = BrandBlue,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = MaterialTheme.shapes.medium,
+        elevation = 2,
     ) {
         Row(
             modifier = Modifier
@@ -253,13 +250,13 @@ private fun OutboundHistoryCard(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(MaterialTheme.shapes.small)
-                    .background(Color.White.copy(alpha = 0.2f)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ReceiptLong,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -276,7 +273,7 @@ private fun OutboundHistoryCard(
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
                     if (list.status == OutboundListStatus.Cerrada) {
@@ -284,13 +281,13 @@ private fun OutboundHistoryCard(
                         Box(
                             modifier = Modifier
                                 .clip(MaterialTheme.shapes.extraSmall)
-                                .background(Color.White.copy(alpha = 0.2f))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = "Cerrada",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -298,14 +295,14 @@ private fun OutboundHistoryCard(
                 Text(
                     text = "Chofer: ${list.driverApellido} ${list.driverNombre}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "Estado: ${listStatusLabel(list.status)}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -313,14 +310,14 @@ private fun OutboundHistoryCard(
                 Text(
                     text = dateStr,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.size(6.dp))
                 IconButton(onClick = onReprint) {
                     Icon(
                         imageVector = Icons.Outlined.Print,
                         contentDescription = "Reimprimir",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
             }

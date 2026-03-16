@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.RemitosApplication
 import com.remitos.app.ui.components.RemitosTopBar
+import com.remitos.app.ui.components.RemitosCard
 import com.remitos.app.ui.theme.BrandBlue
 import java.util.Locale
 
@@ -70,16 +71,12 @@ fun ActivityScreen(onBack: () -> Unit) {
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Card(
+            RemitosCard(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = BrandBlue,
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = MaterialTheme.shapes.medium,
+                elevation = 2,
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Row(
@@ -89,22 +86,22 @@ fun ActivityScreen(onBack: () -> Unit) {
                         Icon(
                             imageVector = Icons.Outlined.QueryStats,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp),
                         )
                         Text(
                             text = "Uso",
                             style = MaterialTheme.typography.titleMedium,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                    MetricRow(label = "Escaneos totales", value = stats.totalScans.toString(), lightText = true)
-                    MetricRow(label = "Lecturas exitosas", value = stats.successfulParses.toString(), lightText = true)
-                    MetricRow(label = "Correcciones manuales", value = stats.manualCorrections.toString(), lightText = true)
+                    MetricRow(label = "Escaneos totales", value = stats.totalScans.toString(), lightText = false)
+                    MetricRow(label = "Lecturas exitosas", value = stats.successfulParses.toString(), lightText = false)
+                    MetricRow(label = "Correcciones manuales", value = stats.manualCorrections.toString(), lightText = false)
                     MetricRow(
                         label = "Tiempo promedio por escaneo",
                         value = averageTime?.let { formatSeconds(it) } ?: "—",
-                        lightText = true,
+                        lightText = false,
                     )
                 }
             }

@@ -537,18 +537,12 @@ private fun LoginContent(
         RemitosTextField(
             value = password,
             onValueChange = { password = it },
-            label = "Contraseña",
+            label = if (isOperatorMode) "Contraseña de operador" else "Contraseña de administrador",
             singleLine = true,
             visualTransformation = if (passwordVisible) {
                 VisualTransformation.None
             } else {
                 PasswordVisualTransformation()
-            },
-            supportingText = {
-                Text(
-                    text = if (isOperatorMode) "Contraseña de operador" else "Contraseña de administrador",
-                    style = MaterialTheme.typography.bodySmall,
-                )
             },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
@@ -576,7 +570,7 @@ private fun LoginContent(
                         } else {
                             "Mostrar contraseña"
                         },
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = BrandBlue,
                     )
                 }
             },

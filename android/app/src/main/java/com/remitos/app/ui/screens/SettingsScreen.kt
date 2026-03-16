@@ -47,6 +47,7 @@ import com.remitos.app.RemitosApplication
 import com.remitos.app.data.FeatureFlags
 import com.remitos.app.data.UserInfo
 import com.remitos.app.ui.components.AccountSwitcherCard
+import com.remitos.app.ui.components.RemitosCard
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.theme.BrandBlue
 import kotlinx.coroutines.Dispatchers
@@ -146,24 +147,18 @@ fun SettingsScreen(
                         Text(
                             text = "Corrección de perspectiva",
                             style = MaterialTheme.typography.titleSmall,
-                            color = BrandBlue,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
                             text = "Mejora la lectura enderezando el remito. Puede usar más recursos.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = BrandBlue.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Switch(
                         checked = perspectiveEnabled,
                         onCheckedChange = viewModel::setPerspectiveCorrectionEnabled,
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = BrandBlue,
-                            uncheckedThumbColor = BrandBlue,
-                            uncheckedTrackColor = Color.White,
-                        ),
                     )
                 }
             }
@@ -184,13 +179,13 @@ fun SettingsScreen(
                         Text(
                             text = "Imágenes guardadas",
                             style = MaterialTheme.typography.titleSmall,
-                            color = BrandBlue,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
                             text = "${storageInfo.count} archivos · ${formatBytes(storageInfo.totalBytes)}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = BrandBlue.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -217,13 +212,13 @@ fun SettingsScreen(
                         Text(
                             text = "Generar remitos de ejemplo",
                             style = MaterialTheme.typography.titleSmall,
-                            color = BrandBlue,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
                             text = "Crea 6 remitos de prueba con datos realistas para explorar la aplicación sin necesidad de escanear documentos reales.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = BrandBlue.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         androidx.compose.material3.Button(
                             onClick = {
@@ -274,14 +269,12 @@ private fun SettingsCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     content: @Composable () -> Unit,
 ) {
-    Surface(
+    RemitosCard(
         modifier = Modifier.fillMaxWidth(),
-        color = Color.White,
-        shadowElevation = 2.dp,
-        shape = MaterialTheme.shapes.medium,
+        elevation = 2,
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
@@ -291,13 +284,13 @@ private fun SettingsCard(
                 androidx.compose.material3.Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = BrandBlue,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(4.dp),
                 )
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = BrandBlue,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
             content()
