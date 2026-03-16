@@ -351,6 +351,7 @@ private fun InboundDetailForm(
             isError = missing.contains(MissingField.Cuit),
             errorMessage = stringResource(R.string.ingres_un_cuit_v_lido),
             readOnly = readOnly,
+            variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RemitosTextField(
@@ -361,6 +362,7 @@ private fun InboundDetailForm(
                 errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
+                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
             )
             RemitosTextField(
                 value = draft.senderApellido,
@@ -370,6 +372,7 @@ private fun InboundDetailForm(
                 errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
+                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -381,6 +384,7 @@ private fun InboundDetailForm(
                 errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
+                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
             )
             RemitosTextField(
                 value = draft.destApellido,
@@ -390,6 +394,7 @@ private fun InboundDetailForm(
                 errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
+                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
             )
         }
         RemitosTextField(
@@ -399,6 +404,7 @@ private fun InboundDetailForm(
             isError = missing.contains(MissingField.DestDireccion),
             errorMessage = stringResource(R.string.campo_requerido),
             readOnly = readOnly,
+            variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
         )
         RemitosTextField(
             value = draft.destTelefono,
@@ -407,6 +413,7 @@ private fun InboundDetailForm(
             isError = missing.contains(MissingField.DestTelefono),
             errorMessage = stringResource(R.string.campo_requerido),
             readOnly = readOnly,
+            variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RemitosTextField(
@@ -418,6 +425,7 @@ private fun InboundDetailForm(
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
             )
             RemitosTextField(
                 value = draft.remitoNumCliente,
@@ -427,6 +435,7 @@ private fun InboundDetailForm(
                 errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
+                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
             )
         }
     }
