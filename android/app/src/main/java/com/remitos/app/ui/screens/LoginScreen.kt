@@ -77,6 +77,7 @@ import com.remitos.app.data.db.entity.LocalDeviceEntity
 import com.remitos.app.data.db.entity.LocalSessionEntity
 import com.remitos.app.data.db.entity.LocalUserEntity
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Spacing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -502,10 +503,10 @@ private fun LoginContent(
             ),
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
-            variant = RemitosTextFieldVariant.Surface,
+            variant = RemitosTextFieldVariant.Reversed,
         )
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
         
         // Username field
         RemitosTextField(
@@ -523,10 +524,10 @@ private fun LoginContent(
             ),
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
-            variant = RemitosTextFieldVariant.Surface,
+            variant = RemitosTextFieldVariant.Reversed,
         )
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
         
         // Password field
         RemitosTextField(
@@ -577,10 +578,10 @@ private fun LoginContent(
             },
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
-            variant = RemitosTextFieldVariant.Surface,
+            variant = RemitosTextFieldVariant.Reversed,
         )
         
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(Spacing.ItemSpacing))
         
         // Login button
         Button(
@@ -593,14 +594,14 @@ private fun LoginContent(
             if (isLoading) {
                 CircularProgressIndicator(
                     color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.height(24.dp),
+                    modifier = Modifier.size(24.dp),
                 )
             } else {
                 Text(if (isOperatorMode) "Iniciar sesión como Operador" else "Iniciar sesión")
             }
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
         
         // Continue offline button
         OutlinedButton(
@@ -611,7 +612,7 @@ private fun LoginContent(
             Text("Continuar sin conexión")
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(Spacing.LargeSpacing))
         
         // Version info
         Text(
@@ -623,6 +624,6 @@ private fun LoginContent(
         }
         
         // Bottom spacer for scroll padding
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Spacing.LargeSpacing))
     }
 }
