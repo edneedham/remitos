@@ -2,8 +2,8 @@ package com.remitos.app.ui.screens
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
+import com.remitos.app.util.BitmapUtils
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -233,20 +233,11 @@ private fun loadPreviewBitmap(context: Context, uri: Uri): Bitmap? {
     return runCatching {
         val cacheKey = "preview|$uri"
         ImageCache.get(cacheKey)?.let { return it }
-        val source = ImageDecoder.createSource(context.contentResolver, uri)
-        ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
-            decoder.isMutableRequired = false
-            val size = info.size
-            val maxEdge = max(size.width, size.height).coerceAtLeast(1)
-            if (maxEdge > PREVIEW_MAX_EDGE_PX) {
-                val scale = PREVIEW_MAX_EDGE_PX.toFloat() / maxEdge.toFloat()
-                val targetWidth = (size.width * scale).roundToInt().coerceAtLeast(1)
-                val targetHeight = (size.height * scale).roundToInt().coerceAtLeast(1)
-                decoder.setTargetSize(targetWidth, targetHeight)
-            }
-        }.also { decoded ->
+        val decoded = BitmapUtils.decodeBitmap(context, uri, PREVIEW_MAX_EDGE_PX, false)
+        if (decoded != null) {
             ImageCache.put(cacheKey, decoded)
         }
+        decoded
     }.getOrNull()
 }
 

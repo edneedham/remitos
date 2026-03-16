@@ -46,6 +46,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -362,7 +363,7 @@ private fun CameraPreview(
     val lifecycleOwner = LocalLifecycleOwner.current
     val executor = remember { Executors.newSingleThreadExecutor() }
 
-    var lastScanTime by remember { mutableStateOf(0L) }
+    var lastScanTime by remember { mutableLongStateOf(0L) }
     val scanCooldownMs = 1500L  // Prevent duplicate scans
 
     AndroidView(

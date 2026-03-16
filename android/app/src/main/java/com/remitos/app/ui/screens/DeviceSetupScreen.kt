@@ -54,7 +54,7 @@ fun DeviceSetupScreen(
     val app = context.applicationContext as RemitosApplication
     val scope = rememberCoroutineScope()
     
-    var currentStep by remember { mutableStateOf(1) }
+    var currentStep by remember { mutableIntStateOf(1) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var warehouses by remember { mutableStateOf<List<WarehouseDto>>(emptyList()) }
