@@ -172,7 +172,7 @@ fun InboundCameraScreen(
                 .border(
                     width = 2.dp,
                     color = Color.White.copy(alpha = 0.7f),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.medium,
                 )
                 .padding(horizontal = 16.dp),
             contentAlignment = Alignment.Center,

@@ -122,7 +122,7 @@ fun InboundPreviewScreen(
                     contentDescription = "Previsualizacion de remito",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp)),
+                        .clip(MaterialTheme.shapes.large),
                     contentScale = ContentScale.Fit,
                 )
 
