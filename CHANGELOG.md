@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.0-alpha04] - 2026-03-14
+
+### Android App UI Styling Unification
+
+This release unifies the styling across the application to ensure consistency and modularity.
+
+- **Theme & Token Enforcement**: 
+  - Purged hardcoded UI hex colors in `BarcodeScanningScreen` and `InboundDetailScreen` in favor of semantic `Success` and `Warning` colors defined in `Color.kt`.
+  - Replaced arbitrary explicit usages of `Color.White` and `BrandBlue` with appropriate `MaterialTheme.colorScheme` tokens in major screens (like `DashboardScreen`, `OutboundListScreen`, and `LoginScreen`).
+  
+- **Standardized Dimensions**: 
+  - Introduced `Spacing.kt` to centrally manage semantic sizes like `ScreenPadding`, `SectionSpacing`, and `ItemSpacing`.
+  - Refactored UI layouts across the board to consistently utilize these spacing constants.
+  
+- **Component Consolidation**: 
+  - Replaced bloated, one-off elements in `LoginScreen` and `OutboundListScreen` with the shared, flexible `RemitosTextField`.
+  - Deprecated and removed locally-scoped redundant cards (`RepartoCard`, `ActionTile`, etc.) in favor of reusing `SectionCard` and `RemitosCard`.
+  - Ensured consistent adherence to `MaterialTheme.shapes` across the entire app instead of declaring arbitrary `RoundedCornerShape` values.
+
 ## [0.2.0-alpha03] - 2026-03-12
 
 ### Android App Refactoring & Improvements
