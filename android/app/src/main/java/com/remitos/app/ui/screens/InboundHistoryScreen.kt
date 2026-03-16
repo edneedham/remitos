@@ -60,8 +60,10 @@ import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.ui.components.DateUtils
 import com.remitos.app.ui.components.EmptyState
 import com.remitos.app.ui.components.RemitosTextField
+import com.remitos.app.ui.components.RemitosTextFieldVariant
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,6 +109,7 @@ fun InboundHistoryScreen(
                         Icon(
                             Icons.Outlined.FilterList,
                             contentDescription = "Filtros",
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 },
@@ -120,14 +123,15 @@ fun InboundHistoryScreen(
         ) {
             // Search and filters
             Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(horizontal = Spacing.ScreenPadding),
+                verticalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing),
             ) {
                 RemitosTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.updateSearchQuery(it) },
                     label = "Buscar por CUIT, nombre o remito",
                     leadingIcon = Icons.Outlined.Search,
+                    variant = RemitosTextFieldVariant.Reversed,
                 )
 
                 AnimatedVisibility(
@@ -136,7 +140,7 @@ fun InboundHistoryScreen(
                     exit = shrinkVertically(),
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing),
                     ) {
                         RemitosTextField(
                             value = fromDate,
@@ -144,6 +148,7 @@ fun InboundHistoryScreen(
                             label = "Desde (YYYY-MM-DD)",
                             leadingIcon = Icons.Outlined.CalendarMonth,
                             modifier = Modifier.weight(1f),
+                            variant = RemitosTextFieldVariant.Reversed,
                         )
                         RemitosTextField(
                             value = toDate,
@@ -151,12 +156,13 @@ fun InboundHistoryScreen(
                             label = "Hasta (YYYY-MM-DD)",
                             leadingIcon = Icons.Outlined.CalendarMonth,
                             modifier = Modifier.weight(1f),
+                            variant = RemitosTextFieldVariant.Reversed,
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
 
             if (notes.isEmpty()) {
                 // Empty state
@@ -167,9 +173,9 @@ fun InboundHistoryScreen(
                 )
             } else {
                 LazyColumn(
-                    modifier = Modifier.padding(horizontal = 20.dp),
+                    modifier = Modifier.padding(horizontal = Spacing.ScreenPadding),
                     state = listState,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing),
                 ) {
                     items(notes, key = { it.id }) { note ->
                         InboundHistoryCard(
@@ -190,7 +196,7 @@ fun InboundHistoryScreen(
                             }
                         }
                     }
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
+                    item { Spacer(modifier = Modifier.height(Spacing.SectionSpacing)) }
                 }
             }
         }
@@ -217,7 +223,7 @@ private fun InboundHistoryCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(Spacing.SectionSpacing),
             verticalAlignment = Alignment.Top,
         ) {
             // Icon
@@ -257,7 +263,7 @@ private fun InboundHistoryCard(
                         color = Color.White,
                     )
                     if (note.status == InboundNoteStatus.Anulada) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.ItemSpacing))
                         Text(
                             text = "Anulado",
                             style = MaterialTheme.typography.labelSmall,
@@ -299,7 +305,7 @@ private fun InboundHistoryCard(
             }
 
             // Date badge
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(Spacing.ItemSpacing))
             Text(
                 text = dateStr,
                 style = MaterialTheme.typography.labelSmall,
@@ -308,7 +314,7 @@ private fun InboundHistoryCard(
             
             // Scan barcode button
             if (note.status != InboundNoteStatus.Anulada) {
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(Spacing.ItemSpacing))
                 IconButton(
                     onClick = onScanBarcodes,
                     modifier = Modifier.size(32.dp)
