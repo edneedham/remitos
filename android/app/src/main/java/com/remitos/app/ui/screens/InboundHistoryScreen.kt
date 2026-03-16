@@ -288,43 +288,51 @@ private fun InboundHistoryCard(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = "Remito cliente: ${note.remitoNumCliente}",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.White.copy(alpha = 0.9f),
                         fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                     )
+                    Spacer(modifier = Modifier.width(Spacing.ItemSpacing))
                     Text(
                         text = "${note.cantBultosTotal} bultos",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Medium,
                         color = Color.White,
+                        maxLines = 1,
                     )
                 }
             }
 
-            // Date badge
+            // Date badge and action
             Spacer(modifier = Modifier.width(Spacing.ItemSpacing))
-            Text(
-                text = dateStr,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.7f),
-            )
-            
-            // Scan barcode button
-            if (note.status != InboundNoteStatus.Anulada) {
-                Spacer(modifier = Modifier.width(Spacing.ItemSpacing))
-                IconButton(
-                    onClick = onScanBarcodes,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.QrCodeScanner,
-                        contentDescription = "Escanear códigos",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = dateStr,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.7f),
+                )
+                
+                // Scan barcode button
+                if (note.status != InboundNoteStatus.Anulada) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    IconButton(
+                        onClick = onScanBarcodes,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.QrCodeScanner,
+                            contentDescription = "Escanear códigos",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }

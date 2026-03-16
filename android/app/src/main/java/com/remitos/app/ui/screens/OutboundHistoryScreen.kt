@@ -277,6 +277,7 @@ private fun OutboundHistoryCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = Color.White,
+                        modifier = Modifier.weight(1f),
                     )
                     if (list.status == OutboundListStatus.Cerrada) {
                         Spacer(modifier = Modifier.width(Spacing.ItemSpacing))
