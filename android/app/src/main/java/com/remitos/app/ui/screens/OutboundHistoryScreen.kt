@@ -39,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -55,8 +56,11 @@ import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.print.OutboundListPrinter
 import com.remitos.app.ui.components.DateUtils
 import com.remitos.app.ui.components.EmptyState
+import com.remitos.app.ui.components.RemitosTextField
+import com.remitos.app.ui.components.RemitosTextFieldVariant
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,25 +99,18 @@ fun OutboundHistoryScreen(onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = Spacing.ScreenPadding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing),
         ) {
             Spacer(modifier = Modifier.size(4.dp))
-            OutlinedTextField(
+            RemitosTextField(
                 value = searchQuery,
                 onValueChange = viewModel::updateSearchQuery,
-                leadingIcon = {
-                    Icon(Icons.Outlined.Search, contentDescription = null, tint = BrandBlue)
-                },
-                label = { Text("Buscar listas") },
+                label = "Buscar listas",
+                leadingIcon = Icons.Outlined.Search,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BrandBlue,
-                    unfocusedBorderColor = BrandBlue,
-                    focusedLabelColor = BrandBlue,
-                    unfocusedLabelColor = BrandBlue,
-                ),
+                variant = RemitosTextFieldVariant.Reversed,
             )
 
             Row(
@@ -159,7 +156,7 @@ fun OutboundHistoryScreen(onBack: () -> Unit) {
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing),
                 ) {
                     items(outboundLists, key = { it.id }) { list ->
                         OutboundHistoryCard(
@@ -179,7 +176,7 @@ fun OutboundHistoryScreen(onBack: () -> Unit) {
                             }
                         }
                     }
-                    item { Spacer(modifier = Modifier.size(16.dp)) }
+                    item { Spacer(modifier = Modifier.size(Spacing.SectionSpacing)) }
                 }
             }
         }
@@ -240,27 +237,29 @@ private fun OutboundHistoryCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = BrandBlue,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = MaterialTheme.shapes.medium,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(Spacing.SectionSpacing),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                    .background(Color.White.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ReceiptLong,
                     contentDescription = null,
-                    tint = BrandBlue,
+                    tint = Color.White,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -277,19 +276,20 @@ private fun OutboundHistoryCard(
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        color = Color.White,
                     )
                     if (list.status == OutboundListStatus.Cerrada) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.ItemSpacing))
                         Box(
                             modifier = Modifier
                                 .clip(MaterialTheme.shapes.extraSmall)
-                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                .background(Color.White.copy(alpha = 0.2f))
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = "Cerrada",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                color = Color.White,
                             )
                         }
                     }
@@ -297,14 +297,14 @@ private fun OutboundHistoryCard(
                 Text(
                     text = "Chofer: ${list.driverApellido} ${list.driverNombre}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.8f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "Estado: ${listStatusLabel(list.status)}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.8f),
                 )
             }
 
@@ -312,14 +312,14 @@ private fun OutboundHistoryCard(
                 Text(
                     text = dateStr,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = Color.White.copy(alpha = 0.7f),
                 )
                 Spacer(modifier = Modifier.size(6.dp))
                 IconButton(onClick = onReprint) {
                     Icon(
                         imageVector = Icons.Outlined.Print,
                         contentDescription = "Reimprimir",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = Color.White,
                     )
                 }
             }
