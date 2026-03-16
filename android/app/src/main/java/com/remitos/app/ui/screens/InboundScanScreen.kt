@@ -75,6 +75,7 @@ import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.components.SectionCard
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Spacing
 import com.remitos.app.ui.theme.DisabledButtonBackground
 import com.remitos.app.ui.theme.DisabledButtonContent
 import androidx.compose.material3.ButtonDefaults
@@ -163,9 +164,9 @@ fun InboundScanScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = Spacing.ScreenPadding)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.SectionSpacing),
         ) {
             Spacer(modifier = Modifier.height(4.dp))
 
@@ -176,7 +177,7 @@ fun InboundScanScreen(
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing),
                 ) {
                     FilledTonalButton(
                         onClick = { imagePicker.launch("image/*") },
@@ -261,7 +262,7 @@ fun InboundScanScreen(
                                 contentDescription = null,
                                 tint = BrandBlue,
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.ItemSpacing))
                             Text(
                                 text = stringResource(R.string.red_inestable_procesando_localmente),
                                 style = MaterialTheme.typography.bodySmall,
@@ -286,7 +287,7 @@ fun InboundScanScreen(
                     errorMessage = errorMessage(MissingField.Cuit),
                     variant = RemitosTextFieldVariant.Reversed
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing)) {
                     RemitosTextField(
                         value = draft.senderNombre,
                         onValueChange = { viewModel.updateDraft(draft.copy(senderNombre = it)) },
@@ -314,7 +315,7 @@ fun InboundScanScreen(
                 title = stringResource(R.string.destinatario),
                 icon = Icons.Outlined.Home,
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing)) {
                     RemitosTextField(
                         value = draft.destNombre,
                         onValueChange = { viewModel.updateDraft(draft.copy(destNombre = it)) },
@@ -409,7 +410,7 @@ fun InboundScanScreen(
                     modifier = Modifier.size(20.dp),
                     tint = if (uiState.isSaving) DisabledButtonContent else Color.White,
                 )
-                Spacer(modifier = Modifier.size(8.dp))
+                Spacer(modifier = Modifier.size(Spacing.ItemSpacing))
                 Text(
                     stringResource(R.string.guardar_ingreso),
                     style = MaterialTheme.typography.labelLarge,
@@ -417,7 +418,7 @@ fun InboundScanScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
         }
     }
 
@@ -489,7 +490,7 @@ private fun MissingFieldsDialog(
         },
         title = { Text(stringResource(R.string.completar_datos_faltantes)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing)) {
                 missing.forEach { field ->
                     Text("• ${field.label}")
                 }

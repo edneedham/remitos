@@ -42,6 +42,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.components.RemitosTextField
+import com.remitos.app.ui.components.RemitosTextFieldVariant
+import com.remitos.app.ui.theme.Spacing
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,7 +91,7 @@ fun DeviceSetupScreen(
                                 colors = listOf(Color.White, Color(0xFFFFFFFF)),
                             ),
                         )
-                        .padding(horizontal = 24.dp, vertical = 48.dp),
+                        .padding(horizontal = Spacing.LargeSpacing, vertical = Spacing.HugeSpacing),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -99,7 +102,7 @@ fun DeviceSetupScreen(
                             contentDescription = "en punto",
                             modifier = Modifier.size(width = 200.dp, height = 52.dp),
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
                         Text(
                             text = "Configurar Dispositivo",
                             style = MaterialTheme.typography.titleLarge,
@@ -114,12 +117,12 @@ fun DeviceSetupScreen(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(Spacing.ExtraLargeSpacing))
                 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
+                        .padding(horizontal = Spacing.LargeSpacing),
                 ) {
                     errorMessage?.let {
                         Card(
@@ -131,34 +134,28 @@ fun DeviceSetupScreen(
                             Text(
                                 text = it,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier.padding(Spacing.SectionSpacing),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
                     }
                     
-                    OutlinedTextField(
+                    RemitosTextField(
                         value = companyCode,
                         onValueChange = { companyCode = it.uppercase() },
-                        label = { Text("Código de empresa") },
+                        label = "Código de empresa",
                         singleLine = true,
                         enabled = !isLoading,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BrandBlue,
-                            unfocusedBorderColor = BrandBlue,
-                            focusedLabelColor = BrandBlue,
-                            unfocusedLabelColor = BrandBlue,
-                        ),
+                        variant = RemitosTextFieldVariant.Surface,
                     )
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    OutlinedTextField(
+                    RemitosTextField(
                         value = username,
                         onValueChange = { username = it },
-                        label = { Text("Usuario admin") },
+                        label = "Usuario admin",
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
@@ -168,21 +165,15 @@ fun DeviceSetupScreen(
                             onNext = { focusManager.moveFocus(FocusDirection.Down) }
                         ),
                         enabled = !isLoading,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BrandBlue,
-                            unfocusedBorderColor = BrandBlue,
-                            focusedLabelColor = BrandBlue,
-                            unfocusedLabelColor = BrandBlue,
-                        ),
+                        variant = RemitosTextFieldVariant.Surface,
                     )
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    OutlinedTextField(
+                    RemitosTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Contraseña") },
+                        label = "Contraseña",
                         singleLine = true,
                         visualTransformation = if (passwordVisible) {
                             VisualTransformation.None
@@ -208,16 +199,10 @@ fun DeviceSetupScreen(
                             }
                         },
                         enabled = !isLoading,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BrandBlue,
-                            unfocusedBorderColor = BrandBlue,
-                            focusedLabelColor = BrandBlue,
-                            unfocusedLabelColor = BrandBlue,
-                        ),
+                        variant = RemitosTextFieldVariant.Surface,
                     )
                     
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(Spacing.LargeSpacing))
                     
                     Button(
                         onClick = {
@@ -297,7 +282,7 @@ fun DeviceSetupScreen(
                                 colors = listOf(Color.White, Color(0xFFFFFFFF)),
                             ),
                         )
-                        .padding(horizontal = 24.dp, vertical = 48.dp),
+                        .padding(horizontal = Spacing.LargeSpacing, vertical = Spacing.HugeSpacing),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -308,7 +293,7 @@ fun DeviceSetupScreen(
                             contentDescription = "en punto",
                             modifier = Modifier.size(width = 200.dp, height = 52.dp),
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
                         Text(
                             text = "Asignar Dispositivo",
                             style = MaterialTheme.typography.titleLarge,
@@ -323,12 +308,12 @@ fun DeviceSetupScreen(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(Spacing.ExtraLargeSpacing))
                 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
+                        .padding(horizontal = Spacing.LargeSpacing),
                 ) {
                     errorMessage?.let {
                         Card(
@@ -340,26 +325,20 @@ fun DeviceSetupScreen(
                             Text(
                                 text = it,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier.padding(Spacing.SectionSpacing),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
                     }
                     
-                    OutlinedTextField(
+                    RemitosTextField(
                         value = deviceName,
                         onValueChange = { deviceName = it },
-                        label = { Text("Nombre del dispositivo") },
+                        label = "Nombre del dispositivo",
                         singleLine = true,
                         enabled = !isLoading,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BrandBlue,
-                            unfocusedBorderColor = BrandBlue,
-                            focusedLabelColor = BrandBlue,
-                            unfocusedLabelColor = BrandBlue,
-                        ),
+                        variant = RemitosTextFieldVariant.Surface,
                     )
                     
                     Spacer(modifier = Modifier.height(16.dp))
@@ -368,26 +347,19 @@ fun DeviceSetupScreen(
                         expanded = warehouseDropdownExpanded,
                         onExpandedChange = { warehouseDropdownExpanded = !warehouseDropdownExpanded },
                     ) {
-                        OutlinedTextField(
+                        RemitosTextField(
                             value = selectedWarehouse?.name ?: "",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Warehouse") },
+                            label = "Warehouse",
                             trailingIcon = { 
                                 ExposedDropdownMenuDefaults.TrailingIcon(
                                     expanded = warehouseDropdownExpanded,
                                 ) 
                             },
                             enabled = !isLoading && warehouses.isNotEmpty(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = BrandBlue,
-                                unfocusedBorderColor = BrandBlue,
-                                focusedLabelColor = BrandBlue,
-                                unfocusedLabelColor = BrandBlue,
-                            ),
+                            modifier = Modifier.menuAnchor(),
+                            variant = RemitosTextFieldVariant.Surface,
                         )
                         
                         ExposedDropdownMenu(
@@ -407,7 +379,7 @@ fun DeviceSetupScreen(
                     }
                     
                     if (warehouses.isEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(Spacing.ItemSpacing))
                         Text(
                             text = "Cargando warehouses...",
                             style = MaterialTheme.typography.bodySmall,
@@ -415,7 +387,7 @@ fun DeviceSetupScreen(
                         )
                     }
                     
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(Spacing.LargeSpacing))
                     
                     Button(
                         onClick = {

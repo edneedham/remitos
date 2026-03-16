@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -43,6 +44,8 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.remitos.app.ui.components.RemitosTextField
+import com.remitos.app.ui.components.RemitosTextFieldVariant
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -75,6 +78,7 @@ import com.remitos.app.data.db.entity.LocalDeviceEntity
 import com.remitos.app.data.db.entity.LocalSessionEntity
 import com.remitos.app.data.db.entity.LocalUserEntity
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Spacing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -301,6 +305,7 @@ private fun LoginContent(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -308,14 +313,6 @@ private fun LoginContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White,
-                            Color(0xFFFFFFFF),
-                        ),
-                    ),
-                )
                 .padding(horizontal = 24.dp, vertical = 24.dp),
         ) {
             Column(
@@ -331,7 +328,7 @@ private fun LoginContent(
                 Text(
                     text = "Remitos",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = BrandBlue,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium,
                 )
             }
@@ -349,7 +346,7 @@ private fun LoginContent(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 8.dp),
                     shape = MaterialTheme.shapes.small,
-                    color = BrandBlue,
+                    color = MaterialTheme.colorScheme.primary,
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -359,24 +356,24 @@ private fun LoginContent(
                         Text(
                             text = "Dispositivo registrado",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                         )
                         Text(
                             text = " · ",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                         )
                         Text(
                             text = device.companyId,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                         )
                         device.warehouseId?.let { warehouseId ->
                             Text(
                                 text = " · $warehouseId",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.7f),
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                             )
                         }
                     }
@@ -403,26 +400,26 @@ private fun LoginContent(
                     Surface(
                         onClick = { isOperatorMode = false },
                         shape = MaterialTheme.shapes.small,
-                        color = if (!isOperatorMode) BrandBlue else Color.White,
-                        border = BorderStroke(1.dp, BrandBlue),
+                        color = if (!isOperatorMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     ) {
                         Text(
                             text = "Administrador",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (!isOperatorMode) Color.White else BrandBlue,
+                            color = if (!isOperatorMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         )
                     }
                     Surface(
                         onClick = { isOperatorMode = true },
                         shape = MaterialTheme.shapes.small,
-                        color = if (isOperatorMode) BrandBlue else Color.White,
-                        border = BorderStroke(1.dp, BrandBlue),
+                        color = if (isOperatorMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     ) {
                         Text(
                             text = "Operador",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (isOperatorMode) Color.White else BrandBlue,
+                            color = if (isOperatorMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         )
                     }
@@ -450,6 +447,7 @@ private fun LoginContent(
                 Text(
                     text = "Cuentas guardadas",
                     style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
                 
@@ -457,6 +455,8 @@ private fun LoginContent(
                     OutlinedButton(
                         onClick = { showAccountMenu = true },
                         modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     ) {
                         Text("Cambiar de cuenta")
                     }
@@ -493,10 +493,10 @@ private fun LoginContent(
         }
         
         // Company Code field
-        OutlinedTextField(
+        RemitosTextField(
             value = companyCode,
             onValueChange = { companyCode = it.uppercase() },
-            label = { Text("Código de empresa") },
+            label = "Código de empresa",
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Text,
@@ -507,21 +507,16 @@ private fun LoginContent(
             ),
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = BrandBlue,
-                unfocusedBorderColor = BrandBlue,
-                focusedLabelColor = BrandBlue,
-                unfocusedLabelColor = BrandBlue,
-            ),
+            variant = RemitosTextFieldVariant.Reversed,
         )
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
         
         // Username field
-        OutlinedTextField(
+        RemitosTextField(
             value = username,
             onValueChange = { username = it },
-            label = { Text("Usuario") },
+            label = "Usuario",
             placeholder = { Text(if (isOperatorMode) "operador" else "admin") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
@@ -533,32 +528,21 @@ private fun LoginContent(
             ),
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = BrandBlue,
-                unfocusedBorderColor = BrandBlue,
-                focusedLabelColor = BrandBlue,
-                unfocusedLabelColor = BrandBlue,
-            ),
+            variant = RemitosTextFieldVariant.Reversed,
         )
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
         
         // Password field
-        OutlinedTextField(
+        RemitosTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Contraseña") },
+            label = if (isOperatorMode) "Contraseña de operador" else "Contraseña de administrador",
             singleLine = true,
             visualTransformation = if (passwordVisible) {
                 VisualTransformation.None
             } else {
                 PasswordVisualTransformation()
-            },
-            supportingText = {
-                Text(
-                    text = if (isOperatorMode) "Contraseña de operador" else "Contraseña de administrador",
-                    style = MaterialTheme.typography.bodySmall,
-                )
             },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
@@ -592,15 +576,10 @@ private fun LoginContent(
             },
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = BrandBlue,
-                unfocusedBorderColor = BrandBlue,
-                focusedLabelColor = BrandBlue,
-                unfocusedLabelColor = BrandBlue,
-            ),
+            variant = RemitosTextFieldVariant.Reversed,
         )
         
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(Spacing.ItemSpacing))
         
         // Login button
         Button(
@@ -613,25 +592,27 @@ private fun LoginContent(
             if (isLoading) {
                 CircularProgressIndicator(
                     color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.height(24.dp),
+                    modifier = Modifier.size(24.dp),
                 )
             } else {
                 Text(if (isOperatorMode) "Iniciar sesión como Operador" else "Iniciar sesión")
             }
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
         
         // Continue offline button
         OutlinedButton(
             onClick = onContinueOffline,
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
         ) {
             Text("Continuar sin conexión")
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(Spacing.LargeSpacing))
         
         // Version info
         Text(
@@ -643,6 +624,6 @@ private fun LoginContent(
         }
         
         // Bottom spacer for scroll padding
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Spacing.LargeSpacing))
     }
 }

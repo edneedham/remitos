@@ -16,42 +16,46 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Spacing
 
 @Composable
 fun SectionCard(
     title: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    contentColor: Color = MaterialTheme.colorScheme.primary,
+    elevation: Dp = 1.dp,
     content: @Composable () -> Unit,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White,
+            containerColor = containerColor,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
         shape = MaterialTheme.shapes.medium,
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(Spacing.SectionSpacing),
+            verticalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing),
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = BrandBlue,
+                    tint = contentColor,
                     modifier = Modifier.size(20.dp),
                 )
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = BrandBlue,
+                    color = contentColor,
                 )
             }
             content()

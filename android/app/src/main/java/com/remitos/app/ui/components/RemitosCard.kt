@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.remitos.app.ui.theme.Spacing
 
 @Composable
 fun RemitosCard(
@@ -31,7 +32,7 @@ fun RemitosCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(Spacing.SectionSpacing),
                 content = content
             )
         }
@@ -47,7 +48,7 @@ fun RemitosCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(Spacing.SectionSpacing),
                 content = content
             )
         }

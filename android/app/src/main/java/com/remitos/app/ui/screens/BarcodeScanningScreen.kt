@@ -65,6 +65,10 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.remitos.app.barcode.Gs1Parser
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Success100
+import com.remitos.app.ui.theme.Success500
+import com.remitos.app.ui.theme.Warning100
+import com.remitos.app.ui.theme.Warning500
 import java.util.concurrent.Executors
 
 /**
@@ -160,7 +164,7 @@ fun BarcodeScanningScreen(
                     .fillMaxWidth()
                     .padding(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (progress >= 1f) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.surface
+                    containerColor = if (progress >= 1f) Success100 else MaterialTheme.colorScheme.surface
                 )
             ) {
                 Column(
@@ -181,7 +185,7 @@ fun BarcodeScanningScreen(
                             text = "${scannedItems.size} / $expectedCount",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = if (progress >= 1f) Color(0xFF2E7D32) else BrandBlue
+                            color = if (progress >= 1f) Success500 else BrandBlue
                         )
                     }
 
@@ -190,7 +194,7 @@ fun BarcodeScanningScreen(
                     LinearProgressIndicator(
                         progress = { progress },
                         modifier = Modifier.fillMaxWidth(),
-                        color = if (progress >= 1f) Color(0xFF4CAF50) else BrandBlue,
+                        color = if (progress >= 1f) Success500 else BrandBlue,
                     )
 
                     if (progress >= 1f) {
@@ -202,11 +206,11 @@ fun BarcodeScanningScreen(
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = null,
-                                tint = Color(0xFF4CAF50)
+                                tint = Success500
                             )
                             Text(
                                 text = "¡Completado!",
-                                color = Color(0xFF2E7D32),
+                                color = Success500,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -556,7 +560,7 @@ private fun ScannedItemCard(item: ScannedBarcodeItem) {
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (item.isManual) Color(0xFFFFF3E0) else MaterialTheme.colorScheme.surface
+            containerColor = if (item.isManual) Warning100 else MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
@@ -578,7 +582,7 @@ private fun ScannedItemCard(item: ScannedBarcodeItem) {
                     Text(
                         text = "Manual",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFFE65100)
+                        color = Warning500
                     )
                 }
             }

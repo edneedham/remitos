@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.Delete
@@ -64,6 +63,9 @@ import com.remitos.app.data.InboundNoteStatus
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Spacing
+import com.remitos.app.ui.theme.Success100
+import com.remitos.app.ui.theme.Success500
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -117,8 +119,8 @@ fun InboundDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = Spacing.ScreenPadding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.SectionSpacing),
         ) {
             when {
                 uiState.isLoading -> {
@@ -299,7 +301,7 @@ private fun InboundDetailImage(scanImagePath: String?) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(220.dp)
-                    .clip(RoundedCornerShape(12.dp)),
+                    .clip(MaterialTheme.shapes.medium),
             )
         } else {
             Box(
@@ -349,6 +351,7 @@ private fun InboundDetailForm(
             isError = missing.contains(MissingField.Cuit),
             errorMessage = stringResource(R.string.ingres_un_cuit_v_lido),
             readOnly = readOnly,
+            variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RemitosTextField(
@@ -359,6 +362,7 @@ private fun InboundDetailForm(
                 errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
+                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
             )
             RemitosTextField(
                 value = draft.senderApellido,
@@ -368,6 +372,7 @@ private fun InboundDetailForm(
                 errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
+                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -379,6 +384,7 @@ private fun InboundDetailForm(
                 errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
+                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
             )
             RemitosTextField(
                 value = draft.destApellido,
@@ -388,6 +394,7 @@ private fun InboundDetailForm(
                 errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
+                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
             )
         }
         RemitosTextField(
@@ -397,6 +404,7 @@ private fun InboundDetailForm(
             isError = missing.contains(MissingField.DestDireccion),
             errorMessage = stringResource(R.string.campo_requerido),
             readOnly = readOnly,
+            variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
         )
         RemitosTextField(
             value = draft.destTelefono,
@@ -405,6 +413,7 @@ private fun InboundDetailForm(
             isError = missing.contains(MissingField.DestTelefono),
             errorMessage = stringResource(R.string.campo_requerido),
             readOnly = readOnly,
+            variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RemitosTextField(
@@ -416,6 +425,7 @@ private fun InboundDetailForm(
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
             )
             RemitosTextField(
                 value = draft.remitoNumCliente,
@@ -425,6 +435,7 @@ private fun InboundDetailForm(
                 errorMessage = stringResource(R.string.campo_requerido),
                 modifier = Modifier.weight(1f),
                 readOnly = readOnly,
+                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
             )
         }
     }
@@ -444,7 +455,7 @@ private fun BarcodeScanSection(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (scannedCount >= totalCount && totalCount > 0) 
-                Color(0xFFE8F5E9) else MaterialTheme.colorScheme.surface
+                Success100 else MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
@@ -493,7 +504,7 @@ private fun BarcodeScanSection(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = when {
-                        scannedCount >= totalCount && totalCount > 0 -> Color(0xFF2E7D32)
+                        scannedCount >= totalCount && totalCount > 0 -> Success500
                         scannedCount > 0 -> BrandBlue
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
@@ -509,12 +520,12 @@ private fun BarcodeScanSection(
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = Color(0xFF4CAF50),
+                        tint = Success500,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
                         text = stringResource(R.string.escaneo_completo),
-                        color = Color(0xFF2E7D32),
+                        color = Success500,
                         fontWeight = FontWeight.Medium,
                         style = MaterialTheme.typography.bodyMedium
                     )
