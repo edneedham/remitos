@@ -36,6 +36,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -85,6 +87,7 @@ fun OutboundHistoryScreen(onBack: () -> Unit) {
     val reprintState by viewModel.reprintState.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val filterScrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -190,9 +193,12 @@ fun OutboundHistoryScreen(onBack: () -> Unit) {
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            OutboundListPrinter(context)
-                                .print(state.payload.list, state.payload.lines)
-                            viewModel.clearReprintState()
+                            scope.launch {
+                                val config = app.settingsStore.getTemplateConfig()
+                                OutboundListPrinter(context)
+                                    .print(state.payload.list, state.payload.lines, config)
+                                viewModel.clearReprintState()
+                            }
                         },
                     ) {
                         Icon(

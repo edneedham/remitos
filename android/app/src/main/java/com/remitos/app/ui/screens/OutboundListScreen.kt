@@ -350,7 +350,10 @@ fun OutboundListScreen(
                             viewModel.clearSaveState()
                             viewModel.clearPrintPayload()
                             if (payload != null) {
-                                OutboundListPrinter(context).print(payload.list, payload.lines)
+                                scope.launch {
+                                    val config = app.settingsStore.getTemplateConfig()
+                                    OutboundListPrinter(context).print(payload.list, payload.lines, config)
+                                }
                             }
                             onBack()
                         },
@@ -373,7 +376,8 @@ fun OutboundListScreen(
                                 viewModel.clearPrintPayload()
                                 if (payload != null) {
                                     scope.launch {
-                                        val file = OutboundListPrinter(context).saveToPdf(payload.list, payload.lines)
+                                        val config = app.settingsStore.getTemplateConfig()
+                                        val file = OutboundListPrinter(context).saveToPdf(payload.list, payload.lines, config)
                                         if (file != null) {
                                             snackbarHostState.showSnackbar("PDF guardado en: ${file.absolutePath}")
                                         }

@@ -11,6 +11,10 @@ import android.print.PrintDocumentAdapter
 import android.print.PrintDocumentInfo
 import android.print.PrintManager
 import android.print.pdf.PrintedPdfDocument
+import android.net.Uri
+import android.graphics.BitmapFactory
+import android.graphics.RectF
+import com.remitos.app.data.TemplateConfig
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.OutboundListEntity
 import java.io.File
@@ -21,17 +25,17 @@ import java.util.Locale
 
 class OutboundListPrinter(private val context: Context) {
     
-    fun print(list: OutboundListEntity, lines: List<OutboundLineWithRemito>) {
+    fun print(list: OutboundListEntity, lines: List<OutboundLineWithRemito>, config: TemplateConfig = TemplateConfig()) {
         val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
         val jobName = "Lista ${list.listNumber}"
         val attributes = PrintAttributes.Builder()
             .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape())
             .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
             .build()
-        printManager.print(jobName, OutboundListPrintAdapter(context, list, lines), attributes)
+        printManager.print(jobName, OutboundListPrintAdapter(context, list, lines, config), attributes)
     }
     
-    fun saveToPdf(list: OutboundListEntity, lines: List<OutboundLineWithRemito>): File? {
+    fun saveToPdf(list: OutboundListEntity, lines: List<OutboundLineWithRemito>, config: TemplateConfig = TemplateConfig()): File? {
         return try {
             val pdfDoc = PrintedPdfDocument(context, PrintAttributes.Builder()
                 .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape())
@@ -39,7 +43,7 @@ class OutboundListPrinter(private val context: Context) {
                 .build())
             
             val page = pdfDoc.startPage(0)
-            drawPage(page.canvas, list, lines)
+            drawPage(context, page.canvas, list, lines, config)
             pdfDoc.finishPage(page)
             
             val pdfDir = File(context.getExternalFilesDir(null), "remitos")
@@ -68,7 +72,8 @@ class OutboundListPrinter(private val context: Context) {
 private class OutboundListPrintAdapter(
     private val context: Context,
     private val list: OutboundListEntity,
-    private val lines: List<OutboundLineWithRemito>
+    private val lines: List<OutboundLineWithRemito>,
+    private val config: TemplateConfig
 ) : PrintDocumentAdapter() {
     private var pdfDocument: PrintedPdfDocument? = null
 
@@ -102,7 +107,7 @@ private class OutboundListPrintAdapter(
     ) {
         val document = pdfDocument ?: return callback.onWriteFailed("Documento no disponible")
         val page = document.startPage(0)
-        drawPage(page.canvas, list, lines)
+        drawPage(context, page.canvas, list, lines, config)
         document.finishPage(page)
 
         if (cancellationSignal.isCanceled) {
@@ -127,7 +132,7 @@ private data class Column(
     val width: Float,
 )
 
-private fun drawPage(canvas: Canvas, list: OutboundListEntity, lines: List<OutboundLineWithRemito>) {
+private fun drawPage(context: Context, canvas: Canvas, list: OutboundListEntity, lines: List<OutboundLineWithRemito>, config: TemplateConfig) {
     val paint = Paint().apply { textSize = 12f; color = android.graphics.Color.BLACK }
     val boldPaint = Paint().apply { textSize = 12f; isFakeBoldText = true; color = android.graphics.Color.BLACK }
     val linePaint = Paint().apply {
@@ -141,6 +146,28 @@ private fun drawPage(canvas: Canvas, list: OutboundListEntity, lines: List<Outbo
     val left = 24f
     val right = 818f
     val rowHeight = 20f
+
+    // Draw Logo if available
+    config.logoUri?.let { uriString ->
+        try {
+            val uri = Uri.parse(uriString)
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
+            if (bitmap != null) {
+                // Scale logo to fit in a 120x60 box at the top left
+                val targetWidth = 120f
+                val targetHeight = 60f
+                val scale = minOf(targetWidth / bitmap.width, targetHeight / bitmap.height)
+                val scaledWidth = bitmap.width * scale
+                val scaledHeight = bitmap.height * scale
+                val rect = RectF(left, y, left + scaledWidth, y + scaledHeight)
+                canvas.drawBitmap(bitmap, null, rect, paint)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     val titleLeft = left + 160f
     val titleRight = right
@@ -192,17 +219,20 @@ private fun drawPage(canvas: Canvas, list: OutboundListEntity, lines: List<Outbo
     )
 
     val tableTop = headerRowTop + titleHeight + 8f
-    val columns = listOf(
+    
+    val allColumns = mutableListOf(
         Column("Nro. Cliente", 76f),
         Column("Nro. Interno", 76f),
         Column("Destinatario", 118f),
         Column("Direccion", 150f),
         Column("Localidad", 80f),
-        Column("Bultos", 54f),
-        Column("Peso", 54f),
-        Column("Volumen", 68f),
-        Column("Observaciones", 110f),
+        Column("Bultos", 54f)
     )
+    if (config.showPeso) allColumns.add(Column("Peso", 54f))
+    if (config.showVolumen) allColumns.add(Column("Volumen", 68f))
+    if (config.showObservaciones) allColumns.add(Column("Observaciones", 110f))
+    
+    val columns = allColumns.toList()
     val availableWidth = right - left
     val baseWidth = columns.sumOf { it.width.toDouble() }.toFloat()
     val scale = if (baseWidth > 0f) availableWidth / baseWidth else 1f
@@ -227,17 +257,19 @@ private fun drawPage(canvas: Canvas, list: OutboundListEntity, lines: List<Outbo
     lines.take(maxRows).forEach { line ->
         x = left
         canvas.drawRect(left, rowTop, tableRight, rowTop + rowHeight, linePaint)
-        val values = listOf(
+        
+        val values = mutableListOf(
             line.remitoNumCliente,
-            line.remitoNumInterno,
+            line.remitoNumInterno ?: "",
             "${line.recipientApellido} ${line.recipientNombre}",
             line.recipientDireccion,
             "",
-            line.packageQty.toString(),
-            "",
-            "",
-            "",
+            line.packageQty.toString()
         )
+        if (config.showPeso) values.add("")
+        if (config.showVolumen) values.add("")
+        if (config.showObservaciones) values.add("")
+
         values.forEachIndexed { index, value ->
             val col = scaledColumns[index]
             canvas.drawRect(x, rowTop, x + col.width, rowTop + rowHeight, linePaint)
@@ -270,8 +302,38 @@ private fun drawPage(canvas: Canvas, list: OutboundListEntity, lines: List<Outbo
     val totalPedidos = lines.size
     canvas.drawText("Cantidad de Bultos: $totalBultos", left, totalsTop + 26f, paint)
     canvas.drawText("Cantidad de Pedidos: $totalPedidos", left + 180f, totalsTop + 26f, paint)
-    canvas.drawText("Volument Total M³:", left + 380f, totalsTop + 26f, paint)
-    canvas.drawText("Peso Total Kgs:", left + 560f, totalsTop + 26f, paint)
+    if (config.showVolumen) canvas.drawText("Volumen Total M³:", left + 380f, totalsTop + 26f, paint)
+    if (config.showPeso) canvas.drawText("Peso Total Kgs:", left + 560f, totalsTop + 26f, paint)
+    
+    // Draw legal text at the bottom
+    if (config.legalText.isNotBlank()) {
+        val legalTop = totalsTop + 40f
+        val legalPaint = Paint(paint).apply { 
+            textSize = 9f
+            color = android.graphics.Color.DKGRAY 
+        }
+        
+        // Simple word wrap
+        val words = config.legalText.split(" ")
+        var currentLine = ""
+        var lineY = legalTop
+        val maxWidth = right - left
+        
+        words.forEach { word ->
+            val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
+            val width = legalPaint.measureText(testLine)
+            if (width > maxWidth) {
+                canvas.drawText(currentLine, left, lineY, legalPaint)
+                currentLine = word
+                lineY += 12f
+            } else {
+                currentLine = testLine
+            }
+        }
+        if (currentLine.isNotEmpty()) {
+            canvas.drawText(currentLine, left, lineY, legalPaint)
+        }
+    }
 }
 
 private fun drawHeaderField(

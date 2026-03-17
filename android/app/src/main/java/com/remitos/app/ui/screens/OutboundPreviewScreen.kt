@@ -36,6 +36,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -89,6 +91,7 @@ fun OutboundPreviewScreen(
     val editState by viewModel.editState.collectAsStateWithLifecycle()
     var showConfirmDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(listId) {
         viewModel.load(listId)
@@ -188,8 +191,11 @@ fun OutboundPreviewScreen(
                     onClick = {
                         showConfirmDialog = false
                         if (ready != null) {
-                            OutboundListPrinter(context).print(ready.list, ready.lines)
-                            onBack()
+                            scope.launch {
+                                val config = app.settingsStore.getTemplateConfig()
+                                OutboundListPrinter(context).print(ready.list, ready.lines, config)
+                                onBack()
+                            }
                         }
                     }
                 ) {
@@ -226,9 +232,11 @@ fun OutboundPreviewScreen(
 @Composable
 fun OutboundPreviewSampleScreen(onBack: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val app = context.applicationContext as RemitosApplication
     var state by remember { mutableStateOf(samplePreviewState()) }
     var showConfirmDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -305,7 +313,10 @@ fun OutboundPreviewSampleScreen(onBack: () -> Unit) {
                 TextButton(
                     onClick = {
                         showConfirmDialog = false
-                        OutboundListPrinter(context).print(state.list, state.lines)
+                        scope.launch {
+                            val config = app.settingsStore.getTemplateConfig()
+                            OutboundListPrinter(context).print(state.list, state.lines, config)
+                        }
                     }
                 ) {
                     Text("Confirmar")

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -19,8 +20,43 @@ class SettingsStore(private val context: Context) {
     private val totalScanTimeMsKey = longPreferencesKey("usage_total_scan_time_ms")
     private val lastScanTimeMsKey = longPreferencesKey("usage_last_scan_time_ms")
 
+    // Template Configuration Keys
+    private val logoUriKey = stringPreferencesKey("template_logo_uri")
+    private val columnPesoKey = booleanPreferencesKey("template_column_peso")
+    private val columnVolumenKey = booleanPreferencesKey("template_column_volumen")
+    private val columnObservacionesKey = booleanPreferencesKey("template_column_observaciones")
+    private val legalTextKey = stringPreferencesKey("template_legal_text")
+
     val perspectiveCorrectionEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[perspectiveCorrectionKey] ?: true
+    }
+
+    val templateConfig: Flow<TemplateConfig> = context.dataStore.data.map { prefs ->
+        TemplateConfig(
+            logoUri = prefs[logoUriKey],
+            showPeso = prefs[columnPesoKey] ?: true,
+            showVolumen = prefs[columnVolumenKey] ?: true,
+            showObservaciones = prefs[columnObservacionesKey] ?: true,
+            legalText = prefs[legalTextKey] ?: ""
+        )
+    }
+
+    suspend fun getTemplateConfig(): TemplateConfig {
+        return templateConfig.first()
+    }
+
+    suspend fun setTemplateConfig(config: TemplateConfig) {
+        context.dataStore.edit { prefs ->
+            if (config.logoUri != null) {
+                prefs[logoUriKey] = config.logoUri
+            } else {
+                prefs.remove(logoUriKey)
+            }
+            prefs[columnPesoKey] = config.showPeso
+            prefs[columnVolumenKey] = config.showVolumen
+            prefs[columnObservacionesKey] = config.showObservaciones
+            prefs[legalTextKey] = config.legalText
+        }
     }
 
     val usageStats: Flow<UsageStats> = context.dataStore.data.map { prefs ->
@@ -76,4 +112,12 @@ data class UsageStats(
     val manualCorrections: Long,
     val totalScanTimeMs: Long,
     val lastScanTimeMs: Long,
+)
+
+data class TemplateConfig(
+    val logoUri: String? = null,
+    val showPeso: Boolean = true,
+    val showVolumen: Boolean = true,
+    val showObservaciones: Boolean = true,
+    val legalText: String = ""
 )
