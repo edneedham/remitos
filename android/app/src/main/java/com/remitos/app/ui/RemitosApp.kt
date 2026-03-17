@@ -40,6 +40,8 @@ import com.remitos.app.ui.screens.OutboundListScreen
 import com.remitos.app.ui.screens.OutboundPreviewScreen
 import com.remitos.app.ui.screens.SettingsScreen
 import com.remitos.app.ui.screens.SplashScreen
+import com.remitos.app.ui.screens.TemplateConfigScreen
+import com.remitos.app.ui.screens.UserManagementScreen
 import com.remitos.app.ui.theme.RemitosTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -74,6 +76,8 @@ private object Routes {
     const val Settings = "settings"
     const val Debug = "debug"
     const val BarcodeScanning = "barcode_scanning"
+    const val Users = "users"
+    const val Templates = "templates"
 }
 
 private const val NAV_ANIM_DURATION = 300
@@ -210,6 +214,8 @@ private fun AppNavHost(navController: NavHostController) {
                 onNewOutbound = { navController.navigate(Routes.OutboundList) },
                 onOutboundHistory = { navController.navigate(Routes.OutboundHistory) },
                 onActivity = { navController.navigate(Routes.Activity) },
+                onUsers = { navController.navigate(Routes.Users) },
+                onTemplates = { navController.navigate(Routes.Templates) },
                 onSettings = { navController.navigate(Routes.Settings) },
                 onLogout = {
                     navController.navigate(Routes.Login) {
@@ -337,6 +343,16 @@ private fun AppNavHost(navController: NavHostController) {
         }
         composable(Routes.Debug) {
             DebugScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Routes.Users) {
+            UserManagementScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Routes.Templates) {
+            TemplateConfigScreen(
                 onBack = { navController.popBackStack() },
             )
         }

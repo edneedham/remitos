@@ -23,6 +23,8 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LocalShipping
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
@@ -94,6 +96,8 @@ fun DashboardScreen(
     onNewOutbound: () -> Unit,
     onOutboundHistory: () -> Unit,
     onActivity: () -> Unit,
+    onUsers: () -> Unit,
+    onTemplates: () -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
     onDeviceRevoked: () -> Unit,
@@ -150,6 +154,8 @@ fun DashboardScreen(
     val syncState by syncManager.syncState.collectAsState()
     val isSyncing by syncManager.isSyncing.collectAsState()
     val syncMessage by syncManager.syncMessage.collectAsState()
+    
+    val role = app.authManager.getCurrentUserRole() ?: "operator"
     
     // Handle sync state changes - force logout if suspended/revoked
     LaunchedEffect(syncState) {
@@ -358,7 +364,28 @@ fun DashboardScreen(
                     onNewOutbound = onNewOutbound,
                     onOutboundHistory = onOutboundHistory,
                     onActivity = onActivity,
+                    role = role,
                 )
+
+                if (role == "admin") {
+                    SectionLabel(text = "Administración")
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ActionTile(
+                            icon = Icons.Outlined.People,
+                            title = "Usuarios",
+                            subtitle = "Gestión de operadores",
+                            onClick = onUsers,
+                            modifier = Modifier.weight(1f),
+                        )
+                        ActionTile(
+                            icon = Icons.Outlined.Description,
+                            title = "Plantillas",
+                            subtitle = "Formatos de impresión",
+                            onClick = onTemplates,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
 
                 ActionTile(
                     icon = Icons.Outlined.Settings,
@@ -468,6 +495,7 @@ private fun ActionGrid(
     onNewOutbound: () -> Unit,
     onOutboundHistory: () -> Unit,
     onActivity: () -> Unit,
+    role: String,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -494,13 +522,17 @@ private fun ActionGrid(
                 onClick = onOutboundHistory,
                 modifier = Modifier.weight(1f),
             )
-            ActionTile(
-                icon = Icons.Outlined.QueryStats,
-                title = stringResource(R.string.actividad),
-                subtitle = stringResource(R.string.ver_m_tricas),
-                onClick = onActivity,
-                modifier = Modifier.weight(1f),
-            )
+            if (role == "admin") {
+                ActionTile(
+                    icon = Icons.Outlined.QueryStats,
+                    title = stringResource(R.string.actividad),
+                    subtitle = stringResource(R.string.ver_m_tricas),
+                    onClick = onActivity,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
+            }
         }
     }
 }
