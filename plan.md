@@ -1,38 +1,53 @@
-# Android Refactoring and Improvement Plan
+# Remitos: Role Separation & Admin Features Plan
 
-This document outlines the recommended actions to improve the structural, architectural, and code quality aspects of the `android` directory in the Remitos project. These improvements are categorized by impact and importance.
+## Phase 1: Dashboard & Navigation Restrictions
+- **Description:** Implement Role-Based Access Control (RBAC) on the main dashboard and establish routing for new Admin screens.
+- **Tasks:**
+  - Retrieve the current user's role via `AuthManager` within `DashboardScreen`.
+  - Hide the `Actividad` (Metrics/Reports) tile for users with the `operator` role.
+  - Create a new `Administración` section in `DashboardScreen`, visible only to `admin` users.
+  - Add two action tiles to this new section: `Gestión de Usuarios` and `Plantillas de Documentos`.
+  - Update `RemitosApp.kt` navigation to support the two new routes (initially pointing to empty placeholder screens).
 
-## 1. Critical Bugs & API Level Violations
+## Phase 2: Restrict Operator Permissions
+- **Description:** Enforce read-only or minor-edit limits for operators when viewing historical records.
+- **Tasks:**
+  - Update `InboundDetailScreen` / `InboundDetailViewModel`: Hide or disable the "Anular ingreso" (Void) button if the current user is an `operator`. Ensure `admin`s retain this ability.
+  - Review `OutboundHistoryScreen` / `InboundHistoryScreen` to ensure destructive actions are restricted to `admin`.
+  - Verify that operators can still perform their required tasks (e.g., status updates) without being blocked.
 
-- [x] **Fix `ImageDecoder` API Requirement:** `InboundDetailScreen.kt` and `OcrProcessor.kt` use `ImageDecoder` methods that require API 28+, while the project's `minSdkVersion` is 26. This causes fatal `NoSuchMethodError` crashes on Android 8.0/8.1 devices.
-  - *Action:* Migrate image loading and decoding to a robust library like **Coil** (`AsyncImage`), or fallback to `BitmapFactory` for devices below API 28.
-- [x] **Remove Manual Image Processing in UI:** The `InboundDetailScreen.kt` has manual bitmap caching, IO operations, and scaling integrated directly into the Composable.
-  - *Action:* Delegate all UI image loading to Coil to automatically handle memory/disk caching, lifecycle management, and optimal downsampling.
+## Phase 3: Implement User Management (Backend + Android)
+- **Description:** Build full-stack functionality for an Admin to view and manage operator accounts.
+- **Backend Tasks:**
+  - Update `admin.go` to include endpoints for fetching operators (`GET /admin/operadores`), deactivating them (`PUT /admin/operadores/{id}/status`), and resetting passwords (`PUT /admin/operadores/{id}/password`).
+  - Add repository methods to support these queries and updates.
+- **Android Tasks:**
+  - Add API definitions to `RemitosApiService.kt` to interact with the new backend endpoints.
+  - Update `SyncManager` to sync the full list of operators locally into `LocalUserDao` for offline validation.
+  - Create `UserManagementScreen.kt` and its ViewModel.
+  - Implement a list view of all users queried from `LocalUserDao`.
+  - Implement a form/dialog to create new operators (calling the backend `POST /admin/operadores`).
+  - Implement actions for Admins to deactivate accounts or reset operator passwords (calling backend endpoints and updating local db).
 
-## 2. Build System & Gradle
+## Phase 4: Template Configuration & PDF Generation (Admin Only)
+- **Description:** Allow Admins to customize the printed Driver Checklist (Outbound List).
+- **Tasks:**
+  - Create `TemplateConfigScreen.kt` and its ViewModel.
+  - Build UI for customizing templates:
+    - **Logo Selection:** Use `ActivityResultContracts.GetContent` to allow choosing an image from the device, save the URI locally.
+    - **Column Toggles:** Checkboxes to hide/show specific columns on the printed grid (e.g., "Peso", "Volumen", "Observaciones").
+    - **Legal Text:** A text field for custom footer text.
+  - Save preferences locally using `SharedPreferences` or `DataStore`.
+  - Update `OutboundListPrinter.kt`:
+    - Read saved preferences before drawing the Canvas.
+    - Render the logo image if a valid URI is saved.
+    - Dynamically skip and re-scale columns based on toggles.
+    - Draw the custom legal text at the bottom of the page.
 
-- [x] **Migrate KAPT to KSP:** The project currently uses `kapt` for Room compilation (`androidx.room:room-compiler`).
-  - *Action:* Migrate to **KSP** (Kotlin Symbol Processing). It provides significant performance improvements and drastically reduces build times.
-- [x] **Address 16 KB Page Alignment (Future-proofing):** The ML Kit native libraries (`barcode-scanning` and `text-recognition`) are flagged in lint as not being 16 KB aligned, which can crash the app on newer Android 15+ devices enforcing this standard.
-  - *Action:* Update ML Kit dependencies to their latest available versions where Google has patched this for bundled SDKs.
-- [x] **Enable Room Schema Export:** `AppDatabase` generates a compiler warning because schema export is not configured.
-  - *Action:* Enable `room.schemaLocation` in `build.gradle.kts` and commit the schemas to version control to enable and enforce safe automated migration testing.
-
-## 3. Architecture & Separation of Concerns
-
-- [x] **Break Down "God" Repository:** `RemitosRepository.kt` has become a God object, managing everything from inbound notes and outbound lists to debug logs and allocation logic.
-  - *Action:* Break it down into domain-specific repositories (e.g., `InboundRepository`, `OutboundRepository`, `SyncRepository`).
-  - *Action:* Abstract complex cross-domain logic (like creating outbounds with inventory allocations) into dedicated Use Cases / Interactors.
-- [x] **Hoist Business Logic from Composables:** Screens like `OutboundListScreen.kt` directly manage complex form mutations (adding, removing, editing draft lines, and ID counters) within the UI.
-  - *Action:* Hoist this complex state completely into the `OutboundViewModel`. The UI should only render the state and emit events/intents to the ViewModel.
-- [x] **Refactor ViewModel State Management:** ViewModels (like `InboundViewModel.kt`) rely heavily on Compose's `var ... by mutableStateOf(...)` for individual properties.
-  - *Action:* Transition to the recommended MVI-style `StateFlow` approach (`MutableStateFlow<UiState>`). This ensures a single source of truth, avoids partial state updates, and cleanly decouples the ViewModel from Jetpack Compose.
-
-## 4. Code Smells & UI Practices
-
-- [x] **Extract Hardcoded Strings:** There are over 130 instances of hardcoded Spanish strings directly embedded in Composables (e.g., `Text("Anular ingreso")`), severely impacting maintainability.
-  - *Action:* Extract all hardcoded UI strings to `res/values/strings.xml` and use `stringResource(R.string.key)`.
-- [x] **Fix State Autoboxing in Compose:** Several screens use `mutableStateOf(0L)` or `mutableStateOf(0)`, which causes continuous boxing/unboxing overhead on the JVM during recompositions.
-  - *Action:* Swap these for primitive state holders: `mutableLongStateOf` and `mutableIntStateOf`.
-- [x] **Handle Exceptions Specifically:** `InboundViewModel.processImage` catches a generic `Exception`, which can swallow unexpected system crashes (like `OutOfMemoryError`).
-  - *Action:* Catch specific exceptions where expected and integrate a crash reporting mechanism (like Crashlytics) for unexpected failures.
+## Phase 5: Data Export to CSV (Admin Only)
+- **Description:** Provide an export mechanism for reporting.
+- **Tasks:**
+  - In `ActivityScreen` (visible only to `admin`), add an "Exportar a CSV" button.
+  - Create a utility function to format the queried records (`InboundNoteEntity` or `OutboundListEntity` with lines) into a valid CSV string.
+  - Write the CSV string to a temporary file in the app's cache directory.
+  - Use `Intent.ACTION_SEND` to trigger the Android Share Sheet, allowing the Admin to save the CSV or share it.
