@@ -98,6 +98,8 @@ fun InboundDetailScreen(
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
     var showVoidDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    
+    val role = app.authManager.getCurrentUserRole() ?: "operator"
 
     LaunchedEffect(saveState) {
         if (saveState is InboundDetailSaveState.Success) {
@@ -182,18 +184,20 @@ fun InboundDetailScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(if (uiState.isSaving) "Guardando…" else "Guardar cambios")
                         }
-                        OutlinedButton(
-                            onClick = { showVoidDialog = true },
-                            enabled = !uiState.isSaving && !uiState.isVoiding && uiState.status != InboundNoteStatus.Anulada,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Delete,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(if (uiState.isVoiding) "Anulando…" else "Anular ingreso")
+                        if (role == "admin") {
+                            OutlinedButton(
+                                onClick = { showVoidDialog = true },
+                                enabled = !uiState.isSaving && !uiState.isVoiding && uiState.status != InboundNoteStatus.Anulada,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Delete,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(if (uiState.isVoiding) "Anulando…" else "Anular ingreso")
+                            }
                         }
                     }
                 }
