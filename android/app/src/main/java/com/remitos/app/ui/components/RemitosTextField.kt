@@ -51,9 +51,14 @@ fun RemitosTextField(
         else -> MaterialTheme.colorScheme.onSurface
     }
     val labelColor = when {
-        isBranded -> Color.White
-        isReversed -> BrandBlue
+        isBranded -> Color.White.copy(alpha = 0.8f)
+        isReversed -> BrandBlue.copy(alpha = 0.6f)
         else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val placeholderColor = when {
+        isBranded -> Color.White.copy(alpha = 0.6f)
+        isReversed -> BrandBlue.copy(alpha = 0.5f)
+        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     }
     val borderColor = when {
         isBranded -> Color.White
@@ -106,6 +111,8 @@ fun RemitosTextField(
             unfocusedBorderColor = borderColor,
             focusedLabelColor = labelColor,
             unfocusedLabelColor = labelColor,
+            focusedPlaceholderColor = placeholderColor,
+            unfocusedPlaceholderColor = placeholderColor,
             cursorColor = cursorColor,
             focusedTextColor = textColor,
             unfocusedTextColor = textColor,
