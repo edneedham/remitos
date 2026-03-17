@@ -12,6 +12,7 @@ type ErrorCode string
 const (
 	ErrCodeInvalidRequest ErrorCode = "INVALID_REQUEST"
 	ErrCodeUnauthorized   ErrorCode = "UNAUTHORIZED"
+	ErrCodeForbidden      ErrorCode = "FORBIDDEN"
 	ErrCodeConflict       ErrorCode = "CONFLICT"
 	ErrCodeNotFound       ErrorCode = "NOT_FOUND"
 	ErrCodeInternalError  ErrorCode = "INTERNAL_ERROR"

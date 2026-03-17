@@ -26,6 +26,9 @@ class RemitosApplication : Application() {
     var currentRepository: RemitosRepository? = null
         private set
     
+    val apiService: com.remitos.app.network.RemitosApiService
+        get() = com.remitos.app.network.ApiClient.getApiService(authManager)
+    
     /**
      * Legacy repository accessor for backward compatibility.
      * Use requireRepository() for null-safe access.

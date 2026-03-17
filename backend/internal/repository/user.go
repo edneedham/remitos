@@ -162,3 +162,54 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Use
 	}
 	return &user, nil
 }
+
+func (r *UserRepository) GetByCompanyID(ctx context.Context, companyID uuid.UUID) ([]*models.User, error) {
+	query := `
+		SELECT id, company_id, warehouse_id, email, username, password_hash, role, role_id, status, is_verified, created_at, updated_at
+		FROM users WHERE company_id = $1
+	`
+	rows, err := r.pool.Query(ctx, query, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(
+			&user.ID,
+			&user.CompanyID,
+			&user.WarehouseID,
+			&user.Email,
+			&user.Username,
+			&user.PasswordHash,
+			&user.Role,
+			&user.RoleID,
+			&user.Status,
+			&user.IsVerified,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func (r *UserRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status string) error {
+	query := `UPDATE users SET status = $1, updated_at = NOW() WHERE id = $2`
+	_, err := r.pool.Exec(ctx, query, status, id)
+	return err
+}
+
+func (r *UserRepository) UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
+	query := `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`
+	_, err := r.pool.Exec(ctx, query, passwordHash, id)
+	return err
+}

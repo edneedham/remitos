@@ -60,6 +60,38 @@ interface RemitosApiService {
     @GET("warehouses")
     suspend fun getWarehouses(@Query("company_code") companyCode: String? = null): Response<List<WarehouseDto>>
 
+    // ==================== ADMIN / USERS ====================
+
+    /**
+     * Get list of operators for the admin's company.
+     */
+    @GET("admin/operadores")
+    suspend fun getOperators(): Response<List<OperatorDto>>
+
+    /**
+     * Create a new operator.
+     */
+    @POST("admin/operadores")
+    suspend fun createOperator(@Body request: CreateOperatorRequest): Response<Map<String, String>>
+
+    /**
+     * Update operator status (active/suspended).
+     */
+    @PUT("admin/operadores/{id}/status")
+    suspend fun updateOperatorStatus(
+        @Path("id") id: String,
+        @Body request: UpdateOperatorStatusRequest
+    ): Response<Map<String, String>>
+
+    /**
+     * Update operator password.
+     */
+    @PUT("admin/operadores/{id}/password")
+    suspend fun updateOperatorPassword(
+        @Path("id") id: String,
+        @Body request: UpdateOperatorPasswordRequest
+    ): Response<Map<String, String>>
+
     // ==================== INBOUND NOTES ====================
 
     /**

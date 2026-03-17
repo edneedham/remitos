@@ -94,6 +94,31 @@ data class WarehouseDto(
     val updatedAt: String
 )
 
+// Admin Request/Response Models
+
+data class OperatorDto(
+    val id: String,
+    val email: String?,
+    val username: String?,
+    val role: String,
+    val status: String,
+    @SerializedName("created_at")
+    val createdAt: String
+)
+
+data class CreateOperatorRequest(
+    val email: String? = null,
+    val password: String
+)
+
+data class UpdateOperatorStatusRequest(
+    val status: String
+)
+
+data class UpdateOperatorPasswordRequest(
+    val password: String
+)
+
 // Inbound Note Models
 
 data class InboundNoteDto(
