@@ -1,23 +1,31 @@
 package com.remitos.app.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.QueryStats
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,16 +51,31 @@ fun ActivityScreen(onBack: () -> Unit) {
         factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return ActivityViewModel(app.settingsStore) as T
+                return ActivityViewModel(app.settingsStore, app.repository) as T
             }
         },
     )
 
     val stats by viewModel.usageStats.collectAsStateWithLifecycle()
+    val exportState by viewModel.exportState.collectAsStateWithLifecycle()
+
     val averageTime = if (stats.totalScans > 0L) {
         stats.totalScanTimeMs / stats.totalScans
     } else {
         null
+    }
+
+    LaunchedEffect(exportState) {
+        if (exportState is ExportState.Success) {
+            val uri = (exportState as ExportState.Success).uri
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/csv"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, "Exportar Actividad"))
+            viewModel.clearExportState()
+        }
     }
 
     Scaffold(
@@ -103,6 +126,37 @@ fun ActivityScreen(onBack: () -> Unit) {
                         value = averageTime?.let { formatSeconds(it) } ?: "—",
                         lightText = false,
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            if (exportState is ExportState.Error) {
+                Text(
+                    text = (exportState as ExportState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Button(
+                onClick = { viewModel.exportData(context) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                enabled = exportState !is ExportState.Exporting,
+                colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
+            ) {
+                if (exportState is ExportState.Exporting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(Icons.Outlined.FileDownload, contentDescription = null)
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text("Exportar a CSV")
                 }
             }
         }

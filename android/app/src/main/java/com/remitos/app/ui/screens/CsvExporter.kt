@@ -130,6 +130,31 @@ object CsvExporter {
     }
 
     /**
+     * Export all given outbound lists to a CSV file in the cache directory for sharing.
+     */
+    fun exportFullActivityToCsv(context: Context, lists: List<com.remitos.app.data.db.entity.OutboundListEntity>): File {
+        val timestamp = csvDateFormat.format(Date())
+        val fileName = "actividad_repartos_$timestamp.csv"
+        val file = File(context.cacheDir, fileName)
+
+        FileWriter(file).use { writer ->
+            writer.append("lista_numero,fecha_emision,chofer_nombre,chofer_apellido,estado\n")
+            
+            lists.forEach { list ->
+                val issueDate = displayDateFormat.format(Date(list.issueDate))
+                writer.append(
+                    "${list.listNumber}," +
+                    "${escapeCsv(issueDate)}," +
+                    "${escapeCsv(list.driverNombre)}," +
+                    "${escapeCsv(list.driverApellido)}," +
+                    "${escapeCsv(list.status)}\n"
+                )
+            }
+        }
+        return file
+    }
+
+    /**
      * Escape special CSV characters.
      */
     private fun escapeCsv(value: String): String {
