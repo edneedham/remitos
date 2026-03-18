@@ -367,7 +367,7 @@ fun DashboardScreen(
                     role = role,
                 )
 
-                if (role == "admin") {
+                if (role == "company_owner" || role == "warehouse_admin" || role == "admin") {
                     SectionLabel(text = "Administración")
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ActionTile(
@@ -522,7 +522,7 @@ private fun ActionGrid(
                 onClick = onOutboundHistory,
                 modifier = Modifier.weight(1f),
             )
-            if (role == "admin") {
+            if (role == "company_owner" || role == "warehouse_admin" || role == "admin") {
                 ActionTile(
                     icon = Icons.Outlined.QueryStats,
                     title = stringResource(R.string.actividad),

@@ -184,7 +184,7 @@ fun InboundDetailScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(if (uiState.isSaving) "Guardando…" else "Guardar cambios")
                         }
-                        if (role == "admin") {
+                        if (role == "company_owner" || role == "warehouse_admin" || role == "admin") {
                             OutlinedButton(
                                 onClick = { showVoidDialog = true },
                                 enabled = !uiState.isSaving && !uiState.isVoiding && uiState.status != InboundNoteStatus.Anulada,
