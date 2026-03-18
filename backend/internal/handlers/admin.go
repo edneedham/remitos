@@ -75,8 +75,15 @@ func (h *AdminHandler) CreateOperator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	companyID, err := uuid.Parse(adminClaims.CompanyID)
+	if err != nil {
+		RespondWithError(w, ErrCodeInvalidRequest, "ID de empresa inválido", http.StatusBadRequest)
+		return
+	}
+
 	user := &models.User{
 		ID:           uuid.New(),
+		CompanyID:    companyID,
 		Email:        req.Email,
 		PasswordHash: string(hash),
 		Role:         "operator",
