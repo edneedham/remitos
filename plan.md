@@ -56,13 +56,9 @@
 
 # Technical Debt & Architecture Improvement Plan
 
-## Phase 1: Crash Reporting (Android) ✓ COMPLETE
-- [x] Add Firebase Crashlytics dependency
-- [x] Initialize Crashlytics in Application class
-- [x] Add custom keys for user context (user_id, user_role, user_email)
-- [x] Verify crash reports appear in Firebase console
-- **PR:** https://github.com/edneedham/remitos/pull/3
-- **Note:** Replace placeholder google-services.json with actual Firebase config before merging
+## Phase 1: Crash Reporting (Android) - DEFERRED
+- Firebase Crashlytics integration deferred until Firebase project is set up
+- Can be added later when ready for production monitoring
 
 ## Phase 2: Database Migrations (Backend) ✓ ALREADY COMPLETE
 - [x] golang-migrate is already integrated
@@ -72,7 +68,7 @@
 
 ## Phase 3: Dependency Injection with Hilt (Android) - IN PROGRESS
 - [x] Add Hilt dependencies and @HiltAndroidApp annotation
-- [x] Create Hilt modules for Repository, DatabaseManager, ApiClient, SettingsStore
+- [x] Create Hilt modules for AuthManager, SettingsStore, DatabaseManager, ApiService
 - [ ] Migrate all 12 ViewModels to @HiltViewModel
 - [ ] Remove manual ViewModelFactory classes
 - [ ] Update all Screen composables to use hiltViewModel()
