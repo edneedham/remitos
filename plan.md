@@ -51,3 +51,38 @@
   - [x] Create a utility function to format the queried records (`InboundNoteEntity` or `OutboundListEntity` with lines) into a valid CSV string.
   - [x] Write the CSV string to a temporary file in the app's cache directory.
   - [x] Use `Intent.ACTION_SEND` to trigger the Android Share Sheet, allowing the Admin to save the CSV or share it.
+
+---
+
+# Technical Debt & Architecture Improvement Plan
+
+## Phase 1: Crash Reporting (Android) ✓ COMPLETE
+- [x] Add Firebase Crashlytics dependency
+- [x] Initialize Crashlytics in Application class
+- [x] Add custom keys for user context (user_id, user_role, user_email)
+- [x] Verify crash reports appear in Firebase console
+- **PR:** https://github.com/edneedham/remitos/pull/3
+- **Note:** Replace placeholder google-services.json with actual Firebase config before merging
+
+## Phase 2: Database Migrations (Backend) ✓ ALREADY COMPLETE
+- [x] golang-migrate is already integrated
+- [x] 18 migration files exist in backend/db/migrations/
+- [x] Auto-migration runs on startup in main.go
+- **No action needed**
+
+## Phase 3: Dependency Injection with Hilt (Android) - IN PROGRESS
+- [ ] Add Hilt dependencies and @HiltAndroidApp annotation
+- [ ] Create Hilt modules for Repository, DatabaseManager, ApiClient, SettingsStore
+- [ ] Migrate all 12 ViewModels to @HiltViewModel
+- [ ] Remove manual ViewModelFactory classes
+- [ ] Update all Screen composables to use hiltViewModel()
+
+## Phase 4: WorkManager for Reliable Sync (Android) - DEFERRED
+- Wait for production data on sync reliability issues
+- If needed, replace foreground SyncManager with WorkManager
+- Implement guaranteed delivery for critical operations
+
+## Phase 5: Local Database Architecture Refactor (Android) - PLANNED
+- Consolidate to single Room database with tenant columns
+- Update DAOs to filter by user_id/company_id
+- Remove database switching logic from RemitosApplication
