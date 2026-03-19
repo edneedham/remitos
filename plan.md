@@ -71,11 +71,12 @@
 - **No action needed**
 
 ## Phase 3: Dependency Injection with Hilt (Android) - IN PROGRESS
-- [ ] Add Hilt dependencies and @HiltAndroidApp annotation
-- [ ] Create Hilt modules for Repository, DatabaseManager, ApiClient, SettingsStore
+- [x] Add Hilt dependencies and @HiltAndroidApp annotation
+- [x] Create Hilt modules for Repository, DatabaseManager, ApiClient, SettingsStore
 - [ ] Migrate all 12 ViewModels to @HiltViewModel
 - [ ] Remove manual ViewModelFactory classes
 - [ ] Update all Screen composables to use hiltViewModel()
+- **PR (Foundation):** https://github.com/edneedham/remitos/pull/4
 
 ## Phase 4: WorkManager for Reliable Sync (Android) - DEFERRED
 - Wait for production data on sync reliability issues
