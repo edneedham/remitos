@@ -83,4 +83,8 @@
     <string name="en_punto">en punto</string>
     <string name="acciones">Acciones</string>
     <string name="remitos">Remitos</string>
+    <string name="escanear_bultos_titulo">Escanear bultos</string>
+    <string name="escanear_bultos_mensaje">El ingreso se guardó correctamente. ¿Querés escanear los códigos de barras de los bultos ahora o más tarde desde la sección de Historial?</string>
+    <string name="ahora">Ahora</string>
+    <string name="mas_tarde">Más tarde</string>
 </resources>

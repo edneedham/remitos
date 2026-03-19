@@ -7,7 +7,9 @@ import com.remitos.app.data.FeatureFlags
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.SessionManager
 import com.remitos.app.data.SettingsStore
+import com.remitos.app.data.TestDataGenerator
 import com.remitos.app.data.db.AppDatabase
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 class RemitosApplication : Application() {
@@ -69,9 +71,18 @@ class RemitosApplication : Application() {
             currentDatabase = DatabaseManager.getDatabase(this, userId)
             currentRepository = currentDatabase?.let { RemitosRepository(it) }
             sessionManager.resetSession()
+            
+            if (userId == "admin") {
+                currentRepository?.let { repo ->
+                    val existingNotes = repo.observeInboundNotes().first()
+                    if (existingNotes.isEmpty()) {
+                        TestDataGenerator(repo).generateTestData()
+                    }
+                }
+            }
+            
             true
         } else {
-            // No user logged in - work in offline mode
             currentDatabase = DatabaseManager.getOfflineDatabase(this)
             currentRepository = currentDatabase?.let { RemitosRepository(it) }
             false

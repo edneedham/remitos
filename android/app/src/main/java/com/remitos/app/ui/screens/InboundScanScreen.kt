@@ -107,6 +107,7 @@ fun InboundScanScreen(
     val draft = uiState.draft
     var showMissingDialog by remember { mutableStateOf(false) }
     var showCameraPermissionDialog by remember { mutableStateOf(false) }
+    var pendingScanInfo by remember { mutableStateOf<Pair<Long, Int>?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -460,7 +461,7 @@ fun InboundScanScreen(
                     snackbarHostState.showSnackbar("Ingreso guardado correctamente")
                 }
                 viewModel.clearSaveState()
-                onNavigateToBarcodeScanning(state.noteId, state.packageCount)
+                pendingScanInfo = Pair(state.noteId, state.packageCount)
             }
         }
         is SaveState.Error -> {
@@ -474,6 +475,27 @@ fun InboundScanScreen(
             )
         }
         null -> Unit
+    }
+
+    if (pendingScanInfo != null) {
+        AlertDialog(
+            onDismissRequest = { },
+            confirmButton = {
+                TextButton(onClick = {
+                    val info = pendingScanInfo!!
+                    pendingScanInfo = null
+                    onNavigateToBarcodeScanning(info.first, info.second)
+                }) { Text(stringResource(R.string.ahora)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    pendingScanInfo = null
+                    onBack()
+                }) { Text(stringResource(R.string.mas_tarde)) }
+            },
+            title = { Text(stringResource(R.string.escanear_bultos_titulo)) },
+            text = { Text(stringResource(R.string.escanear_bultos_mensaje)) },
+        )
     }
 }
 

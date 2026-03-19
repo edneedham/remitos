@@ -63,4 +63,10 @@ class RemitosRepository(private val db: AppDatabase) {
     // Audit / Debug
     fun observeDebugLogs(limit: Int = 200): Flow<List<DebugLogEntity>> = auditRepository.observeDebugLogs(limit)
     suspend fun insertDebugLog(log: DebugLogEntity) = auditRepository.insertDebugLog(log)
+    
+    // Demo data helpers
+    suspend fun insertOutboundLineStatusHistory(entries: List<OutboundLineStatusHistoryEntity>) =
+        outboundRepository.insertLineStatusHistory(entries)
+    suspend fun insertOutboundLineEditHistory(entries: List<OutboundLineEditHistoryEntity>) =
+        outboundRepository.insertLineEditHistory(entries)
 }

@@ -84,9 +84,10 @@ class UserManagementViewModel(
                 if (response.isSuccessful) {
                     loadUsers(context)
                 } else {
+                    val errorBody = response.errorBody()?.string()
                     _uiState.value = _uiState.value.copy(
                         isSaving = false,
-                        error = "Error al crear operador"
+                        error = "Error al crear operador: ${response.code()} $errorBody"
                     )
                 }
             } catch (e: Exception) {

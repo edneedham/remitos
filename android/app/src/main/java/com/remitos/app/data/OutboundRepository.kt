@@ -208,6 +208,14 @@ class OutboundRepository(private val db: AppDatabase) {
         db.outboundDao().updateOutboundListStatus(listId, OutboundListStatus.Cerrada)
     }
 
+    suspend fun insertLineStatusHistory(entries: List<OutboundLineStatusHistoryEntity>) {
+        db.outboundDao().insertLineStatusHistory(entries)
+    }
+
+    suspend fun insertLineEditHistory(entries: List<OutboundLineEditHistoryEntity>) {
+        db.outboundDao().insertLineEditHistory(entries)
+    }
+
     internal fun buildOutboundSearchQuery(filters: OutboundSearchFilters, limit: Int? = null): SupportSQLiteQuery {
         val normalizedTokens = normalizeSearchTokens(filters.query)
         val args = mutableListOf<Any>()

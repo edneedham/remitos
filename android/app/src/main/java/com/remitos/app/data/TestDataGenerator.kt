@@ -2,181 +2,341 @@ package com.remitos.app.data
 
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
+import com.remitos.app.data.db.entity.OutboundListEntity
+import com.remitos.app.data.db.entity.OutboundLineEntity
+import com.remitos.app.data.db.entity.OutboundLineEditHistoryEntity
+import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import java.util.UUID
 
-/**
- * Generator for realistic test/demonstration data.
- * Creates sample remitos with believable data for testing and demos.
- */
 class TestDataGenerator(private val repository: RemitosRepository) {
 
     companion object {
         private val SUPPLIERS = listOf(
-            Triple("30-12345678-9", "Distribuidora", "Sur S.A."),
-            Triple("30-98765432-1", "Logística", "Express SRL"),
-            Triple("30-55555555-5", "Almacén", "Central S.A."),
-            Triple("30-11111111-1", "Importadora", "Norte SRL"),
-            Triple("30-22222222-2", "Mayorista", "Buenos Aires S.A.")
+            Supplier("30-50279317-5", "Arcor", "S.A.I.C."),
+            Supplier("30-50000173-5", "Molinos", "Río de la Plata"),
+            Supplier("30-53888694-4", "Droguería", "del Sud S.A."),
+            Supplier("30-70123456-1", "Distribuidora", "Los Andes SRL"),
+            Supplier("30-61234567-8", "Química", "Austral S.A.")
         )
 
         private val DESTINATIONS = listOf(
-            Quadruple("María", "González", "Av. Corrientes 1234, CABA", "11-5555-1234"),
-            Quadruple("Juan", "Pérez", "Calle Florida 567, CABA", "11-5555-5678"),
-            Quadruple("Ana", "Rodríguez", "Av. Santa Fe 890, Palermo", "11-5555-9012"),
-            Quadruple("Carlos", "López", "Calle Córdoba 345, Villa Crespo", "11-5555-3456"),
-            Quadruple("Laura", "Martínez", "Av. Libertador 678, Belgrano", "11-5555-7890"),
-            Quadruple("Diego", "Sánchez", "Calle Cabildo 901, Núñez", "11-5555-2345"),
-            Quadruple("Valentina", "Fernández", "Av. Cabildo 234, Belgrano", "11-5555-6789"),
-            Quadruple("Martín", "Gómez", "Calle Thames 456, Villa Crespo", "11-5555-0123")
+            Destination("Autoservicio", "El Sol", "Av. Rivadavia 4560, CABA", "11-4567-8901"),
+            Destination("Farmacia", "San Martín", "San Martín 120, Quilmes", "11-4225-6789"),
+            Destination("Supermercado", "La Familia", "Av. Vélez Sarsfield 1500, Córdoba", "351-456-7890"),
+            Destination("Facundo", "Quiroga", "Calle 14 Nro 567, La Plata", "221-456-7890"),
+            Destination("Camila", "Sosa", "Güemes 3450, CABA", "11-4890-1234"),
+            Destination("Kiosco", "Don José", "Av. Corrientes 2345, CABA", "11-4956-7890"),
+            Destination("Maximiliano", "Ríos", "Belgrano 890, Rosario", "341-567-8901"),
+            Destination("Verónica", "Luna", "Av. Maipú 1234, Vicente López", "11-4790-1234"),
+            Destination("Panadería", "La Estación", "Av. San Martín 567, Mendoza", "261-456-7890"),
+            Destination("Librería", "Del Centro", "Peatonal 234, Tucumán", "381-456-7890")
         )
 
-        private val PRODUCT_TYPES = listOf(
-            "Electrodomésticos",
-            "Ropa y accesorios",
-            "Alimentos",
-            "Muebles",
-            "Tecnología",
-            "Herramientas",
-            "Juguetes",
-            "Libros"
+        private val DRIVERS = listOf(
+            Driver("Roberto", "Maidana", "AF 123 CD"),
+            Driver("Hugo", "Benítez", "AB 456 GH"),
+            Driver("Miguel", "Ávila", "AC 789 JK")
         )
     }
 
-    data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+    private data class Supplier(val cuit: String, val nombre: String, val apellido: String)
+    private data class Destination(val nombre: String, val apellido: String, val direccion: String, val telefono: String)
+    private data class Driver(val nombre: String, val apellido: String, val patente: String)
 
-    /**
-     * Generate a set of realistic test remitos.
-     * Creates 5-8 remitos with varying states and dates.
-     */
     suspend fun generateTestData() {
         withContext(Dispatchers.IO) {
-            // Check if data already exists
-            val existingNotes = mutableListOf<InboundNoteEntity>()
-            repository.observeInboundNotes().collect { notes ->
-                existingNotes.addAll(notes)
-            }
-            
+            val existingNotes = repository.observeInboundNotes().first()
             if (existingNotes.isNotEmpty()) {
-                return@withContext // Don't generate if data already exists
+                return@withContext
             }
 
             val now = System.currentTimeMillis()
-            val oneDay = 24 * 60 * 60 * 1000L
-            val oneWeek = 7 * oneDay
+            val oneHour = 60 * 60 * 1000L
+            val oneDay = 24 * oneHour
 
-            // Generate 6 realistic remitos
-            val testRemitos = listOf(
-                createRemito(
-                    supplierIndex = 0,
-                    destinationIndex = 0,
-                    packageCount = 3,
-                    createdAt = now - (2 * oneDay),
-                    scannedCount = 3,  // Fully scanned
-                    status = InboundNoteStatus.Activa
-                ),
-                createRemito(
-                    supplierIndex = 1,
-                    destinationIndex = 1,
-                    packageCount = 5,
-                    createdAt = now - (5 * oneDay),
-                    scannedCount = 5,
-                    status = InboundNoteStatus.Activa
-                ),
-                createRemito(
-                    supplierIndex = 2,
-                    destinationIndex = 2,
-                    packageCount = 2,
-                    createdAt = now - oneWeek,
-                    scannedCount = 0,  // Not scanned yet
-                    status = InboundNoteStatus.Activa
-                ),
-                createRemito(
-                    supplierIndex = 3,
-                    destinationIndex = 3,
-                    packageCount = 8,
-                    createdAt = now - (3 * oneDay),
-                    scannedCount = 6,  // Partially scanned
-                    status = InboundNoteStatus.Activa
-                ),
-                createRemito(
-                    supplierIndex = 4,
-                    destinationIndex = 4,
-                    packageCount = 4,
-                    createdAt = now - (10 * oneDay),
-                    scannedCount = 0,
-                    status = InboundNoteStatus.Anulada  // Voided
-                ),
-                createRemito(
-                    supplierIndex = 0,
-                    destinationIndex = 5,
-                    packageCount = 6,
-                    createdAt = now - (1 * oneDay),
-                    scannedCount = 2,  // Partially scanned
-                    status = InboundNoteStatus.Activa
-                )
+            val createdNotes = mutableListOf<Pair<Long, InboundNoteEntity>>()
+
+            val inboundConfigs = listOf(
+                InboundConfig(0, 0, 4, now - 2 * oneDay, 4, InboundNoteStatus.Activa),
+                InboundConfig(1, 1, 6, now - 5 * oneDay, 6, InboundNoteStatus.Activa),
+                InboundConfig(2, 2, 3, now - 7 * oneDay, 0, InboundNoteStatus.Activa),
+                InboundConfig(3, 3, 8, now - 3 * oneDay, 5, InboundNoteStatus.Activa),
+                InboundConfig(4, 4, 5, now - 10 * oneDay, 0, InboundNoteStatus.Anulada),
+                InboundConfig(0, 5, 7, now - 1 * oneDay, 3, InboundNoteStatus.Activa),
+                InboundConfig(1, 6, 4, now - 4 * oneDay, 4, InboundNoteStatus.Activa),
+                InboundConfig(2, 7, 6, now - 6 * oneDay, 6, InboundNoteStatus.Activa),
+                InboundConfig(3, 8, 3, now - 8 * oneDay, 0, InboundNoteStatus.Activa),
+                InboundConfig(4, 9, 5, now - 12 * oneDay, 5, InboundNoteStatus.Activa)
             )
 
-            testRemitos.forEach { (note, scannedCount) ->
-                val noteId = repository.createInboundNote(note)
-                
-                // If this remito should have scanned barcodes, scan them
-                if (scannedCount > 0) {
+            inboundConfigs.forEach { config ->
+                val noteId = createInboundNote(config)
+                val note = repository.getInboundNote(noteId)!!
+                createdNotes.add(Pair(noteId, note))
+
+                if (config.scannedCount > 0) {
+                    scanPackages(noteId, config.scannedCount, note.createdAt)
+                }
+            }
+
+            val fullyScannedNotes = createdNotes.filter { (_, note) ->
+                val packages = repository.getPackagesForNote(note.id)
+                packages.all { it.status == InboundPackageStatus.Asignado || it.status == InboundPackageStatus.Disponible }
+            }.filter { (_, note) ->
+                val packages = repository.getPackagesForNote(note.id)
+                packages.count { it.status == InboundPackageStatus.Disponible } > 0
+            }
+
+            if (fullyScannedNotes.size >= 4) {
+                val list1Notes = fullyScannedNotes.take(2)
+                val list1Id = createOutboundList(
+                    driverIndex = 0,
+                    issueDate = now - 6 * oneHour,
+                    status = OutboundListStatus.Abierta
+                )
+                val list1Lines = mutableListOf<OutboundLineEntity>()
+                list1Notes.forEach { (noteId, note) ->
                     val packages = repository.getPackagesForNote(noteId)
-                    packages.take(scannedCount).forEach { pkg ->
-                        val gs1Barcode = generateGs1Barcode(
-                            gtin = "779${(100000000..999999999).random()}",
-                            batch = "L${(1000..9999).random()}",
-                            expiry = generateFutureDate()
-                        )
-                        repository.updatePackage(
-                            pkg.copy(
-                                barcodeRaw = gs1Barcode,
-                                gtin = extractGtin(gs1Barcode),
-                                batchLot = extractBatch(gs1Barcode),
-                                expiryDate = extractExpiry(gs1Barcode),
-                                scannedAt = note.createdAt + (1000..3600000).random(),
-                                scannedBy = "usuario_demo"
-                            )
-                        )
+                    val available = packages.filter { it.status == InboundPackageStatus.Disponible }
+                    if (available.isNotEmpty()) {
+                        list1Lines.add(createOutboundLine(list1Id, noteId, note, available.size))
                     }
+                }
+                if (list1Lines.isNotEmpty()) {
+                    repository.createOutboundWithAllocations(
+                        OutboundListEntity(
+                            id = list1Id,
+                            listNumber = repository.nextOutboundListNumber() - 1,
+                            issueDate = now - 6 * oneHour,
+                            driverNombre = DRIVERS[0].nombre,
+                            driverApellido = DRIVERS[0].apellido,
+                            checklistSignaturePath = null,
+                            checklistSignedAt = null,
+                            status = OutboundListStatus.Abierta
+                        ),
+                        list1Lines
+                    )
+                    val savedLines = repository.getOutboundLines(list1Id)
+                    if (savedLines.size >= 4) {
+                        val statusHistory = mutableListOf<OutboundLineStatusHistoryEntity>()
+                        statusHistory.add(OutboundLineStatusHistoryEntity(
+                            outboundLineId = savedLines[0].id,
+                            status = OutboundLineStatus.EnTransito,
+                            createdAt = now - 5 * oneHour
+                        ))
+                        statusHistory.add(OutboundLineStatusHistoryEntity(
+                            outboundLineId = savedLines[0].id,
+                            status = OutboundLineStatus.Entregado,
+                            createdAt = now - 4 * oneHour
+                        ))
+                        statusHistory.add(OutboundLineStatusHistoryEntity(
+                            outboundLineId = savedLines[1].id,
+                            status = OutboundLineStatus.EnTransito,
+                            createdAt = now - 5 * oneHour
+                        ))
+                        statusHistory.add(OutboundLineStatusHistoryEntity(
+                            outboundLineId = savedLines[2].id,
+                            status = OutboundLineStatus.EnTransito,
+                            createdAt = now - 5 * oneHour
+                        ))
+                        repository.insertOutboundLineStatusHistory(statusHistory)
+                        repository.updateOutboundLineOutcome(savedLines[0].id, OutboundLineStatus.Entregado, savedLines[0].packageQty, 0)
+                        repository.updateOutboundLineOutcome(savedLines[1].id, OutboundLineStatus.EnTransito, 0, 0)
+                        repository.updateOutboundLineOutcome(savedLines[2].id, OutboundLineStatus.EnTransito, 0, 0)
+                    }
+                }
+
+                val list2Notes = fullyScannedNotes.drop(2).take(2)
+                val list2Id = createOutboundList(
+                    driverIndex = 1,
+                    issueDate = now - 1 * oneHour,
+                    status = OutboundListStatus.Abierta
+                )
+                val list2Lines = mutableListOf<OutboundLineEntity>()
+                list2Notes.forEach { (noteId, note) ->
+                    val packages = repository.getPackagesForNote(noteId)
+                    val available = packages.filter { it.status == InboundPackageStatus.Disponible }
+                    if (available.isNotEmpty()) {
+                        list2Lines.add(createOutboundLine(list2Id, noteId, note, available.size))
+                    }
+                }
+                if (list2Lines.isNotEmpty()) {
+                    repository.createOutboundWithAllocations(
+                        OutboundListEntity(
+                            id = list2Id,
+                            listNumber = repository.nextOutboundListNumber() - 1,
+                            issueDate = now - 1 * oneHour,
+                            driverNombre = DRIVERS[1].nombre,
+                            driverApellido = DRIVERS[1].apellido,
+                            checklistSignaturePath = null,
+                            checklistSignedAt = null,
+                            status = OutboundListStatus.Abierta
+                        ),
+                        list2Lines
+                    )
+                }
+            }
+
+            if (fullyScannedNotes.size >= 6) {
+                val list3Notes = fullyScannedNotes.drop(4).take(2)
+                val list3Id = createOutboundList(
+                    driverIndex = 2,
+                    issueDate = now - 2 * oneDay,
+                    status = OutboundListStatus.Cerrada
+                )
+                val list3Lines = mutableListOf<OutboundLineEntity>()
+                list3Notes.forEach { (noteId, note) ->
+                    val packages = repository.getPackagesForNote(noteId)
+                    val available = packages.filter { it.status == InboundPackageStatus.Disponible }
+                    if (available.isNotEmpty()) {
+                        list3Lines.add(createOutboundLine(list3Id, noteId, note, available.size))
+                    }
+                }
+                if (list3Lines.isNotEmpty()) {
+                    repository.createOutboundWithAllocations(
+                        OutboundListEntity(
+                            id = list3Id,
+                            listNumber = repository.nextOutboundListNumber() - 1,
+                            issueDate = now - 2 * oneDay,
+                            driverNombre = DRIVERS[2].nombre,
+                            driverApellido = DRIVERS[2].apellido,
+                            checklistSignaturePath = "/data/user/0/com.remitos.app/files/signatures/demo_signature.png",
+                            checklistSignedAt = now - 2 * oneDay + 8 * oneHour,
+                            status = OutboundListStatus.Cerrada
+                        ),
+                        list3Lines
+                    )
+                    val savedLines = repository.getOutboundLines(list3Id)
+                    val statusHistory = mutableListOf<OutboundLineStatusHistoryEntity>()
+                    savedLines.forEachIndexed { index, line ->
+                        statusHistory.add(OutboundLineStatusHistoryEntity(
+                            outboundLineId = line.id,
+                            status = OutboundLineStatus.EnTransito,
+                            createdAt = now - 2 * oneDay + (1 + index) * oneHour
+                        ))
+                        statusHistory.add(OutboundLineStatusHistoryEntity(
+                            outboundLineId = line.id,
+                            status = OutboundLineStatus.Entregado,
+                            createdAt = now - 2 * oneDay + (4 + index) * oneHour
+                        ))
+                        repository.updateOutboundLineOutcome(line.id, OutboundLineStatus.Entregado, line.packageQty, 0)
+                    }
+                    repository.insertOutboundLineStatusHistory(statusHistory)
+                }
+            }
+
+            val allLists = repository.searchOutboundLists(OutboundSearchFilters())
+            if (allLists.isNotEmpty()) {
+                val firstList = allLists.first()
+                val lines = repository.getOutboundLines(firstList.id)
+                if (lines.isNotEmpty()) {
+                    val editHistory = listOf(
+                        OutboundLineEditHistoryEntity(
+                            outboundLineId = lines[0].id,
+                            fieldName = "recipient_direccion",
+                            oldValue = "Av. Rivadavla 4560, CABA",
+                            newValue = "Av. Rivadavia 4560, CABA",
+                            reason = "Corrección de error de lectura OCR",
+                            createdAt = firstList.issueDate + 30 * 60 * 1000L
+                        )
+                    )
+                    repository.insertOutboundLineEditHistory(editHistory)
                 }
             }
         }
     }
 
-    private fun createRemito(
-        supplierIndex: Int,
-        destinationIndex: Int,
-        packageCount: Int,
-        createdAt: Long,
-        scannedCount: Int,
-        status: String
-    ): Pair<InboundNoteEntity, Int> {
-        val supplier = SUPPLIERS[supplierIndex]
-        val dest = DESTINATIONS[destinationIndex]
-        
+    private data class InboundConfig(
+        val supplierIndex: Int,
+        val destinationIndex: Int,
+        val packageCount: Int,
+        val createdAt: Long,
+        val scannedCount: Int,
+        val status: String
+    )
+
+    private suspend fun createInboundNote(config: InboundConfig): Long {
+        val supplier = SUPPLIERS[config.supplierIndex]
+        val dest = DESTINATIONS[config.destinationIndex]
+
         val note = InboundNoteEntity(
-            senderCuit = supplier.first,
-            senderNombre = supplier.second,
-            senderApellido = supplier.third,
-            destNombre = dest.first,
-            destApellido = dest.second,
-            destDireccion = dest.third,
-            destTelefono = dest.fourth,
-            cantBultosTotal = packageCount,
+            senderCuit = supplier.cuit,
+            senderNombre = supplier.nombre,
+            senderApellido = supplier.apellido,
+            destNombre = dest.nombre,
+            destApellido = dest.apellido,
+            destDireccion = dest.direccion,
+            destTelefono = dest.telefono,
+            cantBultosTotal = config.packageCount,
             remitoNumCliente = generateRemitoNumber(),
             remitoNumInterno = "",
-            status = status,
+            status = config.status,
             scanImagePath = null,
             ocrTextBlob = null,
             ocrConfidenceJson = null,
-            createdAt = createdAt,
-            updatedAt = createdAt
+            createdAt = config.createdAt,
+            updatedAt = config.createdAt
         )
-        
-        return Pair(note, scannedCount)
+
+        return repository.createInboundNote(note)
+    }
+
+    private suspend fun scanPackages(noteId: Long, count: Int, createdAt: Long) {
+        val packages = repository.getPackagesForNote(noteId)
+        packages.take(count).forEachIndexed { index, pkg ->
+            val gtin = "779${(100000000..999999999).random()}"
+            val batch = "L${(1000..9999).random()}"
+            val expiry = generateFutureDate()
+            val gs1Barcode = generateGs1Barcode(gtin, batch, expiry)
+
+            repository.updatePackage(
+                pkg.copy(
+                    barcodeRaw = gs1Barcode,
+                    gtin = extractGtin(gs1Barcode),
+                    batchLot = extractBatch(gs1Barcode),
+                    expiryDate = extractExpiry(gs1Barcode),
+                    scannedAt = createdAt + (index + 1) * 60 * 1000L,
+                    scannedBy = "demo_user"
+                )
+            )
+        }
+    }
+
+    private suspend fun createOutboundList(driverIndex: Int, issueDate: Long, status: String): Long {
+        val driver = DRIVERS[driverIndex]
+        val listNumber = repository.nextOutboundListNumber()
+
+        val list = OutboundListEntity(
+            listNumber = listNumber,
+            issueDate = issueDate,
+            driverNombre = driver.nombre,
+            driverApellido = driver.apellido,
+            checklistSignaturePath = null,
+            checklistSignedAt = null,
+            status = status
+        )
+
+        return repository.createOutboundList(list)
+    }
+
+    private fun createOutboundLine(listId: Long, noteId: Long, note: InboundNoteEntity, packageQty: Int): OutboundLineEntity {
+        return OutboundLineEntity(
+            outboundListId = listId,
+            inboundNoteId = noteId,
+            deliveryNumber = "ENT-${(1000..9999).random()}",
+            recipientNombre = note.destNombre,
+            recipientApellido = note.destApellido,
+            recipientDireccion = note.destDireccion,
+            recipientTelefono = note.destTelefono,
+            packageQty = packageQty,
+            allocatedPackageIds = "",
+            status = OutboundLineStatus.EnDeposito,
+            deliveredQty = 0,
+            returnedQty = 0,
+            missingQty = 0
+        )
     }
 
     private fun generateRemitoNumber(): String {
@@ -186,9 +346,8 @@ class TestDataGenerator(private val repository: RemitosRepository) {
     }
 
     private fun generateGs1Barcode(gtin: String, batch: String, expiry: String): String {
-        // GS1-128 format: ]C1 + AI(01) GTIN + AI(10) Batch + AI(17) Expiry
         val paddedGtin = gtin.padStart(14, '0')
-        val expiryCompressed = expiry.replace("/", "").takeLast(6) // YYMMDD
+        val expiryCompressed = expiry.replace("/", "").takeLast(6)
         return "]C101$paddedGtin\u001D10$batch\u001D17$expiryCompressed"
     }
 
@@ -223,11 +382,10 @@ class TestDataGenerator(private val repository: RemitosRepository) {
     private fun generateFutureDate(): String {
         val months = (6..18).random()
         val days = (1..28).random()
-        val year = 2025 + (months / 12)
+        val year = 2026 + (months / 12)
         val month = (months % 12) + 1
         return "${days.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/$year"
     }
 }
 
-// Extension to make random work on ranges
 private fun IntRange.random(): Int = (start..endInclusive).random()
