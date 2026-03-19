@@ -9,14 +9,23 @@ import com.remitos.app.data.SessionManager
 import com.remitos.app.data.SettingsStore
 import com.remitos.app.data.TestDataGenerator
 import com.remitos.app.data.db.AppDatabase
+import com.remitos.app.network.RemitosApiService
+import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import javax.inject.Inject
 
+@HiltAndroidApp
 class RemitosApplication : Application() {
 
-    // Managers
-    val authManager by lazy { AuthManager(this) }
-    val settingsStore by lazy { SettingsStore(this) }
+    @Inject
+    lateinit var authManager: AuthManager
+    
+    @Inject
+    lateinit var settingsStore: SettingsStore
+    
+    @Inject
+    lateinit var apiService: RemitosApiService
 
     // Session manager for auto-logout
     lateinit var sessionManager: SessionManager
@@ -27,9 +36,6 @@ class RemitosApplication : Application() {
         private set
     var currentRepository: RemitosRepository? = null
         private set
-    
-    val apiService: com.remitos.app.network.RemitosApiService
-        get() = com.remitos.app.network.ApiClient.getApiService(authManager)
     
     /**
      * Legacy repository accessor for backward compatibility.
@@ -49,7 +55,6 @@ class RemitosApplication : Application() {
             context = this,
             authManager = authManager,
             onSessionExpired = {
-                // Handle session expiration - notify UI to show login
                 clearCurrentUserContext()
             }
         )
@@ -93,13 +98,8 @@ class RemitosApplication : Application() {
      * Switch to a different user account.
      */
     suspend fun switchUser(userId: String): Boolean {
-        // Close current database
         clearCurrentUserContext()
-
-        // Set new current user
         authManager.setCurrentUser(userId)
-
-        // Initialize new context
         return initializeCurrentUserContext()
     }
 
