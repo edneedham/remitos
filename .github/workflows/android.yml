@@ -24,7 +24,6 @@ jobs:
 
     - name: Download OpenCV Android SDK
       run: |
-        cd android
         mkdir -p opencv-sdk
         cd opencv-sdk
         curl -L -o opencv-android-sdk.zip https://github.com/opencv/opencv/releases/download/4.12.0/opencv-4.12.0-android-sdk.zip
