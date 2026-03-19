@@ -1,6 +1,7 @@
 package com.remitos.app
 
 import android.app.Application
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.remitos.app.data.AuthManager
 import com.remitos.app.data.DatabaseManager
 import com.remitos.app.data.FeatureFlags
@@ -62,6 +63,30 @@ class RemitosApplication : Application() {
     }
 
     /**
+     * Update Crashlytics with current user context for better crash debugging.
+     */
+    private fun updateCrashlyticsUserContext(userId: String?) {
+        val crashlytics = FirebaseCrashlytics.getInstance()
+        
+        if (userId != null) {
+            crashlytics.setUserId(userId)
+            crashlytics.setCustomKey("user_id", userId)
+            
+            val role = authManager.getCurrentUserRole() ?: "unknown"
+            crashlytics.setCustomKey("user_role", role)
+            
+            val token = authManager.getTokenSync(userId)
+            token?.userEmail?.let { email ->
+                crashlytics.setCustomKey("user_email", email)
+            }
+        } else {
+            crashlytics.setUserId("anonymous")
+            crashlytics.setCustomKey("user_id", "anonymous")
+            crashlytics.setCustomKey("user_role", "none")
+        }
+    }
+
+    /**
      * Initialize database and repository for the current logged-in user.
      * Call this after successful login.
      */
@@ -71,6 +96,9 @@ class RemitosApplication : Application() {
             currentDatabase = DatabaseManager.getDatabase(this, userId)
             currentRepository = currentDatabase?.let { RemitosRepository(it) }
             sessionManager.resetSession()
+            
+            // Update Crashlytics with user context
+            updateCrashlyticsUserContext(userId)
             
             if (userId == "admin") {
                 currentRepository?.let { repo ->
@@ -85,6 +113,10 @@ class RemitosApplication : Application() {
         } else {
             currentDatabase = DatabaseManager.getOfflineDatabase(this)
             currentRepository = currentDatabase?.let { RemitosRepository(it) }
+            
+            // Clear Crashlytics user context
+            updateCrashlyticsUserContext(null)
+            
             false
         }
     }
