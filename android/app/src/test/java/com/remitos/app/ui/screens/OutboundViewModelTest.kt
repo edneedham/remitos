@@ -107,7 +107,7 @@ class OutboundViewModelTest {
     }
 
     @Test
-    fun validateDraft_returnsNullForValidDraft() {
+    fun validateDraft_returnsNullWhenValid() {
         val viewModel = OutboundViewModel(repository, ioDispatcher = testDispatcher)
         val draft = OutboundDraftState(
             driverNombre = "Juan",
@@ -178,18 +178,18 @@ class OutboundViewModelTest {
                 )
             )
         )
+        viewModel.draftState.value = draft
 
-        viewModel.save(
-            draft,
-            inboundOptions = listOf(
-                InboundOption(
-                    inboundNoteId = 10L,
-                    label = "Remito 1",
-                    availableCount = 5,
-                    remitoNumCliente = "R-1"
-                )
+        val inboundOptions = listOf(
+            InboundOption(
+                inboundNoteId = 10L,
+                label = "Remito 1",
+                availableCount = 5,
+                remitoNumCliente = "R-1"
             )
         )
+
+        viewModel.save(inboundOptions)
         advanceUntilIdle()
 
         assertEquals(OutboundSaveState.Success, viewModel.saveState.value)

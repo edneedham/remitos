@@ -41,7 +41,7 @@ class InboundViewModelTest {
     fun save_withInvalidBultos_setsErrorState() {
         val viewModel = InboundViewModel(repository, ioDispatcher = testDispatcher)
         viewModel.updateDraft(
-            viewModel.draft.copy(
+            viewModel.uiState.value.draft.copy(
                 senderCuit = "20-12345678-9",
                 senderNombre = "ACME",
                 senderApellido = "SA",
@@ -56,7 +56,7 @@ class InboundViewModelTest {
 
         viewModel.save()
 
-        val state = viewModel.saveState
+        val state = viewModel.uiState.value.saveState
         assertTrue(state is SaveState.Error)
         assertEquals(
             "La cantidad de bultos debe ser mayor a cero.",
@@ -70,7 +70,7 @@ class InboundViewModelTest {
         val viewModel = InboundViewModel(repository, ioDispatcher = testDispatcher)
         whenever(repository.createInboundNote(org.mockito.kotlin.any())).thenReturn(1L)
         viewModel.updateDraft(
-            viewModel.draft.copy(
+            viewModel.uiState.value.draft.copy(
                 senderCuit = "20-12345678-9",
                 senderNombre = "ACME",
                 senderApellido = "SA",
@@ -86,9 +86,9 @@ class InboundViewModelTest {
         viewModel.save()
         advanceUntilIdle()
 
-        assertTrue(viewModel.saveState is SaveState.Success)
-        assertEquals(InboundDraftState(), viewModel.draft)
-        assertNull(viewModel.selectedImageUri)
+        assertTrue(viewModel.uiState.value.saveState is SaveState.Success)
+        assertEquals(InboundDraftState(), viewModel.uiState.value.draft)
+        assertNull(viewModel.uiState.value.selectedImageUri)
     }
 
     @Test
@@ -96,7 +96,7 @@ class InboundViewModelTest {
         val viewModel = InboundViewModel(repository, ioDispatcher = testDispatcher)
         whenever(repository.createInboundNote(org.mockito.kotlin.any())).thenReturn(1L)
         viewModel.updateDraft(
-            viewModel.draft.copy(
+            viewModel.uiState.value.draft.copy(
                 senderCuit = "20-12345678-9",
                 senderNombre = "ACME",
                 senderApellido = "SA",
