@@ -2,8 +2,6 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
-    id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics")
     id("com.google.dagger.hilt.android")
 }
 
@@ -86,11 +84,6 @@ dependencies {
 
     // Gson
     implementation("com.google.code.gson:gson:2.10.1")
-
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
-    implementation("com.google.firebase:firebase-crashlytics-ktx")
-    implementation("com.google.firebase:firebase-analytics-ktx")
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.50")
