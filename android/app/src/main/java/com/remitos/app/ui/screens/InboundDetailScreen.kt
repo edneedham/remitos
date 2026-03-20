@@ -23,7 +23,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.ImageNotSupported
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Save
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -54,10 +58,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.InboundNoteStatus
 import com.remitos.app.ui.components.RemitosTextField
@@ -82,21 +84,15 @@ fun InboundDetailScreen(
     noteId: Long,
     onBack: () -> Unit,
     onScanBarcodes: (Long, Int) -> Unit,
+    viewModel: InboundDetailViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as RemitosApplication
-    val viewModel: InboundDetailViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return InboundDetailViewModel(noteId, app.repository) as T
-            }
-        },
-    )
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
     var showVoidDialog by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     
     val role = app.authManager.getCurrentUserRole() ?: "operator"
@@ -114,6 +110,26 @@ fun InboundDetailScreen(
                 title = stringResource(R.string.detalle_de_ingreso),
                 onBack = onBack,
                 scrollBehavior = scrollBehavior,
+                actions = {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(
+                            imageVector = Icons.Outlined.MoreVert,
+                            contentDescription = "Más opciones",
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.exportar_csv)) },
+                            onClick = {
+                                showMenu = false
+                                viewModel.exportToCsv(context)
+                            },
+                        )
+                    }
+                },
             )
         },
     ) { padding ->

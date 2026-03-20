@@ -2,6 +2,7 @@ package com.remitos.app.ui.screens
 
 import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.RemitosRepository
+import com.remitos.app.data.SettingsStore
 import com.remitos.app.data.db.entity.OutboundListEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,11 +24,13 @@ import org.mockito.kotlin.whenever
 class OutboundHistoryViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: RemitosRepository
+    private lateinit var settingsStore: SettingsStore
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         repository = mock()
+        settingsStore = mock()
         whenever(repository.observeOutboundLists()).thenReturn(flowOf(emptyList()))
     }
 
@@ -38,7 +41,7 @@ class OutboundHistoryViewModelTest {
 
     @Test
     fun requestReprint_setsReadyStateWhenListExists() = runTest {
-        val viewModel = OutboundHistoryViewModel(repository, ioDispatcher = testDispatcher)
+        val viewModel = OutboundHistoryViewModel(repository, settingsStore, testDispatcher)
         val list = OutboundListEntity(
             id = 4L,
             listNumber = 22L,
@@ -63,7 +66,7 @@ class OutboundHistoryViewModelTest {
 
     @Test
     fun requestReprint_setsErrorWhenListMissing() = runTest {
-        val viewModel = OutboundHistoryViewModel(repository, ioDispatcher = testDispatcher)
+        val viewModel = OutboundHistoryViewModel(repository, settingsStore, testDispatcher)
         whenever(repository.getOutboundList(9L)).thenReturn(null)
 
         viewModel.requestReprint(9L)

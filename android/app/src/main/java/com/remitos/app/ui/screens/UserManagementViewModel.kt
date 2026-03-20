@@ -1,7 +1,6 @@
 package com.remitos.app.ui.screens
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.db.entity.LocalUserEntity
 import com.remitos.app.data.DatabaseManager
@@ -9,13 +8,16 @@ import com.remitos.app.network.CreateOperatorRequest
 import com.remitos.app.network.RemitosApiService
 import com.remitos.app.network.UpdateOperatorPasswordRequest
 import com.remitos.app.network.UpdateOperatorStatusRequest
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class UserManagementViewModel(
+@HiltViewModel
+class UserManagementViewModel @Inject constructor(
     private val apiService: RemitosApiService,
     private val db: DatabaseManager
 ) : ViewModel() {
@@ -32,19 +34,17 @@ class UserManagementViewModel(
             try {
                 val localDb = DatabaseManager.getOfflineDatabase(context)
                 
-                // Fetch from backend
                 val response = withContext(Dispatchers.IO) { apiService.getOperators() }
                 if (response.isSuccessful && response.body() != null) {
                     val operators = response.body()!!
                     
-                    // Sync to local DB
                     val now = System.currentTimeMillis()
                     val entities = operators.map { op ->
                         LocalUserEntity(
                             id = op.id,
                             username = op.username ?: op.email ?: "",
                             role = op.role,
-                            passwordHash = null, // don't override local pin/hash from backend
+                            passwordHash = null,
                             status = op.status,
                             warehouseId = null,
                             lastSyncedAt = now
@@ -56,7 +56,6 @@ class UserManagementViewModel(
                     }
                 }
                 
-                // Read latest from local DB
                 localDb.localUserDao().observeAll().collect { localUsers ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -139,7 +138,7 @@ class UserManagementViewModel(
                     val localDb = DatabaseManager.getOfflineDatabase(context)
                     val user = localDb.localUserDao().getById(userId)
                     if (user != null) {
-                        localDb.localUserDao().update(user.copy(passwordHash = newPassword)) // offline fallback
+                        localDb.localUserDao().update(user.copy(passwordHash = com.remitos.app.data.PasswordHasher.hash(newPassword)))
                     }
                     _uiState.value = _uiState.value.copy(isSaving = false)
                 } else {
@@ -162,19 +161,6 @@ class UserManagementViewModel(
     }
 
     private fun loadUsers() {
-        // Initial state before context is available
-    }
-
-    companion object {
-        fun provideFactory(
-            apiService: RemitosApiService,
-            db: DatabaseManager
-        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return UserManagementViewModel(apiService, db) as T
-            }
-        }
     }
 }
 

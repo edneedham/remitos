@@ -32,10 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.RemitosApplication
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.components.RemitosCard
@@ -46,15 +44,7 @@ import java.util.Locale
 @Composable
 fun ActivityScreen(onBack: () -> Unit) {
     val context = LocalContext.current
-    val app = context.applicationContext as RemitosApplication
-    val viewModel: ActivityViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return ActivityViewModel(app.settingsStore, app.repository) as T
-            }
-        },
-    )
+    val viewModel: ActivityViewModel = hiltViewModel()
 
     val stats by viewModel.usageStats.collectAsStateWithLifecycle()
     val exportState by viewModel.exportState.collectAsStateWithLifecycle()

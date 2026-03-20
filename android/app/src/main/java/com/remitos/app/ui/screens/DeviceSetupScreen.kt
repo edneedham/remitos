@@ -80,49 +80,47 @@ fun DeviceSetupScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(Color.White, Color(0xFFFFFFFF)),
-                            ),
-                        )
-                        .padding(horizontal = Spacing.LargeSpacing, vertical = Spacing.HugeSpacing),
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_logo_wordmark),
                             contentDescription = "en punto",
                             modifier = Modifier.size(width = 200.dp, height = 52.dp),
                         )
-                        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
                         Text(
                             text = "Configurar Dispositivo",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Inicia sesión como administrador para registrar este dispositivo",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                         )
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(Spacing.ExtraLargeSpacing))
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = Spacing.LargeSpacing),
+                        .padding(horizontal = 24.dp),
                 ) {
                     errorMessage?.let {
                         Card(
@@ -147,10 +145,11 @@ fun DeviceSetupScreen(
                         label = "Código de empresa",
                         singleLine = true,
                         enabled = !isLoading,
-                        variant = RemitosTextFieldVariant.Surface,
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = RemitosTextFieldVariant.Reversed,
                     )
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
                     
                     RemitosTextField(
                         value = username,
@@ -165,10 +164,11 @@ fun DeviceSetupScreen(
                             onNext = { focusManager.moveFocus(FocusDirection.Down) }
                         ),
                         enabled = !isLoading,
-                        variant = RemitosTextFieldVariant.Surface,
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = RemitosTextFieldVariant.Reversed,
                     )
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
                     
                     RemitosTextField(
                         value = password,
@@ -199,7 +199,8 @@ fun DeviceSetupScreen(
                             }
                         },
                         enabled = !isLoading,
-                        variant = RemitosTextFieldVariant.Surface,
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = RemitosTextFieldVariant.Reversed,
                     )
                     
                     Spacer(modifier = Modifier.height(Spacing.LargeSpacing))
@@ -271,49 +272,47 @@ fun DeviceSetupScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(Color.White, Color(0xFFFFFFFF)),
-                            ),
-                        )
-                        .padding(horizontal = Spacing.LargeSpacing, vertical = Spacing.HugeSpacing),
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_logo_wordmark),
                             contentDescription = "en punto",
                             modifier = Modifier.size(width = 200.dp, height = 52.dp),
                         )
-                        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
                         Text(
                             text = "Asignar Dispositivo",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Selecciona el warehouse para este dispositivo",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                         )
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(Spacing.ExtraLargeSpacing))
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = Spacing.LargeSpacing),
+                        .padding(horizontal = 24.dp),
                 ) {
                     errorMessage?.let {
                         Card(
@@ -338,10 +337,11 @@ fun DeviceSetupScreen(
                         label = "Nombre del dispositivo",
                         singleLine = true,
                         enabled = !isLoading,
-                        variant = RemitosTextFieldVariant.Surface,
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = RemitosTextFieldVariant.Reversed,
                     )
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
                     
                     ExposedDropdownMenuBox(
                         expanded = warehouseDropdownExpanded,
@@ -358,8 +358,8 @@ fun DeviceSetupScreen(
                                 ) 
                             },
                             enabled = !isLoading && warehouses.isNotEmpty(),
-                            modifier = Modifier.menuAnchor(),
-                            variant = RemitosTextFieldVariant.Surface,
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            variant = RemitosTextFieldVariant.Reversed,
                         )
                         
                         ExposedDropdownMenu(

@@ -2,6 +2,7 @@ package com.remitos.app.ui.screens
 
 import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.RemitosRepository
+import com.remitos.app.data.SettingsStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -23,11 +24,13 @@ import org.mockito.kotlin.whenever
 class OutboundViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: RemitosRepository
+    private lateinit var settingsStore: SettingsStore
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         repository = mock()
+        settingsStore = mock()
         whenever(repository.observeInboundNotesWithAvailable()).thenReturn(flowOf(emptyList()))
     }
 
@@ -38,7 +41,7 @@ class OutboundViewModelTest {
 
     @Test
     fun validateDraft_returnsErrorWhenMissingInboundSelection() {
-        val viewModel = OutboundViewModel(repository, ioDispatcher = testDispatcher)
+        val viewModel = OutboundViewModel(repository, settingsStore, testDispatcher)
         val draft = OutboundDraftState(
             driverNombre = "Juan",
             driverApellido = "Perez",
@@ -73,7 +76,7 @@ class OutboundViewModelTest {
 
     @Test
     fun validateDraft_returnsErrorWhenNotEnoughAvailable() {
-        val viewModel = OutboundViewModel(repository, ioDispatcher = testDispatcher)
+        val viewModel = OutboundViewModel(repository, settingsStore, testDispatcher)
         val draft = OutboundDraftState(
             driverNombre = "Juan",
             driverApellido = "Perez",
@@ -108,7 +111,7 @@ class OutboundViewModelTest {
 
     @Test
     fun validateDraft_returnsNullWhenValid() {
-        val viewModel = OutboundViewModel(repository, ioDispatcher = testDispatcher)
+        val viewModel = OutboundViewModel(repository, settingsStore, testDispatcher)
         val draft = OutboundDraftState(
             driverNombre = "Juan",
             driverApellido = "Perez",
@@ -143,7 +146,7 @@ class OutboundViewModelTest {
 
     @Test
     fun save_success_setsSuccessState() = runTest {
-        val viewModel = OutboundViewModel(repository, ioDispatcher = testDispatcher)
+        val viewModel = OutboundViewModel(repository, settingsStore, testDispatcher)
         whenever(repository.nextOutboundListNumber()).thenReturn(1L)
         whenever(repository.createOutboundWithAllocations(
             org.mockito.kotlin.any(),

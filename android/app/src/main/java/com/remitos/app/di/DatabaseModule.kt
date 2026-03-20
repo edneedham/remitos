@@ -2,6 +2,9 @@ package com.remitos.app.di
 
 import android.content.Context
 import androidx.room.Room
+import com.remitos.app.RemitosApplication
+import com.remitos.app.data.DatabaseManager
+import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.db.AppDatabase
 import dagger.Module
 import dagger.Provides
@@ -24,5 +27,16 @@ object DatabaseModule {
         )
             .fallbackToDestructiveMigration()
             .build()
+    }
+
+    @Provides
+    fun provideRepository(@ApplicationContext context: Context): RemitosRepository {
+        return (context.applicationContext as RemitosApplication).requireRepository()
+    }
+
+    @Provides
+    @Singleton
+    fun provideDatabaseManager(): DatabaseManager {
+        return DatabaseManager
     }
 }

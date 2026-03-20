@@ -67,10 +67,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.R
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.UserInfo
@@ -98,6 +96,7 @@ fun LoginScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     
     var deviceInfo by remember { mutableStateOf<LocalDeviceEntity?>(null) }
+    var lastPassword by remember { mutableStateOf("") }
     
     // Load device info from local database
     LaunchedEffect(Unit) {
@@ -111,14 +110,7 @@ fun LoginScreen(
         }
     }
     
-    val viewModel: LoginViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return LoginViewModel(app.authManager) as T
-            }
-        }
-    )
+    val viewModel: LoginViewModel = hiltViewModel()
     
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
@@ -128,14 +120,32 @@ fun LoginScreen(
         val state = uiState
         when (state) {
             is LoginUiState.Success -> {
-                // Save local session
+                // Save local session and user record for unlock
                 withContext(Dispatchers.IO) {
                     try {
                         val db = com.remitos.app.data.DatabaseManager.getOfflineDatabase(context)
                         val role = app.authManager.getCurrentUserRole() ?: "operator"
                         val userId = app.authManager.getCurrentUser() ?: "admin"
                         val device = db.localDeviceDao().getDevice()
-                        
+
+                        // Ensure user exists in local_users with password hash for unlock
+                        val existingUser = db.localUserDao().getById(userId)
+                        if (existingUser == null) {
+                            db.localUserDao().insert(
+                                com.remitos.app.data.db.entity.LocalUserEntity(
+                                    id = userId,
+                                    username = userId,
+                                    role = role,
+                                    passwordHash = com.remitos.app.data.PasswordHasher.hash(lastPassword),
+                                    status = "active",
+                                    warehouseId = device?.warehouseId,
+                                    lastSyncedAt = System.currentTimeMillis()
+                                )
+                            )
+                        } else if (existingUser.passwordHash == null) {
+                            db.localUserDao().update(existingUser.copy(passwordHash = com.remitos.app.data.PasswordHasher.hash(lastPassword)))
+                        }
+
                         db.localSessionDao().insert(
                             LocalSessionEntity(
                                 userId = userId,
@@ -178,6 +188,7 @@ fun LoginScreen(
             accounts = accounts,
             uiState = uiState,
             onLogin = { companyCode, username, password, isOperator ->
+                lastPassword = password
                 scope.launch {
                     if (isOperator) {
                         // Offline operator login
@@ -216,9 +227,8 @@ fun LoginScreen(
                                 }
                                 
                                 // Verify password
-                                user.passwordHash?.let { hash ->
-                                    // Simple hash comparison for now - in production use proper hashing
-                                    if (hash != password) {
+                                user.passwordHash?.let { storedHash ->
+                                    if (!com.remitos.app.data.PasswordHasher.verify(password, storedHash)) {
                                         withContext(Dispatchers.Main) {
                                             snackbarHostState.showSnackbar("Contraseña incorrecta")
                                         }
@@ -226,8 +236,7 @@ fun LoginScreen(
                                     }
                                 } ?: run {
                                     if (user.passwordHash == null && password.isNotEmpty()) {
-                                        // First time - set the password
-                                        db.localUserDao().update(user.copy(passwordHash = password))
+                                        db.localUserDao().update(user.copy(passwordHash = com.remitos.app.data.PasswordHasher.hash(password)))
                                     }
                                 }
                                 

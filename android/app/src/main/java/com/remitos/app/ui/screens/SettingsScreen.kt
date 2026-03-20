@@ -38,10 +38,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.remitos.app.BuildConfig
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.FeatureFlags
@@ -65,14 +63,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val app = context.applicationContext as RemitosApplication
     val scope = rememberCoroutineScope()
-    val viewModel: SettingsViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return SettingsViewModel(app.settingsStore) as T
-            }
-        }
-    )
+    val viewModel: SettingsViewModel = hiltViewModel()
 
     val perspectiveEnabled by viewModel.perspectiveCorrectionEnabled.collectAsStateWithLifecycle()
     val storageInfo by produceState(initialValue = StorageInfo.empty(), context) {
@@ -84,9 +75,9 @@ fun SettingsScreen(
     // Account state
     var currentUser by remember { mutableStateOf<UserInfo?>(null) }
     var accounts by remember { mutableStateOf<List<UserInfo>>(emptyList()) }
+    val currentUserId = remember { app.authManager.getCurrentUser() }
 
     LaunchedEffect(Unit) {
-        val currentUserId = app.authManager.getCurrentUser()
         currentUser = currentUserId?.let { app.authManager.getUserInfo(it) }
         accounts = app.authManager.listLoggedInUsers()
     }
@@ -191,16 +182,8 @@ fun SettingsScreen(
                 }
             }
 
-            // Demo Data Section - Only show if there are no remitos
-            val hasRemitos by produceState(initialValue = true, context) {
-                value = withContext(Dispatchers.IO) {
-                    val notes = mutableListOf<com.remitos.app.data.db.entity.InboundNoteEntity>()
-                    app.repository.observeInboundNotes().collect { notes.addAll(it) }
-                    notes.isNotEmpty()
-                }
-            }
-            
-            if (!hasRemitos) {
+            // Demo Data Section - Only show for demo user
+            if (currentUserId == "admin" || currentUserId == "demo") {
                 SettingsCard(
                     title = "Datos de demostración",
                     icon = Icons.Outlined.Info,
@@ -216,17 +199,21 @@ fun SettingsScreen(
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
-                            text = "Crea 6 remitos de prueba con datos realistas para explorar la aplicación sin necesidad de escanear documentos reales.",
+                            text = "Crea remitos de prueba con datos realistas para explorar la aplicación sin necesidad de escanear documentos reales. Esto reemplazará los datos actuales.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         androidx.compose.material3.Button(
                             onClick = {
                                 scope.launch {
-                                    withContext(Dispatchers.IO) {
-                                        com.remitos.app.data.TestDataGenerator(app.repository).generateTestData()
+                                    try {
+                                        withContext(Dispatchers.IO) {
+                                            com.remitos.app.data.TestDataGenerator(app.repository).generateTestData()
+                                        }
+                                        onBack() // Go back to dashboard to see the data
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("TestDataGenerator", "Error generating demo data", e)
                                     }
-                                    onBack() // Go back to dashboard to see the data
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),

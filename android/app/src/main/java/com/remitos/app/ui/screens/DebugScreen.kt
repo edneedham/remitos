@@ -32,11 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.remitos.app.RemitosApplication
 import com.remitos.app.data.db.entity.DebugLogEntity
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.components.SectionCard
@@ -51,15 +48,7 @@ fun DebugScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as RemitosApplication
-    val viewModel: DebugViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return DebugViewModel(app.repository) as T
-            }
-        },
-    )
+    val viewModel: DebugViewModel = hiltViewModel()
 
     val logs by viewModel.logs.collectAsStateWithLifecycle()
     var selectedLog by remember { mutableStateOf<DebugLogEntity?>(null) }

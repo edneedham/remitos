@@ -1,23 +1,28 @@
 package com.remitos.app.ui.screens
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.InboundNoteStatus
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class InboundDetailViewModel(
-    private val noteId: Long,
+@HiltViewModel
+class InboundDetailViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val repository: RemitosRepository,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
+    private val noteId: Long = savedStateHandle["noteId"] ?: 0L
     private var currentNote: InboundNoteEntity? = null
 
     private val _uiState = MutableStateFlow(InboundDetailUiState())

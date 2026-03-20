@@ -256,7 +256,7 @@ fun DashboardScreen(
                                     try {
                                         val db = DatabaseManager.getOfflineDatabase(context)
                                         val user = db.localUserDao().getById(userName)
-                                        if (user?.passwordHash == unlockPassword) {
+                                        if (user != null && com.remitos.app.data.PasswordHasher.verify(unlockPassword, user.passwordHash ?: "")) {
                                             db.localSessionDao().updateLastActivity(System.currentTimeMillis())
                                             lastActivityTime = System.currentTimeMillis()
                                             showUnlockDialog = false
@@ -309,7 +309,7 @@ fun DashboardScreen(
                                     try {
                                         val db = DatabaseManager.getOfflineDatabase(context)
                                         val user = db.localUserDao().getById(userName)
-                                        if (user?.passwordHash == unlockPassword) {
+                                        if (user != null && com.remitos.app.data.PasswordHasher.verify(unlockPassword, user.passwordHash ?: "")) {
                                             db.localSessionDao().updateLastActivity(System.currentTimeMillis())
                                             lastActivityTime = System.currentTimeMillis()
                                             showUnlockDialog = false

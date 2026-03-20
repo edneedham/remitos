@@ -1,7 +1,10 @@
 package com.remitos.app.ui.screens
 
+import com.remitos.app.data.AuthManager
 import com.remitos.app.data.RemitosRepository
+import com.remitos.app.data.SettingsStore
 import com.remitos.app.ocr.OcrFieldKeys
+import com.remitos.app.ocr.OcrProcessor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -25,11 +28,17 @@ import org.mockito.kotlin.whenever
 class InboundViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: RemitosRepository
+    private lateinit var settingsStore: SettingsStore
+    private lateinit var ocrProcessor: OcrProcessor
+    private lateinit var authManager: AuthManager
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         repository = mock()
+        settingsStore = mock()
+        ocrProcessor = mock()
+        authManager = mock()
     }
 
     @After
@@ -39,7 +48,7 @@ class InboundViewModelTest {
 
     @Test
     fun save_withInvalidBultos_setsErrorState() {
-        val viewModel = InboundViewModel(repository, ioDispatcher = testDispatcher)
+        val viewModel = InboundViewModel(repository, settingsStore, ocrProcessor, authManager, testDispatcher)
         viewModel.updateDraft(
             viewModel.uiState.value.draft.copy(
                 senderCuit = "20-12345678-9",
@@ -67,7 +76,7 @@ class InboundViewModelTest {
 
     @Test
     fun save_success_resetsDraftAndClearsImage() = runTest {
-        val viewModel = InboundViewModel(repository, ioDispatcher = testDispatcher)
+        val viewModel = InboundViewModel(repository, settingsStore, ocrProcessor, authManager, testDispatcher)
         whenever(repository.createInboundNote(org.mockito.kotlin.any())).thenReturn(1L)
         viewModel.updateDraft(
             viewModel.uiState.value.draft.copy(
@@ -93,7 +102,7 @@ class InboundViewModelTest {
 
     @Test
     fun save_persistsOcrMetadata() = runTest {
-        val viewModel = InboundViewModel(repository, ioDispatcher = testDispatcher)
+        val viewModel = InboundViewModel(repository, settingsStore, ocrProcessor, authManager, testDispatcher)
         whenever(repository.createInboundNote(org.mockito.kotlin.any())).thenReturn(1L)
         viewModel.updateDraft(
             viewModel.uiState.value.draft.copy(

@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.remitos.app.barcode.Gs1Parser
@@ -71,9 +72,6 @@ import com.remitos.app.ui.theme.Warning100
 import com.remitos.app.ui.theme.Warning500
 import java.util.concurrent.Executors
 
-/**
- * Data class representing a scanned barcode item.
- */
 data class ScannedBarcodeItem(
     val id: String,
     val rawValue: String,
@@ -85,9 +83,6 @@ data class ScannedBarcodeItem(
     val isManual: Boolean = false
 )
 
-/**
- * Screen for continuous barcode scanning with tally tracking.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BarcodeScanningScreen(
@@ -95,7 +90,7 @@ fun BarcodeScanningScreen(
     expectedCount: Int,
     onBack: () -> Unit,
     onComplete: () -> Unit,
-    viewModel: BarcodeScanningViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: BarcodeScanningViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
 
