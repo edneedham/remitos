@@ -47,10 +47,10 @@ class TestDataGenerator(private val repository: RemitosRepository) {
 
     suspend fun generateTestData() {
         withContext(Dispatchers.IO) {
-            val existingNotes = repository.observeInboundNotes().first()
-            if (existingNotes.isNotEmpty()) {
-                return@withContext
-            }
+            android.util.Log.d("TestDataGenerator", "Starting generation")
+            // Clear existing operational data first so we can generate fresh demo data
+            repository.clearOperationalData()
+            android.util.Log.d("TestDataGenerator", "Data cleared")
 
             val now = System.currentTimeMillis()
             val oneHour = 60 * 60 * 1000L
@@ -80,6 +80,7 @@ class TestDataGenerator(private val repository: RemitosRepository) {
                     scanPackages(noteId, config.scannedCount, note.createdAt)
                 }
             }
+            android.util.Log.d("TestDataGenerator", "Inbound created: ${createdNotes.size}")
 
             val fullyScannedNotes = createdNotes.filter { (_, note) ->
                 val packages = repository.getPackagesForNote(note.id)
@@ -245,6 +246,7 @@ class TestDataGenerator(private val repository: RemitosRepository) {
                     repository.insertOutboundLineEditHistory(editHistory)
                 }
             }
+            android.util.Log.d("TestDataGenerator", "Generation complete")
         }
     }
 
@@ -347,36 +349,32 @@ class TestDataGenerator(private val repository: RemitosRepository) {
 
     private fun generateGs1Barcode(gtin: String, batch: String, expiry: String): String {
         val paddedGtin = gtin.padStart(14, '0')
-        val expiryCompressed = expiry.replace("/", "").takeLast(6)
+        val parts = expiry.split("/")
+        val yy = parts[2].takeLast(2)
+        val mm = parts[1]
+        val dd = parts[0]
+        val expiryCompressed = "$yy$mm$dd"
         return "]C101$paddedGtin\u001D10$batch\u001D17$expiryCompressed"
     }
 
     private fun extractGtin(barcode: String): String? {
-        val gtinStart = barcode.indexOf("01") + 2
-        return if (gtinStart > 1 && barcode.length >= gtinStart + 14) {
-            barcode.substring(gtinStart, gtinStart + 14)
-        } else null
+        val match = Regex("]C101(\\d{14})").find(barcode)
+        return match?.groupValues?.get(1)
     }
 
     private fun extractBatch(barcode: String): String? {
-        val batchStart = barcode.indexOf("10") + 2
-        val fnc1Index = barcode.indexOf('\u001D', batchStart)
-        return if (batchStart > 1 && fnc1Index > batchStart) {
-            barcode.substring(batchStart, fnc1Index)
-        } else if (batchStart > 1 && barcode.length > batchStart) {
-            barcode.substring(batchStart)
-        } else null
+        val match = Regex("\\x1D10([^\\x1D]+)").find(barcode)
+        return match?.groupValues?.get(1)
     }
 
     private fun extractExpiry(barcode: String): String? {
-        val expiryStart = barcode.indexOf("17") + 2
-        return if (expiryStart > 1 && barcode.length >= expiryStart + 6) {
-            val yy = barcode.substring(expiryStart, expiryStart + 2)
-            val mm = barcode.substring(expiryStart + 2, expiryStart + 4)
-            val dd = barcode.substring(expiryStart + 4, expiryStart + 6)
-            val fullYear = if (yy.toInt() < 50) "20$yy" else "19$yy"
-            "$dd/$mm/$fullYear"
-        } else null
+        val match = Regex("\\x1D17(\\d{6})").find(barcode)
+        val compressed = match?.groupValues?.get(1) ?: return null
+        val yy = compressed.substring(0, 2)
+        val mm = compressed.substring(2, 4)
+        val dd = compressed.substring(4, 6)
+        val fullYear = if (yy.toInt() < 50) "20$yy" else "19$yy"
+        return "$dd/$mm/$fullYear"
     }
 
     private fun generateFutureDate(): String {
@@ -387,5 +385,3 @@ class TestDataGenerator(private val repository: RemitosRepository) {
         return "${days.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/$year"
     }
 }
-
-private fun IntRange.random(): Int = (start..endInclusive).random()

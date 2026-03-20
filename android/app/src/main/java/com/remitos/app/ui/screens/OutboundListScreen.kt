@@ -60,11 +60,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.remitos.app.RemitosApplication
 import com.remitos.app.print.OutboundListPrinter
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTextFieldVariant
@@ -80,15 +77,7 @@ fun OutboundListScreen(
     onBack: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val app = context.applicationContext as RemitosApplication
-    val viewModel: OutboundViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return OutboundViewModel(app.repository) as T
-            }
-        },
-    )
+    val viewModel: OutboundViewModel = hiltViewModel()
 
     val inboundOptions by viewModel.inboundOptions.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
@@ -351,7 +340,7 @@ fun OutboundListScreen(
                             viewModel.clearPrintPayload()
                             if (payload != null) {
                                 scope.launch {
-                                    val config = app.settingsStore.getTemplateConfig()
+                                    val config = viewModel.getTemplateConfig()
                                     OutboundListPrinter(context).print(payload.list, payload.lines, config)
                                 }
                             }
@@ -376,7 +365,7 @@ fun OutboundListScreen(
                                 viewModel.clearPrintPayload()
                                 if (payload != null) {
                                     scope.launch {
-                                        val config = app.settingsStore.getTemplateConfig()
+                                        val config = viewModel.getTemplateConfig()
                                         val file = OutboundListPrinter(context).saveToPdf(payload.list, payload.lines, config)
                                         if (file != null) {
                                             snackbarHostState.showSnackbar("PDF guardado en: ${file.absolutePath}")

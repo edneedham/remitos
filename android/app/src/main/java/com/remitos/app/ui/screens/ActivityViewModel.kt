@@ -9,6 +9,7 @@ import com.remitos.app.data.OutboundSearchFilters
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.SettingsStore
 import com.remitos.app.data.UsageStats
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,8 +18,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import javax.inject.Inject
 
-class ActivityViewModel(
+@HiltViewModel
+class ActivityViewModel @Inject constructor(
     private val settingsStore: SettingsStore,
     private val repository: RemitosRepository
 ) : ViewModel() {

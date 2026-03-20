@@ -11,14 +11,13 @@ import androidx.lifecycle.viewModelScope
 import com.remitos.app.barcode.Gs1Parser
 import com.remitos.app.data.DatabaseManager
 import com.remitos.app.data.db.entity.InboundPackageEntity
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import javax.inject.Inject
 
-/**
- * Sealed class representing scan states.
- */
 sealed class ScanState {
     data object Idle : ScanState()
     data object Scanning : ScanState()
@@ -26,10 +25,8 @@ sealed class ScanState {
     data class Error(val message: String) : ScanState()
 }
 
-/**
- * ViewModel for barcode scanning operations.
- */
-class BarcodeScanningViewModel : ViewModel() {
+@HiltViewModel
+class BarcodeScanningViewModel @Inject constructor() : ViewModel() {
 
     private val gs1Parser = Gs1Parser()
 

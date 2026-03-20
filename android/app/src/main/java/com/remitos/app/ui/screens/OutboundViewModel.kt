@@ -5,10 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.OutboundLineStatus
 import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.RemitosRepository
+import com.remitos.app.data.SettingsStore
+import com.remitos.app.data.TemplateConfig
 import com.remitos.app.data.db.entity.InboundNoteWithAvailable
 import com.remitos.app.data.db.entity.OutboundLineEntity
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,12 +21,18 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class OutboundViewModel(
-    repository: RemitosRepository,
+@HiltViewModel
+class OutboundViewModel @Inject constructor(
+    private val repository: RemitosRepository,
+    private val settingsStore: SettingsStore,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
-    private val repository = repository
+
+    suspend fun getTemplateConfig(): TemplateConfig {
+        return settingsStore.getTemplateConfig()
+    }
 
     val inboundOptions: StateFlow<List<InboundOption>> = repository
         .observeInboundNotesWithAvailable()

@@ -5,18 +5,24 @@ import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.OutboundLineStatus
 import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.RemitosRepository
+import com.remitos.app.data.SettingsStore
+import com.remitos.app.data.TemplateConfig
 import com.remitos.app.data.db.entity.OutboundLineEditHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
 import com.remitos.app.data.db.entity.OutboundListEntity
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class OutboundPreviewViewModel(
-    private val repository: RemitosRepository
+@HiltViewModel
+class OutboundPreviewViewModel @Inject constructor(
+    private val repository: RemitosRepository,
+    private val settingsStore: SettingsStore
 ) : ViewModel() {
     private val _state = MutableStateFlow<OutboundPreviewState>(OutboundPreviewState.Loading)
     val state: StateFlow<OutboundPreviewState> = _state
@@ -24,6 +30,10 @@ class OutboundPreviewViewModel(
     val historyState: StateFlow<OutboundLineHistoryState?> = _historyState
     private val _editState = MutableStateFlow<OutboundLineEditState?>(null)
     val editState: StateFlow<OutboundLineEditState?> = _editState
+
+    suspend fun getTemplateConfig(): TemplateConfig {
+        return settingsStore.getTemplateConfig()
+    }
 
     fun load(listId: Long) {
         if (listId <= 0L) {

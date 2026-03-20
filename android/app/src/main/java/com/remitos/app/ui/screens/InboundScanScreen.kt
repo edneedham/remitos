@@ -64,13 +64,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.remitos.app.RemitosApplication
 import com.remitos.app.network.NetworkChecker
-import com.remitos.app.ocr.OcrProcessor
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.components.SectionCard
@@ -91,17 +87,9 @@ fun InboundScanScreen(
     onNavigateToBarcodeScanning: (Long, Int) -> Unit,
     capturedUri: Uri? = null,
     onCapturedUriHandled: () -> Unit = {},
+    viewModel: InboundViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as RemitosApplication
-    val viewModel: InboundViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return InboundViewModel(app.repository, app.settingsStore, ocrProcessor = OcrProcessor(), authManager = app.authManager) as T
-            }
-        },
-    )
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val draft = uiState.draft

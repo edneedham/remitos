@@ -45,10 +45,8 @@ class RemitosApplication : Application() {
         get() = requireRepository()
 
     override fun onCreate() {
-        super.onCreate()
-
-        // Configure backend mode
         FeatureFlags.configureBackendMode("https://remitos-api-865349418409.southamerica-east1.run.app")
+        super.onCreate()
 
         // Initialize session manager
         sessionManager = SessionManager(

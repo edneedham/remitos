@@ -49,11 +49,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.remitos.app.RemitosApplication
 import com.remitos.app.data.OutboundLineStatus
 import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
@@ -74,17 +71,9 @@ import java.util.Locale
 fun OutboundPreviewScreen(
     listId: Long,
     onBack: () -> Unit,
+    viewModel: OutboundPreviewViewModel = hiltViewModel()
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val app = context.applicationContext as RemitosApplication
-    val viewModel: OutboundPreviewViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return OutboundPreviewViewModel(app.repository) as T
-            }
-        },
-    )
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val historyState by viewModel.historyState.collectAsStateWithLifecycle()
@@ -192,7 +181,7 @@ fun OutboundPreviewScreen(
                         showConfirmDialog = false
                         if (ready != null) {
                             scope.launch {
-                                val config = app.settingsStore.getTemplateConfig()
+                                val config = viewModel.getTemplateConfig()
                                 OutboundListPrinter(context).print(ready.list, ready.lines, config)
                                 onBack()
                             }
@@ -232,7 +221,7 @@ fun OutboundPreviewScreen(
 @Composable
 fun OutboundPreviewSampleScreen(onBack: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val app = context.applicationContext as RemitosApplication
+    val viewModel: OutboundPreviewViewModel = hiltViewModel()
     var state by remember { mutableStateOf(samplePreviewState()) }
     var showConfirmDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -314,7 +303,7 @@ fun OutboundPreviewSampleScreen(onBack: () -> Unit) {
                     onClick = {
                         showConfirmDialog = false
                         scope.launch {
-                            val config = app.settingsStore.getTemplateConfig()
+                            val config = viewModel.getTemplateConfig()
                             OutboundListPrinter(context).print(state.list, state.lines, config)
                         }
                     }

@@ -19,11 +19,13 @@ import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.ocr.OcrFieldKeys
 import com.remitos.app.ocr.OcrProcessor
 import com.remitos.app.ocr.OcrProcessingException
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 import com.remitos.app.network.NetworkChecker
 
@@ -42,12 +44,13 @@ data class InboundUiState(
     val showOfflineModeMessage: Boolean = false
 )
 
-class InboundViewModel(
+@HiltViewModel
+class InboundViewModel @Inject constructor(
     private val repository: RemitosRepository,
-    private val settingsStore: SettingsStore? = null,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    private val ocrProcessor: OcrProcessor = OcrProcessor(),
-    private val authManager: com.remitos.app.data.AuthManager? = null,
+    private val settingsStore: SettingsStore,
+    private val ocrProcessor: OcrProcessor,
+    private val authManager: com.remitos.app.data.AuthManager,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
     private var lastOcrFields: Map<String, String> = emptyMap()
 
@@ -80,20 +83,18 @@ class InboundViewModel(
             var debugLog: DebugLogEntity? = null
             
             var isOffline = false
-            if (authManager != null) {
-                val isReachable = NetworkChecker.isServerReachable(authManager)
-                if (!isReachable) {
-                    isOffline = true
-                    _uiState.update { it.copy(showOfflineModeMessage = true) }
-                }
+            val isReachable = NetworkChecker.isServerReachable(authManager)
+            if (!isReachable) {
+                isOffline = true
+                _uiState.update { it.copy(showOfflineModeMessage = true) }
             }
             
             try {
                 withContext(ioDispatcher) {
-                    settingsStore?.recordScanStarted()
+                    settingsStore.recordScanStarted()
                 }
                 val enableCorrection = withContext(ioDispatcher) {
-                    settingsStore?.getPerspectiveCorrectionEnabled() ?: true
+                    settingsStore.getPerspectiveCorrectionEnabled()
                 }
                 val result = ocrProcessor.processImage(context, uri, enableCorrection)
                 parseSuccess = isParseSuccessful(result.fields)
@@ -180,7 +181,7 @@ class InboundViewModel(
             } finally {
                 val durationMs = SystemClock.elapsedRealtime() - startTimeMs
                 withContext(ioDispatcher) {
-                    settingsStore?.recordScanResult(durationMs, parseSuccess)
+                    settingsStore.recordScanResult(durationMs, parseSuccess)
                     debugLog?.let { repository.insertDebugLog(it) }
                 }
                 _uiState.update { it.copy(
@@ -248,7 +249,7 @@ class InboundViewModel(
                 withContext(ioDispatcher) {
                     noteId = repository.createInboundNote(note)
                     if (manualCorrection) {
-                        settingsStore?.recordManualCorrection()
+                        settingsStore.recordManualCorrection()
                     }
                 }
 

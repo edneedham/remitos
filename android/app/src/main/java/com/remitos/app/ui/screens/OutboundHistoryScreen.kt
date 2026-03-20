@@ -47,11 +47,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.remitos.app.RemitosApplication
 import com.remitos.app.data.OutboundLineStatus
 import com.remitos.app.data.OutboundListStatus
 import com.remitos.app.data.db.entity.OutboundListEntity
@@ -69,15 +66,7 @@ import com.remitos.app.ui.theme.Spacing
 @Composable
 fun OutboundHistoryScreen(onBack: () -> Unit) {
     val context = LocalContext.current
-    val app = context.applicationContext as RemitosApplication
-    val viewModel: OutboundHistoryViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return OutboundHistoryViewModel(app.repository) as T
-            }
-        },
-    )
+    val viewModel: OutboundHistoryViewModel = hiltViewModel()
 
     val outboundLists by viewModel.outboundLists.collectAsStateWithLifecycle()
     val searchQuery by viewModel.currentQuery.collectAsStateWithLifecycle()
@@ -194,7 +183,7 @@ fun OutboundHistoryScreen(onBack: () -> Unit) {
                     TextButton(
                         onClick = {
                             scope.launch {
-                                val config = app.settingsStore.getTemplateConfig()
+                                val config = viewModel.getTemplateConfig()
                                 OutboundListPrinter(context)
                                     .print(state.payload.list, state.payload.lines, config)
                                 viewModel.clearReprintState()

@@ -50,11 +50,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.remitos.app.RemitosApplication
 import com.remitos.app.data.InboundNoteStatus
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.ui.components.DateUtils
@@ -74,15 +71,7 @@ fun InboundHistoryScreen(
     onScanBarcodes: (Long, Int) -> Unit,
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as RemitosApplication
-    val viewModel: InboundHistoryViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return InboundHistoryViewModel(app.repository) as T
-            }
-        },
-    )
+    val viewModel: InboundHistoryViewModel = hiltViewModel()
 
     val notes by viewModel.filteredNotes.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQueryState.collectAsStateWithLifecycle()

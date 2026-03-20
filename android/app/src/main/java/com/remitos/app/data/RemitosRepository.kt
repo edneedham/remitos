@@ -65,6 +65,27 @@ class RemitosRepository(private val db: AppDatabase) {
     suspend fun insertDebugLog(log: DebugLogEntity) = auditRepository.insertDebugLog(log)
     
     // Demo data helpers
+    suspend fun clearOperationalData() {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            db.runInTransaction {
+                val sqls = listOf(
+                    "DELETE FROM outbound_line_edit_history",
+                    "DELETE FROM outbound_line_status_history",
+                    "DELETE FROM outbound_lines",
+                    "DELETE FROM outbound_lists",
+                    "DELETE FROM inbound_packages",
+                    "DELETE FROM inbound_notes",
+                    "DELETE FROM debug_logs",
+                    "DELETE FROM sync_queue"
+                )
+                val writableDb = db.openHelper.writableDatabase
+                sqls.forEach { sql ->
+                    writableDb.execSQL(sql)
+                }
+            }
+        }
+    }
+
     suspend fun insertOutboundLineStatusHistory(entries: List<OutboundLineStatusHistoryEntity>) =
         outboundRepository.insertLineStatusHistory(entries)
     suspend fun insertOutboundLineEditHistory(entries: List<OutboundLineEditHistoryEntity>) =

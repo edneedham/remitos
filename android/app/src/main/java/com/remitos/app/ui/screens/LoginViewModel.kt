@@ -9,12 +9,14 @@ import com.remitos.app.data.UserInfo
 import com.remitos.app.network.ApiClient
 import com.remitos.app.network.LoginRequest
 import com.remitos.app.network.RemitosApiService
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
+import javax.inject.Inject
 
 /**
  * UI states for the login screen.
@@ -31,7 +33,8 @@ sealed class LoginUiState {
  * ViewModel for the Login screen.
  * Handles authentication logic and account management.
  */
-class LoginViewModel(
+@HiltViewModel
+class LoginViewModel @Inject constructor(
     private val authManager: AuthManager,
 ) : ViewModel() {
 

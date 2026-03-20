@@ -36,10 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.remitos.app.RemitosApplication
-import com.remitos.app.data.DatabaseManager
 import com.remitos.app.data.db.entity.LocalUserEntity
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
@@ -47,17 +45,10 @@ import com.remitos.app.ui.components.RemitosTopBar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserManagementScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: UserManagementViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as RemitosApplication
-    
-    val viewModel: UserManagementViewModel = viewModel(
-        factory = UserManagementViewModel.provideFactory(
-            apiService = app.apiService,
-            db = DatabaseManager
-        )
-    )
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
