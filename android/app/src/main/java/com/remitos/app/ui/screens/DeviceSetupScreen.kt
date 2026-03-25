@@ -64,11 +64,11 @@ fun DeviceSetupScreen(
     var authToken by remember { mutableStateOf<String?>(null) }
     
     // Form state
-    var companyCode by remember { mutableStateOf("DEMO") }
-    var username by remember { mutableStateOf("") }
+    var companyCode by remember { mutableStateOf("LOGSUR") }
+    var username by remember { mutableStateOf("admin") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var deviceName by remember { mutableStateOf(android.os.Build.MODEL) }
+    var deviceName by remember { mutableStateOf("Terminal Móvil #1") }
     var selectedWarehouse by remember { mutableStateOf<WarehouseDto?>(null) }
     var warehouseDropdownExpanded by remember { mutableStateOf(false) }
     
