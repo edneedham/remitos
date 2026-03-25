@@ -591,22 +591,13 @@ private fun LoginContent(
         Spacer(modifier = Modifier.height(Spacing.ItemSpacing))
         
         // Login button
-        Button(
+        com.remitos.app.ui.components.LoadingButton(
+            text = if (isOperatorMode) "Iniciar sesión como Operador" else "Iniciar sesión",
             onClick = { onLogin(companyCode, username, password, isOperatorMode) },
-            enabled = companyCode.isNotBlank() && username.isNotBlank() && password.isNotBlank() && !isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(24.dp),
-                )
-            } else {
-                Text(if (isOperatorMode) "Iniciar sesión como Operador" else "Iniciar sesión")
-            }
-        }
+            enabled = companyCode.isNotBlank() && username.isNotBlank() && password.isNotBlank(),
+            isLoading = isLoading,
+            modifier = Modifier.fillMaxWidth(),
+        )
         
         Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
         

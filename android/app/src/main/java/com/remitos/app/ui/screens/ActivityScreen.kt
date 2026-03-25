@@ -133,13 +133,13 @@ fun ActivityScreen(onBack: () -> Unit) {
                 onClick = { viewModel.exportData(context) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .height(48.dp),
                 enabled = exportState !is ExportState.Exporting,
                 colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
             ) {
                 if (exportState is ExportState.Exporting) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(18.dp),
                         color = Color.White,
                         strokeWidth = 2.dp
                     )

@@ -205,7 +205,8 @@ fun DeviceSetupScreen(
                     
                     Spacer(modifier = Modifier.height(Spacing.LargeSpacing))
                     
-                    Button(
+                    com.remitos.app.ui.components.LoadingButton(
+                        text = "Continuar",
                         onClick = {
                             scope.launch {
                                 isLoading = true
@@ -243,20 +244,10 @@ fun DeviceSetupScreen(
                                 }
                             }
                         },
-                        enabled = companyCode.isNotBlank() && username.isNotBlank() && password.isNotBlank() && !isLoading,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.height(24.dp),
-                            )
-                        } else {
-                            Text("Continuar")
-                        }
-                    }
+                        enabled = companyCode.isNotBlank() && username.isNotBlank() && password.isNotBlank(),
+                        isLoading = isLoading,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
@@ -389,7 +380,8 @@ fun DeviceSetupScreen(
                     
                     Spacer(modifier = Modifier.height(Spacing.LargeSpacing))
                     
-                    Button(
+                    com.remitos.app.ui.components.LoadingButton(
+                        text = "Registrar Dispositivo",
                         onClick = {
                             selectedWarehouse?.let { warehouse ->
                                 scope.launch {
@@ -453,20 +445,10 @@ fun DeviceSetupScreen(
                                 }
                             }
                         },
-                        enabled = selectedWarehouse != null && !isLoading,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.height(24.dp),
-                            )
-                        } else {
-                            Text("Registrar Dispositivo")
-                        }
-                    }
+                        enabled = selectedWarehouse != null,
+                        isLoading = isLoading,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }
