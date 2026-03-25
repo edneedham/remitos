@@ -290,7 +290,7 @@ fun DeviceSetupScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Selecciona el warehouse para este dispositivo",
+                            text = "Seleccioná el depósito para este dispositivo",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -342,7 +342,7 @@ fun DeviceSetupScreen(
                             value = selectedWarehouse?.name ?: "",
                             onValueChange = {},
                             readOnly = true,
-                            label = "Warehouse",
+                            label = "Depósito",
                             trailingIcon = { 
                                 ExposedDropdownMenuDefaults.TrailingIcon(
                                     expanded = warehouseDropdownExpanded,

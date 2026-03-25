@@ -27,17 +27,19 @@ type AuthHandler struct {
 	warehouseRepo    *repository.WarehouseRepository
 	deviceRepo       *repository.DeviceRepository
 	refreshTokenRepo *repository.RefreshTokenRepository
+	subscriptionRepo *repository.SubscriptionRepository
 	db               *pgxpool.Pool
 	jwtSvc           *jwt.Service
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, db *pgxpool.Pool, jwtSvc *jwt.Service) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service) *AuthHandler {
 	return &AuthHandler{
 		userRepo:         userRepo,
 		companyRepo:      companyRepo,
 		warehouseRepo:    warehouseRepo,
 		deviceRepo:       deviceRepo,
 		refreshTokenRepo: refreshTokenRepo,
+		subscriptionRepo: subscriptionRepo,
 		db:               db,
 		jwtSvc:           jwtSvc,
 	}
@@ -166,7 +168,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt: time.Now(),
 		}
 		if company.Name == "" {
-			company.Name = companyCode + " Company"
+			company.Name = companyCode + " S.A."
 		}
 
 		if err := h.companyRepo.Create(ctx, company); err != nil {
@@ -179,7 +181,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		warehouse := &repository.Warehouse{
 			ID:        uuid.New(),
 			CompanyID: companyID,
-			Name:      "Main Warehouse",
+			Name:      "Depósito Central",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
@@ -208,6 +210,25 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.userRepo.Create(ctx, user); err != nil {
 		logger.Log.Error().Err(err).Msg("Error creating user")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+
+	subscription := &models.Subscription{
+		ID:              uuid.New(),
+		UserID:          user.ID,
+		Status:          "trialing",
+		DeviceConnected: false,
+		Features: models.SubscriptionFeatures{
+			OfflineMode:     true,
+			ConnectedMode:   true,
+			PremiumFeatures: true,
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	if err := h.subscriptionRepo.Create(ctx, subscription); err != nil {
+		logger.Log.Error().Err(err).Msg("Error creating subscription")
 		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
 		return
 	}

@@ -300,7 +300,7 @@ class TestDataGenerator(private val repository: RemitosRepository) {
                     batchLot = extractBatch(gs1Barcode),
                     expiryDate = extractExpiry(gs1Barcode),
                     scannedAt = createdAt + (index + 1) * 60 * 1000L,
-                    scannedBy = "demo_user"
+                    scannedBy = "m.gomez"
                 )
             )
         }
