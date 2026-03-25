@@ -312,6 +312,8 @@ fun DashboardScreen(
                                         if (user != null && com.remitos.app.data.PasswordHasher.verify(unlockPassword, user.passwordHash ?: "")) {
                                             db.localSessionDao().updateLastActivity(System.currentTimeMillis())
                                             lastActivityTime = System.currentTimeMillis()
+                                            // Restore AuthManager current user for role resolution
+                                            app.authManager.setCurrentUser(user.id)
                                             showUnlockDialog = false
                                             unlockPassword = ""
                                         } else {
