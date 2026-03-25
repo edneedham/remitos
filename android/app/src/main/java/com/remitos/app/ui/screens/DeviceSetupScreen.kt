@@ -411,7 +411,7 @@ fun DeviceSetupScreen(
                                             database.localDeviceDao().insert(
                                                 LocalDeviceEntity(
                                                     deviceId = deviceUuid,
-                                                    companyId = "DEMO",
+                                                    companyId = "LOGSUR",
                                                     warehouseId = warehouse.id,
                                                     registeredAt = System.currentTimeMillis()
                                                 )
