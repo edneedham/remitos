@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -362,29 +364,18 @@ private fun LoginContent(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Dispositivo registrado",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
-                        Text(
-                            text = " · ",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-                        )
-                        Text(
-                            text = device.companyId,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                        device.warehouseId?.let { warehouseId ->
-                            Text(
-                                text = " · $warehouseId",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-                            )
-                        }
                     }
                 }
             }
