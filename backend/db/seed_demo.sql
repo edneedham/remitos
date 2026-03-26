@@ -4,7 +4,7 @@
 -- Create demo company
 INSERT INTO companies (id, name, code, status, is_verified, created_at, updated_at)
 VALUES 
-    ('11111111-1111-1111-1111-111111111111', 'Logística del Sur S.A.', 'DEMO', 'active', true, NOW(), NOW())
+    ('11111111-1111-1111-1111-111111111111', 'Logística del Sur S.A.', 'LOGSUR', 'active', true, NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- Create demo warehouse
