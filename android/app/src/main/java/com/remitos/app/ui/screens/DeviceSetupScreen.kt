@@ -87,7 +87,7 @@ fun DeviceSetupScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 40.dp),
+                        .padding(start = 24.dp, end = 24.dp, top = 64.dp, bottom = 24.dp),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -270,7 +270,7 @@ fun DeviceSetupScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 40.dp),
+                        .padding(start = 24.dp, end = 24.dp, top = 64.dp, bottom = 24.dp),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
