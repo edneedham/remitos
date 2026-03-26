@@ -76,23 +76,10 @@ fun SettingsScreen(
     var currentUser by remember { mutableStateOf<UserInfo?>(null) }
     var accounts by remember { mutableStateOf<List<UserInfo>>(emptyList()) }
     val currentUserId = remember { app.authManager.getCurrentUser() }
-    
-    // Demo data feedback
-    var showRegenerateDialog by remember { mutableStateOf(false) }
-    var showSnackbar by remember { mutableStateOf<String?>(null) }
-    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         currentUser = currentUserId?.let { app.authManager.getUserInfo(it) }
         accounts = app.authManager.listLoggedInUsers()
-    }
-    
-    // Show snackbar
-    LaunchedEffect(showSnackbar) {
-        showSnackbar?.let { message ->
-            snackbarHostState.showSnackbar(message)
-            showSnackbar = null
-        }
     }
 
     Scaffold(
@@ -105,7 +92,6 @@ fun SettingsScreen(
                 showLogo = false,
             )
         },
-        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -196,40 +182,6 @@ fun SettingsScreen(
                 }
             }
 
-            // Demo Data Section - Only show for demo user
-            if (currentUserId == "admin" || currentUserId == "demo") {
-                SettingsCard(
-                    title = "Datos de demostración",
-                    icon = Icons.Outlined.Info,
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Text(
-                            text = "Generar remitos de ejemplo",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Medium,
-                        )
-                        Text(
-                            text = "Crea remitos de prueba con datos realistas para explorar la aplicación sin necesidad de escanear documentos reales. Esto reemplazará los datos actuales.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        androidx.compose.material3.Button(
-                            onClick = { showRegenerateDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                containerColor = BrandBlue,
-                            ),
-                        ) {
-                            Text("Regenerar datos de demostración")
-                        }
-                    }
-                }
-            }
-
             Spacer(modifier = Modifier.weight(1f))
             Row(
                 modifier = Modifier
@@ -249,44 +201,6 @@ fun SettingsScreen(
                     color = BrandBlue.copy(alpha = 0.7f),
                 )
             }
-        }
-        
-        // Confirmation dialog for regenerating demo data
-        if (showRegenerateDialog) {
-            androidx.compose.material3.AlertDialog(
-                onDismissRequest = { showRegenerateDialog = false },
-                title = { Text("Regenerar datos de demostración") },
-                text = { Text("Esto eliminará todos los datos actuales (ingresos, repartos, escaneos) y creará nuevos datos de demostración. ¿Estás seguro?") },
-                confirmButton = {
-                    androidx.compose.material3.TextButton(
-                        onClick = {
-                            showRegenerateDialog = false
-                    scope.launch {
-                        try {
-                            withContext(Dispatchers.IO) {
-                                val generator = com.remitos.app.data.TestDataGenerator(app.repository)
-                                generator.generateTestData()
-                                generator.seedUsageStats(context)
-                                generator.seedTemplateConfig(context)
-                            }
-                            showSnackbar = "Datos de demostración regenerados correctamente"
-                            onBack() // Go back to dashboard to see the data
-                        } catch (e: Exception) {
-                            android.util.Log.e("TestDataGenerator", "Error generating demo data", e)
-                            showSnackbar = "Error al regenerar datos: ${e.message}"
-                        }
-                    }
-                        }
-                    ) {
-                        Text("Sí, regenerar")
-                    }
-                },
-                dismissButton = {
-                    androidx.compose.material3.TextButton(onClick = { showRegenerateDialog = false }) {
-                        Text("Cancelar")
-                    }
-                }
-            )
         }
     }
 }

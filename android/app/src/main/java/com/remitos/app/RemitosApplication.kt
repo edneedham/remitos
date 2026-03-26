@@ -74,19 +74,6 @@ class RemitosApplication : Application() {
             currentDatabase = DatabaseManager.getDatabase(this, userId)
             currentRepository = currentDatabase?.let { RemitosRepository(it) }
             sessionManager.resetSession()
-            
-            if (userId == "admin") {
-                currentRepository?.let { repo ->
-                    val existingNotes = repo.observeInboundNotes().first()
-                    if (existingNotes.isEmpty()) {
-                        val generator = TestDataGenerator(repo)
-                        generator.generateTestData()
-                        generator.seedUsageStats(this@RemitosApplication)
-                        generator.seedTemplateConfig(this@RemitosApplication)
-                    }
-                }
-            }
-            
             true
         } else {
             currentDatabase = DatabaseManager.getOfflineDatabase(this)
