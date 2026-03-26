@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DebugViewModel @Inject constructor(
-    private val repository: RemitosRepository
+    val repository: RemitosRepository
 ) : ViewModel() {
     val logs: StateFlow<List<DebugLogEntity>> = repository.observeDebugLogs().stateIn(
         viewModelScope,

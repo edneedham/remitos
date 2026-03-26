@@ -105,6 +105,47 @@ fun DebugScreen(
                     }
                 }
             }
+            item {
+                SectionCard(
+                    title = "Generar datos de demostración",
+                    icon = Icons.Outlined.Add,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = "Genera datos completos de demostración: 10 remitos, 3 listas de reparto, usuarios, estadísticas y configuración de plantilla.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    try {
+                                        val generator = com.remitos.app.data.TestDataGenerator(viewModel.repository)
+                                        generator.generateTestData()
+                                        generator.seedUsageStats(context)
+                                        generator.seedTemplateConfig(context)
+                                        snackbarHostState.showSnackbar(
+                                            "Datos de demostración generados correctamente"
+                                        )
+                                    } catch (e: Exception) {
+                                        snackbarHostState.showSnackbar(
+                                            "Error: ${e.message}"
+                                        )
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Generar datos de demostración")
+                        }
+                    }
+                }
+            }
             items(logs) { log ->
                 DebugLogCard(
                     log = log,
