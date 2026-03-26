@@ -324,7 +324,7 @@ private fun LoginContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 24.dp),
+                .padding(horizontal = 24.dp, vertical = 40.dp),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
