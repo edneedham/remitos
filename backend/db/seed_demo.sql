@@ -26,7 +26,7 @@ INSERT INTO roles (id, name)
 SELECT gen_random_uuid(), 'operator' WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name = 'operator')
 ON CONFLICT DO NOTHING;
 
--- Get role IDs
+-- Get role IDs and create users
 DO $$
 DECLARE
     company_owner_role_id UUID;
@@ -41,24 +41,24 @@ BEGIN
     -- Password hash for "demo1234"
     INSERT INTO users (id, company_id, email, username, password_hash, role, role_id, status, is_verified, created_at, updated_at)
     VALUES 
-        ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 'admin@logisticadelsur.com', 'admin', '$2a$10$1ea7Bq6C7zd880Vqu8r/EOl.vv.eN8RfkkfTmapq95.zWfhcLDy9a', company_owner_role_id, company_owner_role_id, 'active', true, NOW(), NOW())
+        ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 'admin@logisticadelsur.com', 'admin', '$2a$10$1ea7Bq6C7zd880Vqu8r/EOl.vv.eN8RfkkfTmapq95.zWfhcLDy9a', 'company_owner', company_owner_role_id, 'active', true, NOW(), NOW())
     ON CONFLICT (id) DO NOTHING;
 
     -- Create demo warehouse admin (password: demo1234)
     INSERT INTO users (id, company_id, email, username, password_hash, role, role_id, status, is_verified, created_at, updated_at)
     VALUES 
-        ('44444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', 'jefe@logisticadelsur.com', 'jefedeposito', '$2a$10$1ea7Bq6C7zd880Vqu8r/EOl.vv.eN8RfkkfTmapq95.zWfhcLDy9a', warehouse_admin_role_id, warehouse_admin_role_id, 'active', true, NOW(), NOW())
+        ('44444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', 'jefe@logisticadelsur.com', 'jefedeposito', '$2a$10$1ea7Bq6C7zd880Vqu8r/EOl.vv.eN8RfkkfTmapq95.zWfhcLDy9a', 'warehouse_admin', warehouse_admin_role_id, 'active', true, NOW(), NOW())
     ON CONFLICT (id) DO NOTHING;
 
     -- Create demo operator (password: demo1234)
     INSERT INTO users (id, company_id, email, username, password_hash, role, role_id, status, is_verified, created_at, updated_at)
     VALUES 
-        ('55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', 'operador@logisticadelsur.com', 'operador', '$2a$10$1ea7Bq6C7zd880Vqu8r/EOl.vv.eN8RfkkfTmapq95.zWfhcLDy9a', operator_role_id, operator_role_id, 'active', true, NOW(), NOW())
+        ('55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', 'operador@logisticadelsur.com', 'operador', '$2a$10$1ea7Bq6C7zd880Vqu8r/EOl.vv.eN8RfkkfTmapq95.zWfhcLDy9a', 'operator', operator_role_id, 'active', true, NOW(), NOW())
     ON CONFLICT (id) DO NOTHING;
 END $$;
 
 -- Create demo device
-INSERT INTO devices (id, company_id, warehouse_id, name, fingerprint, status, last_seen_at, created_at)
+INSERT INTO devices (id, company_id, warehouse_id, device_uuid, platform, model, status, name, fingerprint, registered_at, created_at)
 VALUES 
-    ('66666666-6666-6666-6666-666666666666', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 'Tablet Móvil #1', 'demo-device-fingerprint', 'active', NOW(), NOW())
+    ('66666666-6666-6666-6666-666666666666', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 'demo-device-001', 'android', 'Pixel 7', 'active', 'Tablet Móvil #1', 'demo-device-fingerprint', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;

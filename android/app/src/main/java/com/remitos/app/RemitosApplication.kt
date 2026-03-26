@@ -45,7 +45,14 @@ class RemitosApplication : Application() {
         get() = requireRepository()
 
     override fun onCreate() {
-        FeatureFlags.configureBackendMode("https://remitos-api-865349418409.southamerica-east1.run.app")
+        // For local development/screenshots, use: "http://10.0.2.2:8080/" (Android emulator localhost)
+        // For production, use: "https://remitos-api-865349418409.southamerica-east1.run.app"
+        val backendUrl = if (BuildConfig.DEBUG) {
+            "http://10.0.2.2:8080/"  // Local development server (use your IP for real device: http://192.168.0.103:8080/)
+        } else {
+            "https://remitos-api-865349418409.southamerica-east1.run.app"  // Production
+        }
+        FeatureFlags.configureBackendMode(backendUrl)
         super.onCreate()
 
         // Initialize session manager
