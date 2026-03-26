@@ -87,7 +87,7 @@ fun DeviceSetupScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                        .padding(horizontal = 24.dp, vertical = 40.dp),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -105,7 +105,7 @@ fun DeviceSetupScreen(
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium,
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Inicia sesión como administrador para registrar este dispositivo",
                             style = MaterialTheme.typography.bodySmall,
@@ -115,7 +115,7 @@ fun DeviceSetupScreen(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
                 
                 Column(
                     modifier = Modifier
@@ -270,7 +270,7 @@ fun DeviceSetupScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                        .padding(horizontal = 24.dp, vertical = 40.dp),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -288,7 +288,7 @@ fun DeviceSetupScreen(
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium,
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Seleccioná el depósito para este dispositivo",
                             style = MaterialTheme.typography.bodySmall,
@@ -298,7 +298,7 @@ fun DeviceSetupScreen(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
                 
                 Column(
                     modifier = Modifier
