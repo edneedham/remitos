@@ -1,11 +1,14 @@
 package com.remitos.app.data
 
+import android.content.Context
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.data.db.entity.OutboundLineEntity
 import com.remitos.app.data.db.entity.OutboundLineEditHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
+import com.remitos.app.data.db.entity.LocalUserEntity
+import com.remitos.app.data.db.entity.LocalDeviceEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -246,8 +249,137 @@ class TestDataGenerator(private val repository: RemitosRepository) {
                     repository.insertOutboundLineEditHistory(editHistory)
                 }
             }
+            // Create demo users for User Management screen
+            createDemoUsers()
+            
+            // Create demo device registration
+            createDemoDevice()
+            
             android.util.Log.d("TestDataGenerator", "Generation complete")
         }
+    }
+    
+    private suspend fun createDemoUsers() {
+        val db = repository.db
+        val userDao = db.localUserDao()
+        
+        // Check if users already exist
+        val existingUsers = userDao.observeAll().first()
+        if (existingUsers.isNotEmpty()) {
+            android.util.Log.d("TestDataGenerator", "Users already exist, skipping")
+            return
+        }
+        
+        // Create admin user
+        userDao.insert(
+            LocalUserEntity(
+                id = "admin",
+                username = "admin",
+                role = "company_owner",
+                passwordHash = PasswordHasher.hash("demo1234"),
+                status = "active",
+                warehouseId = "22222222-2222-2222-2222-222222222222",
+                lastSyncedAt = System.currentTimeMillis()
+            )
+        )
+        
+        // Create warehouse admin
+        userDao.insert(
+            LocalUserEntity(
+                id = "jefedeposito",
+                username = "jefedeposito",
+                role = "warehouse_admin",
+                passwordHash = PasswordHasher.hash("demo1234"),
+                status = "active",
+                warehouseId = "22222222-2222-2222-2222-222222222222",
+                lastSyncedAt = System.currentTimeMillis()
+            )
+        )
+        
+        // Create operators
+        val operators = listOf(
+            "m.gomez" to "Miguel Gomez",
+            "j.perez" to "Juan Perez", 
+            "l.rodriguez" to "Lucia Rodriguez"
+        )
+        
+        operators.forEachIndexed { index, (username, fullName) ->
+            userDao.insert(
+                LocalUserEntity(
+                    id = "operator_$index",
+                    username = username,
+                    role = "operator",
+                    passwordHash = PasswordHasher.hash("demo1234"),
+                    status = if (index == 2) "inactive" else "active", // One inactive for variety
+                    warehouseId = "22222222-2222-2222-2222-222222222222",
+                    lastSyncedAt = System.currentTimeMillis()
+                )
+            )
+        }
+        
+        android.util.Log.d("TestDataGenerator", "Created ${operators.size + 2} demo users")
+    }
+    
+    private suspend fun createDemoDevice() {
+        val db = repository.db
+        val deviceDao = db.localDeviceDao()
+        
+        // Check if device already exists
+        val existingDevice = deviceDao.getDevice()
+        if (existingDevice != null) {
+            android.util.Log.d("TestDataGenerator", "Device already exists, skipping")
+            return
+        }
+        
+        deviceDao.insert(
+            LocalDeviceEntity(
+                deviceId = "demo-device-001",
+                companyId = "LOGSUR",
+                warehouseId = "22222222-2222-2222-2222-222222222222",
+                registeredAt = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000L // 30 days ago
+            )
+        )
+        
+        android.util.Log.d("TestDataGenerator", "Created demo device")
+    }
+    
+    suspend fun seedUsageStats(context: Context) {
+        val settingsStore = SettingsStore(context)
+        
+        // Simulate realistic usage stats
+        val now = System.currentTimeMillis()
+        
+        // Simulate 45 total scans over the last week
+        repeat(45) { index ->
+            settingsStore.recordScanStarted()
+            // 80% success rate
+            val durationMs = (2000L..8000L).random()
+            val success = index % 5 != 0 // Every 5th scan fails
+            settingsStore.recordScanResult(durationMs, success)
+        }
+        
+        // Add 8 manual corrections
+        repeat(8) {
+            settingsStore.recordManualCorrection()
+        }
+        
+        android.util.Log.d("TestDataGenerator", "Seeded usage stats: 45 scans, 8 corrections")
+    }
+    
+    suspend fun seedTemplateConfig(context: Context) {
+        val settingsStore = SettingsStore(context)
+        
+        settingsStore.setTemplateConfig(
+            TemplateConfig(
+                logoUri = null, // Will use default
+                showPeso = true,
+                showVolumen = true,
+                showObservaciones = true,
+                legalText = "Logística del Sur S.A. - CUIT 30-12345678-9\nAv. General Paz 1234, CABA\nTel: 011-4567-8900\n\nDocumento no válido como factura. Conservar en buen estado."
+            )
+        )
+        
+        android.util.Log.d("TestDataGenerator", "Seeded template config")
     }
 
     private data class InboundConfig(

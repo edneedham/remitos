@@ -261,18 +261,21 @@ fun SettingsScreen(
                     androidx.compose.material3.TextButton(
                         onClick = {
                             showRegenerateDialog = false
-                            scope.launch {
-                                try {
-                                    withContext(Dispatchers.IO) {
-                                        com.remitos.app.data.TestDataGenerator(app.repository).generateTestData()
-                                    }
-                                    showSnackbar = "Datos de demostración regenerados correctamente"
-                                    onBack() // Go back to dashboard to see the data
-                                } catch (e: Exception) {
-                                    android.util.Log.e("TestDataGenerator", "Error generating demo data", e)
-                                    showSnackbar = "Error al regenerar datos: ${e.message}"
-                                }
+                    scope.launch {
+                        try {
+                            withContext(Dispatchers.IO) {
+                                val generator = com.remitos.app.data.TestDataGenerator(app.repository)
+                                generator.generateTestData()
+                                generator.seedUsageStats(context)
+                                generator.seedTemplateConfig(context)
                             }
+                            showSnackbar = "Datos de demostración regenerados correctamente"
+                            onBack() // Go back to dashboard to see the data
+                        } catch (e: Exception) {
+                            android.util.Log.e("TestDataGenerator", "Error generating demo data", e)
+                            showSnackbar = "Error al regenerar datos: ${e.message}"
+                        }
+                    }
                         }
                     ) {
                         Text("Sí, regenerar")

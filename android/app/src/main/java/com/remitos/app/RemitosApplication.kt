@@ -79,7 +79,10 @@ class RemitosApplication : Application() {
                 currentRepository?.let { repo ->
                     val existingNotes = repo.observeInboundNotes().first()
                     if (existingNotes.isEmpty()) {
-                        TestDataGenerator(repo).generateTestData()
+                        val generator = TestDataGenerator(repo)
+                        generator.generateTestData()
+                        generator.seedUsageStats(this@RemitosApplication)
+                        generator.seedTemplateConfig(this@RemitosApplication)
                     }
                 }
             }

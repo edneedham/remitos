@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.Flow
  * Facade repository for backward compatibility.
  * Delegates to domain-specific repositories.
  */
-class RemitosRepository(private val db: AppDatabase) {
+class RemitosRepository(internal val db: AppDatabase) {
 
     private val inboundRepository = InboundRepository(db)
     private val outboundRepository = OutboundRepository(db)
