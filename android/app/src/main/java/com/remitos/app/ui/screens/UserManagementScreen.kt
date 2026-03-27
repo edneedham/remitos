@@ -94,8 +94,12 @@ fun UserManagementScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(uiState.users) { user ->
+                    val app = context.applicationContext as com.remitos.app.RemitosApplication
+                    val currentUserId = app.authManager.getCurrentUser()
+                    
                     UserCard(
                         user = user,
+                        currentUserId = currentUserId,
                         onToggleStatus = { 
                             viewModel.toggleStatus(context, user.id, user.status) 
                         },
@@ -133,6 +137,7 @@ fun UserManagementScreen(
 @Composable
 fun UserCard(
     user: LocalUserEntity,
+    currentUserId: String?,
     onToggleStatus: () -> Unit,
     onResetPassword: () -> Unit
 ) {
@@ -178,16 +183,21 @@ fun UserCard(
                     Text("Cambiar Contraseña")
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                Button(
-                    onClick = onToggleStatus,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (user.status == "active") 
-                            MaterialTheme.colorScheme.error 
-                        else 
-                            MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Text(if (user.status == "active") "Suspender" else "Activar")
+                
+                // Don't allow suspending your own account
+                val isCurrentUser = currentUserId == user.id
+                if (!isCurrentUser) {
+                    Button(
+                        onClick = onToggleStatus,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (user.status == "active") 
+                                MaterialTheme.colorScheme.error 
+                            else 
+                                MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text(if (user.status == "active") "Suspender" else "Activar")
+                    }
                 }
             }
         }
