@@ -155,7 +155,28 @@ fun DashboardScreen(
     val isSyncing by syncManager.isSyncing.collectAsState()
     val syncMessage by syncManager.syncMessage.collectAsState()
     
-    val role = app.authManager.getCurrentUserRole() ?: "operator"
+    // Load role from local database if AuthManager doesn't have it
+    var role by remember {
+        mutableStateOf(app.authManager.getCurrentUserRole())
+    }
+    
+    // If role is null, try to load from local database
+    LaunchedEffect(Unit) {
+        if (role == null) {
+            try {
+                val db = DatabaseManager.getOfflineDatabase(context)
+                val currentUserId = app.authManager.getCurrentUser()
+                currentUserId?.let { userId ->
+                    val user = db.localUserDao().getById(userId)
+                    role = user?.role ?: "operator"
+                }
+            } catch (e: Exception) {
+                role = "operator"
+            }
+        }
+    }
+    
+    val effectiveRole = role ?: "operator"
     
     // Handle sync state changes - force logout if suspended/revoked
     LaunchedEffect(syncState) {
@@ -366,10 +387,10 @@ fun DashboardScreen(
                     onNewOutbound = onNewOutbound,
                     onOutboundHistory = onOutboundHistory,
                     onActivity = onActivity,
-                    role = role,
+                    role = effectiveRole,
                 )
 
-                if (role == "company_owner" || role == "warehouse_admin" || role == "admin") {
+                if (effectiveRole == "company_owner" || effectiveRole == "warehouse_admin" || effectiveRole == "admin") {
                     SectionLabel(text = "Administración")
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ActionTile(
