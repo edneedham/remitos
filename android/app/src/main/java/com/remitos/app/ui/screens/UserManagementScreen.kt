@@ -268,7 +268,7 @@ fun ResetPasswordDialog(
 
 private fun translateRole(role: String): String {
     return when (role) {
-        "company_owner" -> "Administrador"
+        "company_owner" -> "Dueño"
         "warehouse_admin" -> "Jefe de Depósito"
         "operator" -> "Operador"
         "admin" -> "Administrador"
