@@ -162,7 +162,7 @@ fun UserCard(
                 )
             }
             Text(
-                text = "Rol: ${user.role}",
+                text = "Rol: ${translateRole(user.role)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -264,4 +264,14 @@ fun ResetPasswordDialog(
             }
         }
     )
+}
+
+private fun translateRole(role: String): String {
+    return when (role) {
+        "company_owner" -> "Administrador"
+        "warehouse_admin" -> "Jefe de Depósito"
+        "operator" -> "Operador"
+        "admin" -> "Administrador"
+        else -> role.replace("_", " ").capitalize()
+    }
 }
