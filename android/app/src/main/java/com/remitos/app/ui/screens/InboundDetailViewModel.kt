@@ -136,7 +136,33 @@ class InboundDetailViewModel @Inject constructor(
         _saveState.value = null
     }
 
-    fun exportToCsv(context: Context) {
+    fun showExportDialog() {
+        val draft = _uiState.value.draft
+        
+        // Generate filename with destinatario
+        val destName = draft.destNombre
+            .take(30)
+            .replace(" ", "_")
+            .ifBlank { "remito" }
+        
+        val remitoNum = draft.remitoNumInterno.replace("/", "-")
+        val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            .format(java.util.Date())
+        
+        val suggestedName = "${destName}_${remitoNum}_$date.csv".take(100)
+        
+        _uiState.value = _uiState.value.copy(
+            showExportDialog = true,
+            suggestedExportFilename = suggestedName
+        )
+    }
+    
+    fun hideExportDialog() {
+        _uiState.value = _uiState.value.copy(showExportDialog = false)
+        // Filename will be regenerated fresh next time
+    }
+
+    fun exportToCsv(context: Context, customFilename: String) {
         viewModelScope.launch {
             val note = currentNote ?: return@launch
             val fieldSections = _uiState.value.fieldSections
@@ -145,7 +171,8 @@ class InboundDetailViewModel @Inject constructor(
                 val filePath = CsvExporter.exportRemitoToCsv(
                     context = context,
                     inboundNote = note,
-                    fieldSections = fieldSections
+                    fieldSections = fieldSections,
+                    customFilename = customFilename
                 )
                 
                 // Show success toast with file path
@@ -262,6 +289,8 @@ data class InboundDetailUiState(
     val packages: List<InboundPackageEntity> = emptyList(),
     val scannedCount: Int = 0,
     val fieldSections: Map<String, List<FieldDisplayItem>> = emptyMap(),
+    val showExportDialog: Boolean = false,
+    val suggestedExportFilename: String = "",
 )
 
 sealed interface InboundDetailSaveState {

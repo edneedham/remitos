@@ -160,15 +160,21 @@ object CsvExporter {
      * @param context Application context
      * @param inboundNote The inbound note with all fields
      * @param fieldSections Map of section names to list of field display items
+     * @param customFilename Optional custom filename (if null, auto-generates)
      * @return Path to the exported CSV file
      */
     fun exportRemitoToCsv(
         context: Context,
         inboundNote: InboundNoteEntity,
-        fieldSections: Map<String, List<com.remitos.app.ocr.FieldDisplayItem>>
+        fieldSections: Map<String, List<com.remitos.app.ocr.FieldDisplayItem>>,
+        customFilename: String
     ): String {
-        val timestamp = csvDateFormat.format(Date())
-        val fileName = "remito_${inboundNote.remitoNumInterno.replace("/", "-")}_$timestamp.csv"
+        // Use custom filename, ensure .csv extension
+        val fileName = if (customFilename.endsWith(".csv", ignoreCase = true)) {
+            customFilename
+        } else {
+            "$customFilename.csv"
+        }
 
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val file = File(downloadsDir, fileName)

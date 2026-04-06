@@ -36,6 +36,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -116,7 +117,7 @@ fun InboundDetailScreen(
         },
         floatingActionButton = {
             ExportFab(
-                onClick = { viewModel.exportToCsv(context) },
+                onClick = { viewModel.showExportDialog() },
                 enabled = !uiState.isLoading && uiState.errorMessage == null
             )
         },
@@ -157,12 +158,24 @@ fun InboundDetailScreen(
                         totalCount = uiState.draft.cantBultosTotal.toIntOrNull() ?: 0,
                         packages = uiState.packages,
                         onExportCsv = {
-                            viewModel.exportToCsv(context)
+                            viewModel.showExportDialog()
                         },
                         onScanBarcodes = {
                             onScanBarcodes(noteId, uiState.draft.cantBultosTotal.toIntOrNull() ?: 0)
                         }
                     )
+                    
+                    // Export filename dialog
+                    if (uiState.showExportDialog) {
+                        ExportFilenameDialog(
+                            filename = uiState.suggestedExportFilename,
+                            onDismiss = { viewModel.hideExportDialog() },
+                            onExport = { customName ->
+                                viewModel.hideExportDialog()
+                                viewModel.exportToCsv(context, customName)
+                            }
+                        )
+                    }
                     
                     if (saveState is InboundDetailSaveState.Error) {
                         Text(
@@ -385,6 +398,45 @@ private fun ExportFab(
             )
         }
     }
+}
+
+@Composable
+private fun ExportFilenameDialog(
+    filename: String,
+    onDismiss: () -> Unit,
+    onExport: (String) -> Unit,
+) {
+    var editedName by remember { mutableStateOf(filename) }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Exportar Remito") },
+        text = {
+            Column {
+                Text(
+                    text = "Nombre del archivo:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                OutlinedTextField(
+                    value = editedName,
+                    onValueChange = { newValue -> editedName = newValue },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onExport(editedName) }) {
+                Text("Exportar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 
