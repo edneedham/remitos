@@ -10,7 +10,6 @@ const Pixel8Mockup = ({ children, screenColor = '#121212' }: { children?: React.
           width: 328px;
           height: 690px;
           margin: 40px auto;
-          font-family: 'Inter', sans-serif;
           user-select: none;
         }
 

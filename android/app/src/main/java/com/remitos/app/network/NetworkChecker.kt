@@ -20,7 +20,7 @@ object NetworkChecker {
     suspend fun isServerReachable(authManager: AuthManager): Boolean = withContext(Dispatchers.IO) {
         try {
             val baseUrl = FeatureFlags.backendBaseUrl ?: return@withContext false
-            val url = "$baseUrl/health"
+            val url = "${baseUrl.trimEnd('/')}/health"
             
             val request = Request.Builder()
                 .url(url)

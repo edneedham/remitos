@@ -217,14 +217,16 @@ class OcrProcessor {
             
             if (response.isSuccessful && response.body() != null) {
                 val scanResponse = response.body()!!
+                // Parse the cloud OCR text into structured fields using the local parser
+                val parsedFields = parseFields(scanResponse.text)
                 OcrResult(
                     text = scanResponse.text,
-                    fields = scanResponse.fields,
-                    confidence = scanResponse.confidence,
+                    fields = parsedFields.first,
+                    confidence = parsedFields.second.mapValues { it.value.toDouble() },
                     preprocessTimeMs = mlKitResult.preprocessTimeMs,
                     imageWidth = mlKitResult.imageWidth,
                     imageHeight = mlKitResult.imageHeight,
-                    parsingErrorSummary = buildParsingErrorSummary(scanResponse.fields),
+                    parsingErrorSummary = buildParsingErrorSummary(parsedFields.first),
                     source = scanResponse.source
                 )
             } else {
@@ -536,6 +538,65 @@ class OcrProcessor {
     companion object {
         private const val CONFIDENCE_THRESHOLD = 0.7
 
+        fun extractRawPairs(raw: String): List<FieldPair> {
+            val pairs = mutableListOf<FieldPair>()
+            val lines = raw.replace("\r", "\n").lines()
+            
+            // Primary pattern: colon separator (most reliable for forms)
+            val colonPattern = Regex("^\\s*([A-Za-zÁÉÍÓÚÑáéíóúñ.\\s/]+?)\\s*:\\s*(.+)$")
+            // Secondary pattern: hyphen with whitespace ("Field - Value")
+            val hyphenPattern = Regex("^\\s*([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñ.\\s/]{1,30}?)\\s+-\\s+(.+)$")
+            
+            // Common field keywords to validate labels
+            val fieldKeywords = setOf(
+                "cuit", "cuil", "nombre", "razon", "social", "destinatario", "cliente",
+                "direccion", "domicilio", "localidad", "telefono", "tel", "fecha", "remito",
+                "factura", "bultos", "cantidad", "transportista", "iva", "condicion", "enviar",
+                "entregar", "recibi", "conforme", "codigo", "postal", "provincia"
+            )
+
+            for (line in lines) {
+                val trimmed = line.trim()
+                if (trimmed.isBlank()) continue
+                if (trimmed.length < 3) continue
+                
+                // Skip lines that look like product descriptions (multiple words, no field keywords)
+                val words = trimmed.lowercase().split(Regex("\\s+"))
+                val hasFieldKeyword = words.any { it in fieldKeywords }
+
+                // Try colon pattern first (most reliable)
+                val colonMatch = colonPattern.find(trimmed)
+                if (colonMatch != null) {
+                    val label = colonMatch.groupValues[1].trim()
+                    val value = colonMatch.groupValues[2].trim()
+                    if (isValidLabel(label, value)) {
+                        pairs.add(FieldPair(label = label, value = value))
+                        continue
+                    }
+                }
+                
+                // Try hyphen pattern only if it looks like a form field
+                val hyphenMatch = hyphenPattern.find(trimmed)
+                if (hyphenMatch != null && hasFieldKeyword) {
+                    val label = hyphenMatch.groupValues[1].trim()
+                    val value = hyphenMatch.groupValues[2].trim()
+                    if (isValidLabel(label, value)) {
+                        pairs.add(FieldPair(label = label, value = value))
+                    }
+                }
+            }
+
+            return pairs
+        }
+        
+        private fun isValidLabel(label: String, value: String): Boolean {
+            if (label.isBlank() || value.isBlank()) return false
+            if (label.length < 2 || label.length > 50) return false
+            // Label shouldn't look like a product name (avoid splitting "Coca-Cola")
+            if (label.contains("-") && !label.contains(" ")) return false
+            return true
+        }
+
         internal fun parseFields(raw: String): Pair<Map<String, String>, Map<String, Double>> {
             val fields = mutableMapOf<String, String>()
             val confidence = mutableMapOf<String, Double>()
@@ -547,8 +608,14 @@ class OcrProcessor {
                 "proveedor",
                 "emisor",
                 "vendedor",
+                "razón social remitente",
+                "razon social remitente",
             )
             val destLabels = listOf(
+                "razón social/nombre",
+                "razón social",
+                "razon social",
+                "nombre",
                 "destinatario",
                 "cliente",
                 "receptor",
@@ -568,6 +635,7 @@ class OcrProcessor {
                 "dirección cliente",
                 "direccion cliente",
                 "domicilio cliente",
+                "localidad",
             )
             val phoneLabels = listOf(
                 "teléfono",
@@ -579,8 +647,10 @@ class OcrProcessor {
             )
             val bultosLabels = listOf(
                 "cantidad de bultos",
-                "cant bultos",
                 "cant. bultos",
+                "cant bultos",
+                "cant.",
+                "cant",
                 "bultos",
             )
             val documentNumberLabels = listOf(
@@ -726,8 +796,27 @@ class OcrProcessor {
                 }
             }
 
+            if (!fields.containsKey(OcrFieldKeys.DestNombre) || !fields.containsKey(OcrFieldKeys.DestApellido)) {
+                val razonSocialMatch = Regex("(?i)raz[oó]n\\s+social(?:\\/nombre)?\\s*[:\\-]?\\s*(.+)")
+                    .find(raw)
+                if (razonSocialMatch != null) {
+                    val value = razonSocialMatch.groupValues[1].trim()
+                    if (value.isNotBlank()) {
+                        val (nombre, apellido) = splitPersonName(value)
+                        if (!fields.containsKey(OcrFieldKeys.DestNombre) && nombre.isNotBlank()) {
+                            fields[OcrFieldKeys.DestNombre] = nombre
+                            confidence[OcrFieldKeys.DestNombre] = 0.7
+                        }
+                        if (!fields.containsKey(OcrFieldKeys.DestApellido) && apellido.isNotBlank()) {
+                            fields[OcrFieldKeys.DestApellido] = apellido
+                            confidence[OcrFieldKeys.DestApellido] = 0.7
+                        }
+                    }
+                }
+            }
+
             if (!fields.containsKey(OcrFieldKeys.DestDireccion)) {
-                val direccionMatch = Regex("(?i)direcci[oó]n\\s*(?:destinatario|cliente)?\\s*[:\\-]?\\s*(.+)")
+                val direccionMatch = Regex("(?i)(?:direcci[oó]n|domicilio)\\s*(?:destinatario|cliente)?\\s*[:\\-]?\\s*(.+)")
                     .find(raw)
                 if (direccionMatch != null) {
                     fields[OcrFieldKeys.DestDireccion] = direccionMatch.groupValues[1].trim()

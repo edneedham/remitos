@@ -11,4 +11,9 @@ object OcrFieldKeys {
     const val CantBultosTotal = "cant_bultos_total"
     const val RemitoNumCliente = "remito_num_cliente"
     const val RemitoNumInterno = "remito_num_interno"
+    const val Transportista = "transportista"
+    const val Localidad = "localidad"
+    const val IvaCondicion = "iva_condicion"
+    const val Fecha = "fecha"
+    const val RecibidoPor = "recibido_por"
 }

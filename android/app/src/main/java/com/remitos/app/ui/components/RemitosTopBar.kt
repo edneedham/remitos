@@ -34,7 +34,7 @@ fun RemitosTopBar(
                 Image(
                     painter = painterResource(id = R.drawable.ic_logo_mark),
                     contentDescription = title,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(36.dp),
                 )
             } else {
                 Text(

@@ -155,6 +155,47 @@ object CsvExporter {
     }
 
     /**
+     * Export a single remito with all fields (canonical + extra) to CSV.
+     *
+     * @param context Application context
+     * @param inboundNote The inbound note with all fields
+     * @param fieldSections Map of section names to list of field display items
+     * @return Path to the exported CSV file
+     */
+    fun exportRemitoToCsv(
+        context: Context,
+        inboundNote: InboundNoteEntity,
+        fieldSections: Map<String, List<com.remitos.app.ocr.FieldDisplayItem>>
+    ): String {
+        val timestamp = csvDateFormat.format(Date())
+        val fileName = "remito_${inboundNote.remitoNumInterno.replace("/", "-")}_$timestamp.csv"
+
+        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val file = File(downloadsDir, fileName)
+
+        // Flatten all fields from all sections
+        val allFields = fieldSections.values.flatten()
+        
+        FileWriter(file).use { writer ->
+            // Write header - all field labels
+            val header = allFields.joinToString(",") { field ->
+                escapeCsv(field.label)
+            }
+            writer.append(header)
+            writer.append("\n")
+
+            // Write data row - all field values
+            val dataRow = allFields.joinToString(",") { field ->
+                escapeCsv(field.value)
+            }
+            writer.append(dataRow)
+            writer.append("\n")
+        }
+
+        return file.absolutePath
+    }
+
+    /**
      * Escape special CSV characters.
      */
     private fun escapeCsv(value: String): String {

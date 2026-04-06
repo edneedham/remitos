@@ -127,6 +127,8 @@ func (h *ScanHandler) Scan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Log.Info().Str("text", extractedText).Msg("Cloud Vision raw text")
+
 	fields := map[string]string{"text": extractedText}
 
 	scanResp := ScanResponse{

@@ -18,6 +18,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.verify
@@ -47,8 +48,9 @@ class InboundViewModelTest {
     }
 
     @Test
-    fun save_withInvalidBultos_setsErrorState() {
+    fun save_withZeroBultos_succeeds() = runTest {
         val viewModel = InboundViewModel(repository, settingsStore, ocrProcessor, authManager, testDispatcher)
+        whenever(repository.createInboundNote(any())).thenReturn(1L)
         viewModel.updateDraft(
             viewModel.uiState.value.draft.copy(
                 senderCuit = "20-12345678-9",
@@ -64,14 +66,10 @@ class InboundViewModelTest {
         )
 
         viewModel.save()
+        advanceUntilIdle()
 
         val state = viewModel.uiState.value.saveState
-        assertTrue(state is SaveState.Error)
-        assertEquals(
-            "La cantidad de bultos debe ser mayor a cero.",
-            (state as SaveState.Error).message
-        )
-        verifyNoInteractions(repository)
+        assertTrue(state is SaveState.Success)
     }
 
     @Test
@@ -126,5 +124,31 @@ class InboundViewModelTest {
         verify(repository).createInboundNote(captor.capture())
         assertEquals("texto ocr", captor.firstValue.ocrTextBlob)
         assertEquals("{\"${OcrFieldKeys.SenderCuit}\":0.8}", captor.firstValue.ocrConfidenceJson)
+    }
+
+    @Test
+    fun save_defaultsExtraFieldsToEmptyJson() = runTest {
+        val viewModel = InboundViewModel(repository, settingsStore, ocrProcessor, authManager, testDispatcher)
+        whenever(repository.createInboundNote(any())).thenReturn(1L)
+        viewModel.updateDraft(
+            viewModel.uiState.value.draft.copy(
+                senderCuit = "20-12345678-9",
+                senderNombre = "ACME",
+                senderApellido = "SA",
+                destNombre = "Juan",
+                destApellido = "Perez",
+                destDireccion = "Calle 123",
+                destTelefono = "111111111",
+                cantBultosTotal = "2",
+                remitoNumCliente = "RC-2"
+            )
+        )
+
+        viewModel.save()
+        advanceUntilIdle()
+
+        val captor = argumentCaptor<com.remitos.app.data.db.entity.InboundNoteEntity>()
+        verify(repository).createInboundNote(captor.capture())
+        assertEquals("{}", captor.firstValue.extraFieldsJson)
     }
 }

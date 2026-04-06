@@ -30,6 +30,7 @@
     <string name="camara">Camara</string>
     <string name="guardar_ingreso">Guardar ingreso</string>
     <string name="aceptar">Aceptar</string>
+    <string name="guardar_de_todos_modos">Guardar de todos modos</string>
     <string name="permiso_de_camara">Permiso de camara</string>
     <string name="se_necesita_acceso_a_la_camara_para_tomar_la_foto">Se necesita acceso a la camara para tomar la foto.</string>
     <string name="no_se_pudo_leer_el_documento">No se pudo leer el documento</string>

@@ -62,7 +62,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.InboundNoteStatus
-import com.remitos.app.ui.components.RemitosTextField
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import com.remitos.app.ui.components.DetailSectionCard
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.Spacing
@@ -92,7 +95,6 @@ fun InboundDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
     var showVoidDialog by remember { mutableStateOf(false) }
-    var showMenu by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     
     val role = app.authManager.getCurrentUserRole() ?: "operator"
@@ -110,26 +112,12 @@ fun InboundDetailScreen(
                 title = stringResource(R.string.detalle_de_ingreso),
                 onBack = onBack,
                 scrollBehavior = scrollBehavior,
-                actions = {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(
-                            imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = "Más opciones",
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.exportar_csv)) },
-                            onClick = {
-                                showMenu = false
-                                viewModel.exportToCsv(context)
-                            },
-                        )
-                    }
-                },
+            )
+        },
+        floatingActionButton = {
+            ExportFab(
+                onClick = { viewModel.exportToCsv(context) },
+                enabled = !uiState.isLoading && uiState.errorMessage == null
             )
         },
     ) { padding ->
@@ -362,100 +350,38 @@ private fun InboundDetailForm(
     val draft = state.draft
     val missing = if (state.showMissingErrors) draft.missingFields() else emptyList()
     val readOnly = state.status == InboundNoteStatus.Anulada
+    
+    // Render dynamic sections from fieldSections
+    state.fieldSections.forEach { (sectionName, fields) ->
+        if (fields.isNotEmpty()) {
+            DetailSectionCard(
+                title = sectionName,
+                fields = fields,
+            )
+        }
+    }
+}
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        RemitosTextField(
-            value = draft.senderCuit,
-            onValueChange = { onDraftChange(draft.copy(senderCuit = it)) },
-            label = stringResource(R.string.cuit_remitente),
-            isError = missing.contains(MissingField.Cuit),
-            errorMessage = stringResource(R.string.ingres_un_cuit_v_lido),
-            readOnly = readOnly,
-            variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RemitosTextField(
-                value = draft.senderNombre,
-                onValueChange = { onDraftChange(draft.copy(senderNombre = it)) },
-                label = stringResource(R.string.nombre_remitente),
-                isError = missing.contains(MissingField.SenderNombre),
-                errorMessage = stringResource(R.string.campo_requerido),
-                modifier = Modifier.weight(1f),
-                readOnly = readOnly,
-                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
-            )
-            RemitosTextField(
-                value = draft.senderApellido,
-                onValueChange = { onDraftChange(draft.copy(senderApellido = it)) },
-                label = stringResource(R.string.apellido_remitente),
-                isError = missing.contains(MissingField.SenderApellido),
-                errorMessage = stringResource(R.string.campo_requerido),
-                modifier = Modifier.weight(1f),
-                readOnly = readOnly,
-                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RemitosTextField(
-                value = draft.destNombre,
-                onValueChange = { onDraftChange(draft.copy(destNombre = it)) },
-                label = stringResource(R.string.nombre_destinatario),
-                isError = missing.contains(MissingField.DestNombre),
-                errorMessage = stringResource(R.string.campo_requerido),
-                modifier = Modifier.weight(1f),
-                readOnly = readOnly,
-                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
-            )
-            RemitosTextField(
-                value = draft.destApellido,
-                onValueChange = { onDraftChange(draft.copy(destApellido = it)) },
-                label = stringResource(R.string.apellido_destinatario),
-                isError = missing.contains(MissingField.DestApellido),
-                errorMessage = stringResource(R.string.campo_requerido),
-                modifier = Modifier.weight(1f),
-                readOnly = readOnly,
-                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
-            )
-        }
-        RemitosTextField(
-            value = draft.destDireccion,
-            onValueChange = { onDraftChange(draft.copy(destDireccion = it)) },
-            label = stringResource(R.string.direcci_n_destinatario),
-            isError = missing.contains(MissingField.DestDireccion),
-            errorMessage = stringResource(R.string.campo_requerido),
-            readOnly = readOnly,
-            variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
-        )
-        RemitosTextField(
-            value = draft.destTelefono,
-            onValueChange = { onDraftChange(draft.copy(destTelefono = it)) },
-            label = stringResource(R.string.tel_fono_destinatario),
-            isError = missing.contains(MissingField.DestTelefono),
-            errorMessage = stringResource(R.string.campo_requerido),
-            readOnly = readOnly,
-            variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RemitosTextField(
-                value = draft.cantBultosTotal,
-                onValueChange = { onDraftChange(draft.copy(cantBultosTotal = it)) },
-                label = stringResource(R.string.cantidad_de_bultos),
-                isError = missing.contains(MissingField.CantBultos),
-                errorMessage = stringResource(R.string.campo_requerido),
-                modifier = Modifier.weight(1f),
-                readOnly = readOnly,
-                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
-                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
-            )
-            RemitosTextField(
-                value = draft.remitoNumCliente,
-                onValueChange = { onDraftChange(draft.copy(remitoNumCliente = it)) },
-                label = stringResource(R.string.n_mero_de_remito_de_cliente),
-                isError = missing.contains(MissingField.RemitoCliente),
-                errorMessage = stringResource(R.string.campo_requerido),
-                modifier = Modifier.weight(1f),
-                readOnly = readOnly,
-                variant = com.remitos.app.ui.components.RemitosTextFieldVariant.Reversed,
+@Composable
+private fun ExportFab(
+    onClick: () -> Unit,
+    enabled: Boolean,
+) {
+    if (enabled) {
+        FloatingActionButton(
+            onClick = onClick,
+            containerColor = BrandBlue,
+            contentColor = Color.White,
+            elevation = FloatingActionButtonDefaults.elevation(
+                defaultElevation = 6.dp,
+                pressedElevation = 12.dp,
+            ),
+            modifier = Modifier.padding(16.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Download,
+                contentDescription = stringResource(R.string.exportar_csv),
+                modifier = Modifier.size(24.dp),
             )
         }
     }
@@ -493,12 +419,6 @@ private fun BarcodeScanSection(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                
-                if (scannedCount > 0) {
-                    TextButton(onClick = onExportCsv) {
-                        Text(stringResource(R.string.exportar_csv))
-                    }
-                }
                 
                 // Show scan button if not all packages are scanned
                 if (scannedCount < totalCount && totalCount > 0) {

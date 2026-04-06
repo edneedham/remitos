@@ -52,7 +52,7 @@ import com.remitos.app.data.db.entity.SyncQueueEntity
         LocalScannedCodeEntity::class,
         SyncQueueEntity::class,
     ],
-    version = 12
+    version = 13
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun inboundDao(): InboundDao
@@ -300,6 +300,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE inbound_notes ADD COLUMN extra_fields_json TEXT DEFAULT '{}'")
+            }
+        }
+
         private val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add barcode-related columns to inbound_packages table
@@ -389,7 +395,8 @@ abstract class AppDatabase : RoomDatabase() {
                 MIGRATION_8_9,
                 MIGRATION_9_10,
                 MIGRATION_10_11,
-                MIGRATION_11_12
+                MIGRATION_11_12,
+                MIGRATION_12_13
             ).build()
         }
     }

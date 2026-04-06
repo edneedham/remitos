@@ -47,5 +47,7 @@ data class InboundNoteEntity(
     @ColumnInfo(name = "created_at")
     val createdAt: Long,
     @ColumnInfo(name = "updated_at")
-    val updatedAt: Long
+    val updatedAt: Long,
+    @ColumnInfo(name = "extra_fields_json", defaultValue = "{}")
+    val extraFieldsJson: String = "{}"
 )

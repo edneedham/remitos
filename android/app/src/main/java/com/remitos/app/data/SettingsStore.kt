@@ -6,6 +6,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.remitos.app.ocr.FieldMapper
+import com.remitos.app.ocr.FieldMapping
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -26,6 +28,9 @@ class SettingsStore(private val context: Context) {
     private val columnVolumenKey = booleanPreferencesKey("template_column_volumen")
     private val columnObservacionesKey = booleanPreferencesKey("template_column_observaciones")
     private val legalTextKey = stringPreferencesKey("template_legal_text")
+
+    // Training Data Keys
+    private val trainingDataKey = stringPreferencesKey("ocr_training_data")
 
     val perspectiveCorrectionEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[perspectiveCorrectionKey] ?: true
@@ -102,6 +107,25 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { prefs ->
             val current = prefs[manualCorrectionsKey] ?: 0L
             prefs[manualCorrectionsKey] = current + 1
+        }
+    }
+
+    val trainingData: Flow<List<FieldMapping>> = context.dataStore.data.map { prefs ->
+        FieldMapper.decodeTrainingData(prefs[trainingDataKey] ?: "")
+    }
+
+    suspend fun getTrainingData(): List<FieldMapping> {
+        return trainingData.first()
+    }
+
+    suspend fun addTrainingMapping(sourceLabel: String, canonicalField: String) {
+        context.dataStore.edit { prefs ->
+            val current = FieldMapper.decodeTrainingData(prefs[trainingDataKey] ?: "")
+            val updated = current
+                .filter { it.sourceLabel.lowercase() != sourceLabel.lowercase() }
+                .toMutableList()
+            updated.add(FieldMapping(sourceLabel = sourceLabel, canonicalField = canonicalField))
+            prefs[trainingDataKey] = FieldMapper.encodeTrainingData(updated)
         }
     }
 }

@@ -7,6 +7,9 @@ import com.remitos.app.data.InboundNoteStatus
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
+import com.remitos.app.ocr.FieldDisplayItem
+import com.remitos.app.ocr.FieldNames
+import com.remitos.app.ocr.OcrFieldKeys
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -14,7 +17,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import javax.inject.Inject
+
+import android.content.Context
+import android.widget.Toast
 
 @HiltViewModel
 class InboundDetailViewModel @Inject constructor(
@@ -129,20 +136,37 @@ class InboundDetailViewModel @Inject constructor(
         _saveState.value = null
     }
 
-    fun exportToCsv(context: android.content.Context) {
+    fun exportToCsv(context: Context) {
         viewModelScope.launch {
             val note = currentNote ?: return@launch
-            val packages = _uiState.value.packages
+            val fieldSections = _uiState.value.fieldSections
             
             try {
-                val filePath = CsvExporter.exportPackagesToCsv(
+                val filePath = CsvExporter.exportRemitoToCsv(
                     context = context,
                     inboundNote = note,
-                    packages = packages,
-                    scannedBy = "usuario" // TODO: Get actual user from session
+                    fieldSections = fieldSections
                 )
+                
+                // Show success toast with file path
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "Exportado a: $filePath",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                
                 _saveState.value = InboundDetailSaveState.Success
             } catch (e: Exception) {
+                // Show error toast
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "Error al exportar: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
                 _saveState.value = InboundDetailSaveState.Error("Error al exportar CSV: ${e.message}")
             }
         }
@@ -154,14 +178,15 @@ class InboundDetailViewModel @Inject constructor(
             val note = withContext(ioDispatcher) { repository.getInboundNote(noteId) }
             val packages = withContext(ioDispatcher) { repository.getPackagesForNote(noteId) }
             if (note == null) {
-                _uiState.value = InboundDetailUiState(
+                _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = "No se encontró el ingreso.",
                 )
             } else {
                 currentNote = note
                 val scannedCount = packages.count { it.barcodeRaw != null }
-                _uiState.value = InboundDetailUiState(
+                val fieldSections = buildFieldSections(note)
+                _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     noteId = note.id,
                     status = note.status,
@@ -182,9 +207,43 @@ class InboundDetailViewModel @Inject constructor(
                     ),
                     packages = packages,
                     scannedCount = scannedCount,
+                    fieldSections = fieldSections,
                 )
             }
         }
+    }
+    
+    private fun buildFieldSections(note: InboundNoteEntity): Map<String, List<FieldDisplayItem>> {
+        val allFields = mutableListOf<FieldDisplayItem>()
+        
+        // Add canonical fields
+        allFields.add(FieldDisplayItem(OcrFieldKeys.SenderCuit, FieldNames.getFriendlyName(OcrFieldKeys.SenderCuit), note.senderCuit, FieldNames.getSectionForField(OcrFieldKeys.SenderCuit)))
+        allFields.add(FieldDisplayItem(OcrFieldKeys.SenderNombre, FieldNames.getFriendlyName(OcrFieldKeys.SenderNombre), note.senderNombre, FieldNames.getSectionForField(OcrFieldKeys.SenderNombre)))
+        allFields.add(FieldDisplayItem(OcrFieldKeys.SenderApellido, FieldNames.getFriendlyName(OcrFieldKeys.SenderApellido), note.senderApellido, FieldNames.getSectionForField(OcrFieldKeys.SenderApellido)))
+        allFields.add(FieldDisplayItem(OcrFieldKeys.DestNombre, FieldNames.getFriendlyName(OcrFieldKeys.DestNombre), note.destNombre, FieldNames.getSectionForField(OcrFieldKeys.DestNombre)))
+        allFields.add(FieldDisplayItem(OcrFieldKeys.DestApellido, FieldNames.getFriendlyName(OcrFieldKeys.DestApellido), note.destApellido, FieldNames.getSectionForField(OcrFieldKeys.DestApellido)))
+        allFields.add(FieldDisplayItem(OcrFieldKeys.DestDireccion, FieldNames.getFriendlyName(OcrFieldKeys.DestDireccion), note.destDireccion, FieldNames.getSectionForField(OcrFieldKeys.DestDireccion)))
+        allFields.add(FieldDisplayItem(OcrFieldKeys.DestTelefono, FieldNames.getFriendlyName(OcrFieldKeys.DestTelefono), note.destTelefono, FieldNames.getSectionForField(OcrFieldKeys.DestTelefono)))
+        allFields.add(FieldDisplayItem(OcrFieldKeys.CantBultosTotal, FieldNames.getFriendlyName(OcrFieldKeys.CantBultosTotal), note.cantBultosTotal.toString(), FieldNames.getSectionForField(OcrFieldKeys.CantBultosTotal)))
+        allFields.add(FieldDisplayItem(OcrFieldKeys.RemitoNumCliente, FieldNames.getFriendlyName(OcrFieldKeys.RemitoNumCliente), note.remitoNumCliente, FieldNames.getSectionForField(OcrFieldKeys.RemitoNumCliente)))
+        
+        // Parse extra fields from JSON
+        if (note.extraFieldsJson.isNotBlank() && note.extraFieldsJson != "{}") {
+            try {
+                val json = JSONObject(note.extraFieldsJson)
+                json.keys().forEach { key ->
+                    val value = json.getString(key)
+                    if (value.isNotBlank()) {
+                        allFields.add(FieldDisplayItem(key, FieldNames.getFriendlyName(key), value, FieldNames.getSectionForField(key)))
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore parse errors
+            }
+        }
+        
+        // Group by section
+        return allFields.groupBy { it.section }
     }
 }
 
@@ -202,6 +261,7 @@ data class InboundDetailUiState(
     val draft: InboundDraftState = InboundDraftState(),
     val packages: List<InboundPackageEntity> = emptyList(),
     val scannedCount: Int = 0,
+    val fieldSections: Map<String, List<FieldDisplayItem>> = emptyMap(),
 )
 
 sealed interface InboundDetailSaveState {

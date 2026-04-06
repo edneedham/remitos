@@ -19,6 +19,8 @@ import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.ocr.OcrFieldKeys
 import com.remitos.app.ocr.OcrProcessor
 import com.remitos.app.ocr.OcrProcessingException
+import com.remitos.app.ocr.FieldMapper
+import com.remitos.app.ocr.FieldPair
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -41,7 +43,8 @@ data class InboundUiState(
     val saveState: SaveState? = null,
     val showMissingErrors: Boolean = false,
     val showManualEntryPrompt: Boolean = false,
-    val showOfflineModeMessage: Boolean = false
+    val showOfflineModeMessage: Boolean = false,
+    val detectedFields: List<com.remitos.app.ocr.FieldPair> = emptyList(),
 )
 
 @HiltViewModel
@@ -101,18 +104,28 @@ class InboundViewModel @Inject constructor(
                 lastOcrFields = result.fields
                 val confidenceJson = confidenceToJson(result.confidence)
                 updateOcrMetadata(result.text, result.confidence)
+
+                // Layer 1: Extract raw label-value pairs from OCR text
+                val rawPairs = OcrProcessor.extractRawPairs(result.text)
+                // Layer 2: Load training data and map fields
+                val trainingData = withContext(ioDispatcher) { settingsStore.getTrainingData() }
+                val mapper = FieldMapper()
+                val mappedFields = mapper.mapFields(rawPairs, trainingData)
+                // Merge mapped fields with existing parse result (mapped fields take priority)
+                val mergedFields = result.fields.toMutableMap().apply { putAll(mappedFields) }
+
                 val currentDraft = _uiState.value.draft
                 _uiState.update { it.copy(draft = currentDraft.copy(
-                    senderCuit = result.fields[OcrFieldKeys.SenderCuit] ?: currentDraft.senderCuit,
-                    senderNombre = result.fields[OcrFieldKeys.SenderNombre] ?: currentDraft.senderNombre,
-                    senderApellido = result.fields[OcrFieldKeys.SenderApellido] ?: currentDraft.senderApellido,
-                    destNombre = result.fields[OcrFieldKeys.DestNombre] ?: currentDraft.destNombre,
-                    destApellido = result.fields[OcrFieldKeys.DestApellido] ?: currentDraft.destApellido,
-                    destDireccion = result.fields[OcrFieldKeys.DestDireccion] ?: currentDraft.destDireccion,
-                    destTelefono = result.fields[OcrFieldKeys.DestTelefono] ?: currentDraft.destTelefono,
-                    cantBultosTotal = result.fields[OcrFieldKeys.CantBultosTotal] ?: currentDraft.cantBultosTotal,
-                    remitoNumCliente = result.fields[OcrFieldKeys.RemitoNumCliente] ?: currentDraft.remitoNumCliente
-                )) }
+                    senderCuit = mergedFields[OcrFieldKeys.SenderCuit] ?: currentDraft.senderCuit,
+                    senderNombre = mergedFields[OcrFieldKeys.SenderNombre] ?: currentDraft.senderNombre,
+                    senderApellido = mergedFields[OcrFieldKeys.SenderApellido] ?: currentDraft.senderApellido,
+                    destNombre = mergedFields[OcrFieldKeys.DestNombre] ?: currentDraft.destNombre,
+                    destApellido = mergedFields[OcrFieldKeys.DestApellido] ?: currentDraft.destApellido,
+                    destDireccion = mergedFields[OcrFieldKeys.DestDireccion] ?: currentDraft.destDireccion,
+                    destTelefono = mergedFields[OcrFieldKeys.DestTelefono] ?: currentDraft.destTelefono,
+                    cantBultosTotal = mergedFields[OcrFieldKeys.CantBultosTotal] ?: currentDraft.cantBultosTotal,
+                    remitoNumCliente = mergedFields[OcrFieldKeys.RemitoNumCliente] ?: currentDraft.remitoNumCliente
+                ), detectedFields = rawPairs) }
                 debugLog = DebugLogEntity(
                     createdAt = System.currentTimeMillis(),
                     scanId = scanId,
@@ -212,10 +225,6 @@ class InboundViewModel @Inject constructor(
         if (currentState.isSaving) return
 
         val cantBultos = currentState.draft.cantBultosTotal.toIntOrNull() ?: 0
-        if (cantBultos <= 0) {
-            _uiState.update { it.copy(saveState = SaveState.Error("La cantidad de bultos debe ser mayor a cero.")) }
-            return
-        }
 
         _uiState.update { it.copy(isSaving = true, saveState = null) }
 
@@ -239,6 +248,7 @@ class InboundViewModel @Inject constructor(
                     scanImagePath = stateSnapshot.selectedImageUri?.toString(),
                     ocrTextBlob = stateSnapshot.ocrTextBlob,
                     ocrConfidenceJson = stateSnapshot.ocrConfidenceJson,
+                    extraFieldsJson = buildExtraFieldsJson(stateSnapshot.detectedFields),
                     createdAt = now,
                     updatedAt = now
                 )
@@ -283,6 +293,51 @@ class InboundViewModel @Inject constructor(
 
     fun clearSaveState() {
         _uiState.update { it.copy(saveState = null) }
+    }
+
+    fun updateDetectedField(index: Int, label: String, value: String) {
+        _uiState.update { state ->
+            val updated = state.detectedFields.toMutableList()
+            if (index in updated.indices) {
+                updated[index] = FieldPair(label = label, value = value)
+            }
+            state.copy(detectedFields = updated)
+        }
+    }
+
+    fun removeDetectedField(index: Int) {
+        _uiState.update { state ->
+            val updated = state.detectedFields.toMutableList()
+            if (index in updated.indices) {
+                updated.removeAt(index)
+            }
+            state.copy(detectedFields = updated)
+        }
+    }
+
+    fun addDetectedField() {
+        _uiState.update { state ->
+            state.copy(
+                detectedFields = state.detectedFields + FieldPair(label = "", value = "")
+            )
+        }
+    }
+
+    private val canonicalFieldKeys = setOf(
+        OcrFieldKeys.SenderCuit, OcrFieldKeys.SenderNombre, OcrFieldKeys.SenderApellido,
+        OcrFieldKeys.DestNombre, OcrFieldKeys.DestApellido, OcrFieldKeys.DestDireccion,
+        OcrFieldKeys.DestTelefono, OcrFieldKeys.CantBultosTotal, OcrFieldKeys.RemitoNumCliente,
+        OcrFieldKeys.RemitoNumInterno,
+    )
+
+    private fun buildExtraFieldsJson(detectedFields: List<FieldPair>): String {
+        val extra = detectedFields
+            .filter { it.label.isNotBlank() && it.value.isNotBlank() && it.label !in canonicalFieldKeys }
+        if (extra.isEmpty()) return "{}"
+        val entries = extra.joinToString(",") { pair ->
+            "\"${pair.label.replace("\"", "\\\"")}\":\"${pair.value.replace("\"", "\\\"")}\""
+        }
+        return "{$entries}"
     }
 }
 

@@ -70,10 +70,12 @@ import com.remitos.app.network.NetworkChecker
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.components.SectionCard
+import com.remitos.app.ui.components.DetectedFieldsSection
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.Spacing
 import com.remitos.app.ui.theme.DisabledButtonBackground
 import com.remitos.app.ui.theme.DisabledButtonContent
+import com.remitos.app.ocr.OcrFieldKeys
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.Color
 import com.remitos.app.ui.components.RemitosTextFieldVariant
@@ -227,8 +229,8 @@ fun InboundScanScreen(
                 ) {
                     LinearProgressIndicator(
                         modifier = Modifier.fillMaxWidth(),
-                        color = Color.White,
-                        trackColor = Color.White,
+                        color = BrandBlue,
+                        trackColor = BrandBlue.copy(alpha = 0.2f),
                     )
                 }
                 
@@ -372,6 +374,53 @@ fun InboundScanScreen(
                 )
             }
 
+            // Otros datos section - fields that don't fit main categories
+            val mappedFieldKeys = setOf(
+                OcrFieldKeys.SenderCuit, OcrFieldKeys.SenderNombre, OcrFieldKeys.SenderApellido,
+                OcrFieldKeys.DestNombre, OcrFieldKeys.DestApellido, OcrFieldKeys.DestDireccion,
+                OcrFieldKeys.DestTelefono, OcrFieldKeys.CantBultosTotal, OcrFieldKeys.RemitoNumCliente
+            )
+            val otrosFields = uiState.detectedFields.filter { 
+                it.label !in mappedFieldKeys && it.value.isNotBlank() 
+            }
+            
+            if (otrosFields.isNotEmpty()) {
+                SectionCard(
+                    title = "Otros datos",
+                    icon = Icons.Outlined.DocumentScanner,
+                ) {
+                    otrosFields.forEachIndexed { index, pair ->
+                        val globalIndex = uiState.detectedFields.indexOf(pair)
+                        RemitosTextField(
+                            value = pair.value,
+                            onValueChange = { newValue ->
+                                viewModel.updateDetectedField(globalIndex, pair.label, newValue)
+                            },
+                            label = pair.label,
+                            modifier = Modifier.fillMaxWidth(),
+                            variant = RemitosTextFieldVariant.Reversed
+                        )
+                    }
+                }
+            }
+
+            // Detected fields section
+            if (uiState.detectedFields.isNotEmpty()) {
+                SectionCard(
+                    title = "Campos detectados",
+                    icon = Icons.Outlined.DocumentScanner,
+                ) {
+                    DetectedFieldsSection(
+                        fields = uiState.detectedFields,
+                        onFieldChange = { index, label, value ->
+                            viewModel.updateDetectedField(index, label, value)
+                        },
+                        onFieldRemove = { viewModel.removeDetectedField(it) },
+                        onAddField = { viewModel.addDetectedField() },
+                    )
+                }
+            }
+
             // Save button
             Button(
                 onClick = {
@@ -417,6 +466,10 @@ fun InboundScanScreen(
             missing = missing,
             onDismiss = { showMissingDialog = false },
             onConfirm = { showMissingDialog = false },
+            onSaveAnyway = {
+                showMissingDialog = false
+                viewModel.save()
+            },
         )
     }
 
@@ -492,11 +545,15 @@ private fun MissingFieldsDialog(
     missing: List<MissingField>,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
+    onSaveAnyway: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text(stringResource(R.string.aceptar)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing)) {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.aceptar)) }
+                TextButton(onClick = onSaveAnyway) { Text(stringResource(R.string.guardar_de_todos_modos)) }
+            }
         },
         title = { Text(stringResource(R.string.completar_datos_faltantes)) },
         text = {
