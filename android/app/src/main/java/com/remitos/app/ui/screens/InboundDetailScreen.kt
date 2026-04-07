@@ -32,6 +32,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -63,7 +65,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.InboundNoteStatus
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Download
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.remitos.app.drive.GoogleDriveManager
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import com.remitos.app.ui.components.DetailSectionCard
@@ -104,6 +110,12 @@ fun InboundDetailScreen(
         if (saveState is InboundDetailSaveState.Success) {
             viewModel.clearSaveState()
         }
+    }
+    
+    // Check Google Sign-In status when screen loads
+    LaunchedEffect(Unit) {
+        val driveManager = GoogleDriveManager(context)
+        viewModel.checkGoogleSignInStatus(driveManager)
     }
 
     Scaffold(
@@ -165,14 +177,35 @@ fun InboundDetailScreen(
                         }
                     )
                     
+                    // Google Drive Manager
+                    val driveManager = remember { GoogleDriveManager(context) }
+                    
+                    // Google Sign-In launcher
+                    val signInLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.StartActivityForResult()
+                    ) { result ->
+                        viewModel.handleGoogleSignInResult(result, driveManager)
+                    }
+                    
                     // Export filename dialog
                     if (uiState.showExportDialog) {
                         ExportFilenameDialog(
                             filename = uiState.suggestedExportFilename,
+                            isSignedIn = uiState.isGoogleSignedIn,
+                            isUploading = uiState.isUploadingToDrive,
+                            uploadError = uiState.driveUploadError,
+                            uploadSuccess = uiState.driveUploadSuccess,
+                            lastUploadedFileId = uiState.lastUploadedFileId,
                             onDismiss = { viewModel.hideExportDialog() },
-                            onExport = { customName ->
-                                viewModel.hideExportDialog()
-                                viewModel.exportToCsv(context, customName)
+                            onExport = { customName, uploadToDrive ->
+                                viewModel.exportToCsv(context, customName, uploadToDrive, driveManager)
+                            },
+                            onSignIn = {
+                                val signInIntent = driveManager.getGoogleSignInClient().signInIntent
+                                signInLauncher.launch(signInIntent)
+                            },
+                            onViewInDrive = { fileId ->
+                                driveManager.openDriveFile(fileId)
                             }
                         )
                     }
@@ -403,37 +436,166 @@ private fun ExportFab(
 @Composable
 private fun ExportFilenameDialog(
     filename: String,
+    isSignedIn: Boolean,
+    isUploading: Boolean,
+    uploadError: String?,
+    uploadSuccess: Boolean,
+    lastUploadedFileId: String?,
     onDismiss: () -> Unit,
-    onExport: (String) -> Unit,
+    onExport: (String, Boolean) -> Unit,
+    onSignIn: () -> Unit,
+    onViewInDrive: (String) -> Unit,
 ) {
     var editedName by remember { mutableStateOf(filename) }
+    var uploadToDrive by remember { mutableStateOf(false) }
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Exportar Remito") },
+        title = { Text(stringResource(R.string.exportar_csv)) },
         text = {
-            Column {
-                Text(
-                    text = "Nombre del archivo:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Filename field
                 OutlinedTextField(
                     value = editedName,
                     onValueChange = { newValue -> editedName = newValue },
+                    label = { Text(stringResource(R.string.nombre)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+                
+                // Google Drive section
+                if (isSignedIn) {
+                    // User is signed in - show upload option
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        androidx.compose.material3.Checkbox(
+                            checked = uploadToDrive,
+                            onCheckedChange = { uploadToDrive = it },
+                            enabled = !isUploading
+                        )
+                        Column {
+                            Text(
+                                text = stringResource(R.string.subir_csv_a_google_drive),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = stringResource(R.string.carpeta_por_defecto),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    
+                    // Show success/error states
+                    if (uploadSuccess && lastUploadedFileId != null) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = Success100
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.exportado_y_subido_a_drive),
+                                    color = Success500,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                TextButton(
+                                    onClick = { onViewInDrive(lastUploadedFileId) },
+                                    modifier = Modifier.align(Alignment.End)
+                                ) {
+                                    Text(stringResource(R.string.ver_en_drive))
+                                }
+                            }
+                        }
+                    }
+                    
+                    uploadError?.let { error ->
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = error,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                if (error.contains(stringResource(R.string.error_de_conexi_n_no_se_pudo_subir_a_drive))) {
+                                    Text(
+                                        text = stringResource(R.string.guardado_localmente_sin_conexi_n),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // User not signed in - show sign in button
+                    OutlinedButton(
+                        onClick = onSignIn,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CloudUpload,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.iniciar_sesion_con_google))
+                    }
+                    Text(
+                        text = stringResource(R.string.debes_iniciar_sesion_para_subir_a_drive),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                if (isUploading) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Text(
+                            text = "Subiendo a Google Drive...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onExport(editedName) }) {
-                Text("Exportar")
+            Button(
+                onClick = { onExport(editedName, uploadToDrive) },
+                enabled = !isUploading && editedName.isNotBlank()
+            ) {
+                if (uploadToDrive && isSignedIn) {
+                    Text(stringResource(R.string.exportar_y_subir))
+                } else {
+                    Text(stringResource(R.string.solo_guardar_locamente))
+                }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(R.string.cancelar))
             }
         }
     )

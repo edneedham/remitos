@@ -88,4 +88,21 @@
     <string name="escanear_bultos_mensaje">El ingreso se guardó correctamente. ¿Querés escanear los códigos de barras de los bultos ahora o más tarde desde la sección de Historial?</string>
     <string name="ahora">Ahora</string>
     <string name="mas_tarde">Más tarde</string>
+    <!-- Google Drive Export Strings -->
+    <string name="exportar_a_google_drive">Exportar a Google Drive</string>
+    <string name="subir_csv_a_google_drive">Subir CSV a Google Drive</string>
+    <string name="seleccionar_carpeta">Seleccionar carpeta</string>
+    <string name="carpeta_por_defecto">Carpeta por defecto: Remitos Exports</string>
+    <string name="exportar">Exportar</string>
+    <string name="exportar_y_subir">Exportar y subir</string>
+    <string name="solo_guardar_locamente">Solo guardar localmente</string>
+    <string name="iniciar_sesion_con_google">Iniciar sesión con Google</string>
+    <string name="debes_iniciar_sesion_para_subir_a_drive">Tenés que iniciar sesión con Google para subir archivos a Drive</string>
+    <string name="exportado_a_descargas">Exportado a Descargas</string>
+    <string name="exportado_y_subido_a_drive">Exportado y subido a Drive</string>
+    <string name="error_al_subir_a_drive">Error al subir a Drive</string>
+    <string name="reintentar">Reintentar</string>
+    <string name="ver_en_drive">Ver en Drive</string>
+    <string name="guardado_localmente_sin_conexi_n">Guardado localmente (sin conexión a internet)</string>
+    <string name="error_de_conexi_n_no_se_pudo_subir_a_drive">Error de conexión: no se pudo subir a Google Drive</string>
 </resources>

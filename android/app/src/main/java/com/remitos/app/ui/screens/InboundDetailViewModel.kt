@@ -22,6 +22,12 @@ import javax.inject.Inject
 
 import android.content.Context
 import android.widget.Toast
+import androidx.activity.result.ActivityResult
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
+import com.remitos.app.R
+import com.remitos.app.drive.DriveUploadResult
+import com.remitos.app.drive.GoogleDriveManager
 
 @HiltViewModel
 class InboundDetailViewModel @Inject constructor(
@@ -158,16 +164,27 @@ class InboundDetailViewModel @Inject constructor(
     }
     
     fun hideExportDialog() {
-        _uiState.value = _uiState.value.copy(showExportDialog = false)
+        _uiState.value = _uiState.value.copy(
+            showExportDialog = false,
+            driveUploadError = null,
+            driveUploadSuccess = false,
+            lastUploadedFileId = null
+        )
         // Filename will be regenerated fresh next time
     }
 
-    fun exportToCsv(context: Context, customFilename: String) {
+    fun exportToCsv(
+        context: Context,
+        customFilename: String,
+        uploadToDrive: Boolean = false,
+        driveManager: GoogleDriveManager? = null
+    ) {
         viewModelScope.launch {
             val note = currentNote ?: return@launch
             val fieldSections = _uiState.value.fieldSections
             
             try {
+                // First, export to local storage (always)
                 val filePath = CsvExporter.exportRemitoToCsv(
                     context = context,
                     inboundNote = note,
@@ -175,13 +192,52 @@ class InboundDetailViewModel @Inject constructor(
                     customFilename = customFilename
                 )
                 
-                // Show success toast with file path
+                // Show success toast for local export
                 withContext(Dispatchers.Main) {
                     Toast.makeText(
                         context,
-                        "Exportado a: $filePath",
+                        context.getString(R.string.exportado_a_descargas),
                         Toast.LENGTH_LONG
                     ).show()
+                }
+                
+                // If user wants to upload to Drive, do that
+                if (uploadToDrive && driveManager != null) {
+                    _uiState.value = _uiState.value.copy(
+                        isUploadingToDrive = true,
+                        driveUploadError = null,
+                        driveUploadSuccess = false
+                    )
+                    
+                    val result = driveManager.uploadCsvFile(
+                        filePath = filePath,
+                        fileName = customFilename,
+                        useDefaultFolder = true
+                    )
+                    
+                    when (result) {
+                        is DriveUploadResult.Success -> {
+                            _uiState.value = _uiState.value.copy(
+                                isUploadingToDrive = false,
+                                driveUploadSuccess = true,
+                                lastUploadedFileId = result.fileId
+                            )
+                            // Show success toast for Drive upload
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.exportado_y_subido_a_drive),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                        is DriveUploadResult.Error -> {
+                            _uiState.value = _uiState.value.copy(
+                                isUploadingToDrive = false,
+                                driveUploadError = result.message
+                            )
+                        }
+                    }
                 }
                 
                 _saveState.value = InboundDetailSaveState.Success
@@ -194,9 +250,50 @@ class InboundDetailViewModel @Inject constructor(
                         Toast.LENGTH_LONG
                     ).show()
                 }
+                _uiState.value = _uiState.value.copy(isUploadingToDrive = false)
                 _saveState.value = InboundDetailSaveState.Error("Error al exportar CSV: ${e.message}")
             }
         }
+    }
+
+    /**
+     * Handles the result from Google Sign-In activity.
+     */
+    fun handleGoogleSignInResult(result: ActivityResult, driveManager: GoogleDriveManager) {
+        // Check if the sign-in was successful
+        if (result.resultCode != android.app.Activity.RESULT_OK) {
+            _uiState.value = _uiState.value.copy(
+                isGoogleSignedIn = driveManager.isSignedIn(),
+                driveUploadError = "Inicio de sesión cancelado"
+            )
+            return
+        }
+        
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            // Sign-in successful, update UI state
+            _uiState.value = _uiState.value.copy(
+                isGoogleSignedIn = true,
+                driveUploadError = null
+            )
+        } catch (e: ApiException) {
+            // Sign-in failed
+            _uiState.value = _uiState.value.copy(
+                isGoogleSignedIn = driveManager.isSignedIn(),
+                driveUploadError = "Error al iniciar sesión con Google: ${e.statusCode}"
+            )
+        }
+    }
+
+    /**
+     * Checks if user is already signed in with Google.
+     * Call this when the screen loads to set the initial sign-in state.
+     */
+    fun checkGoogleSignInStatus(driveManager: GoogleDriveManager) {
+        _uiState.value = _uiState.value.copy(
+            isGoogleSignedIn = driveManager.isSignedIn()
+        )
     }
 
     private fun loadNote() {
@@ -291,6 +388,12 @@ data class InboundDetailUiState(
     val fieldSections: Map<String, List<FieldDisplayItem>> = emptyMap(),
     val showExportDialog: Boolean = false,
     val suggestedExportFilename: String = "",
+    // Google Drive export state
+    val isGoogleSignedIn: Boolean = false,
+    val isUploadingToDrive: Boolean = false,
+    val driveUploadError: String? = null,
+    val driveUploadSuccess: Boolean = false,
+    val lastUploadedFileId: String? = null,
 )
 
 sealed interface InboundDetailSaveState {

@@ -48,6 +48,12 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    packaging {
+        resources {
+            excludes += setOf("META-INF/INDEX.LIST", "META-INF/DEPENDENCIES")
+        }
+    }
 }
 
 dependencies {
@@ -100,8 +106,15 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.3")
     implementation("androidx.camera:camera-view:1.3.3")
 
+    // ML Kit
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
+
+    // Google Sign-In and Drive API
+    implementation("com.google.android.gms:play-services-auth:21.1.0")
+    implementation("com.google.http-client:google-http-client-gson:1.44.1")
+    implementation("com.google.api-client:google-api-client-android:2.4.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20240809-2.0.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.2")
 
