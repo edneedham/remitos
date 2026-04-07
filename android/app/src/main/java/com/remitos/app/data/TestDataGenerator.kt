@@ -62,26 +62,22 @@ class TestDataGenerator(private val repository: RemitosRepository) {
             val createdNotes = mutableListOf<Pair<Long, InboundNoteEntity>>()
 
             val inboundConfigs = listOf(
-                InboundConfig(0, 0, 4, now - 2 * oneDay, 4, InboundNoteStatus.Activa),
-                InboundConfig(1, 1, 6, now - 5 * oneDay, 6, InboundNoteStatus.Activa),
-                InboundConfig(2, 2, 3, now - 7 * oneDay, 0, InboundNoteStatus.Activa),
-                InboundConfig(3, 3, 8, now - 3 * oneDay, 5, InboundNoteStatus.Activa),
-                InboundConfig(4, 4, 5, now - 10 * oneDay, 0, InboundNoteStatus.Anulada),
-                InboundConfig(0, 5, 7, now - 1 * oneDay, 3, InboundNoteStatus.Activa),
-                InboundConfig(1, 6, 4, now - 4 * oneDay, 4, InboundNoteStatus.Activa),
-                InboundConfig(2, 7, 6, now - 6 * oneDay, 6, InboundNoteStatus.Activa),
-                InboundConfig(3, 8, 3, now - 8 * oneDay, 0, InboundNoteStatus.Activa),
-                InboundConfig(4, 9, 5, now - 12 * oneDay, 5, InboundNoteStatus.Activa)
+                InboundConfig(0, 0, 4, now - 2 * oneDay, InboundNoteStatus.Activa),
+                InboundConfig(1, 1, 6, now - 5 * oneDay, InboundNoteStatus.Activa),
+                InboundConfig(2, 2, 3, now - 7 * oneDay, InboundNoteStatus.Activa),
+                InboundConfig(3, 3, 8, now - 3 * oneDay, InboundNoteStatus.Activa),
+                InboundConfig(4, 4, 5, now - 10 * oneDay, InboundNoteStatus.Anulada),
+                InboundConfig(0, 5, 7, now - 1 * oneDay, InboundNoteStatus.Activa),
+                InboundConfig(1, 6, 4, now - 4 * oneDay, InboundNoteStatus.Activa),
+                InboundConfig(2, 7, 6, now - 6 * oneDay, InboundNoteStatus.Activa),
+                InboundConfig(3, 8, 3, now - 8 * oneDay, InboundNoteStatus.Activa),
+                InboundConfig(4, 9, 5, now - 12 * oneDay, InboundNoteStatus.Activa)
             )
 
             inboundConfigs.forEach { config ->
                 val noteId = createInboundNote(config)
                 val note = repository.getInboundNote(noteId)!!
                 createdNotes.add(Pair(noteId, note))
-
-                if (config.scannedCount > 0) {
-                    scanPackages(noteId, config.scannedCount, note.createdAt)
-                }
             }
             android.util.Log.d("TestDataGenerator", "Inbound created: ${createdNotes.size}")
 
@@ -343,29 +339,6 @@ class TestDataGenerator(private val repository: RemitosRepository) {
         android.util.Log.d("TestDataGenerator", "Created demo device")
     }
     
-    suspend fun seedUsageStats(context: Context) {
-        val settingsStore = SettingsStore(context)
-        
-        // Simulate realistic usage stats
-        val now = System.currentTimeMillis()
-        
-        // Simulate 45 total scans over the last week
-        repeat(45) { index ->
-            settingsStore.recordScanStarted()
-            // 80% success rate
-            val durationMs = (2000L..8000L).random()
-            val success = index % 5 != 0 // Every 5th scan fails
-            settingsStore.recordScanResult(durationMs, success)
-        }
-        
-        // Add 8 manual corrections
-        repeat(8) {
-            settingsStore.recordManualCorrection()
-        }
-        
-        android.util.Log.d("TestDataGenerator", "Seeded usage stats: 45 scans, 8 corrections")
-    }
-    
     suspend fun seedTemplateConfig(context: Context) {
         val settingsStore = SettingsStore(context)
         
@@ -387,7 +360,6 @@ class TestDataGenerator(private val repository: RemitosRepository) {
         val destinationIndex: Int,
         val packageCount: Int,
         val createdAt: Long,
-        val scannedCount: Int,
         val status: String
     )
 
@@ -415,27 +387,6 @@ class TestDataGenerator(private val repository: RemitosRepository) {
         )
 
         return repository.createInboundNote(note)
-    }
-
-    private suspend fun scanPackages(noteId: Long, count: Int, createdAt: Long) {
-        val packages = repository.getPackagesForNote(noteId)
-        packages.take(count).forEachIndexed { index, pkg ->
-            val gtin = "779${(100000000..999999999).random()}"
-            val batch = "L${(1000..9999).random()}"
-            val expiry = generateFutureDate()
-            val gs1Barcode = generateGs1Barcode(gtin, batch, expiry)
-
-            repository.updatePackage(
-                pkg.copy(
-                    barcodeRaw = gs1Barcode,
-                    gtin = extractGtin(gs1Barcode),
-                    batchLot = extractBatch(gs1Barcode),
-                    expiryDate = extractExpiry(gs1Barcode),
-                    scannedAt = createdAt + (index + 1) * 60 * 1000L,
-                    scannedBy = "m.gomez"
-                )
-            )
-        }
     }
 
     private suspend fun createOutboundList(driverIndex: Int, issueDate: Long, status: String): Long {
@@ -477,36 +428,6 @@ class TestDataGenerator(private val repository: RemitosRepository) {
         val sucursal = (1..10).random().toString().padStart(4, '0')
         val numero = (1..99999).random().toString().padStart(8, '0')
         return "$sucursal-$numero"
-    }
-
-    private fun generateGs1Barcode(gtin: String, batch: String, expiry: String): String {
-        val paddedGtin = gtin.padStart(14, '0')
-        val parts = expiry.split("/")
-        val yy = parts[2].takeLast(2)
-        val mm = parts[1]
-        val dd = parts[0]
-        val expiryCompressed = "$yy$mm$dd"
-        return "]C101$paddedGtin\u001D10$batch\u001D17$expiryCompressed"
-    }
-
-    private fun extractGtin(barcode: String): String? {
-        val match = Regex("]C101(\\d{14})").find(barcode)
-        return match?.groupValues?.get(1)
-    }
-
-    private fun extractBatch(barcode: String): String? {
-        val match = Regex("\\x1D10([^\\x1D]+)").find(barcode)
-        return match?.groupValues?.get(1)
-    }
-
-    private fun extractExpiry(barcode: String): String? {
-        val match = Regex("\\x1D17(\\d{6})").find(barcode)
-        val compressed = match?.groupValues?.get(1) ?: return null
-        val yy = compressed.substring(0, 2)
-        val mm = compressed.substring(2, 4)
-        val dd = compressed.substring(4, 6)
-        val fullYear = if (yy.toInt() < 50) "20$yy" else "19$yy"
-        return "$dd/$mm/$fullYear"
     }
 
     private fun generateFutureDate(): String {

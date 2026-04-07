@@ -308,7 +308,6 @@ class InboundDetailViewModel @Inject constructor(
                 )
             } else {
                 currentNote = note
-                val scannedCount = packages.count { it.barcodeRaw != null }
                 val fieldSections = buildFieldSections(note)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -330,7 +329,6 @@ class InboundDetailViewModel @Inject constructor(
                         remitoNumInterno = note.remitoNumInterno,
                     ),
                     packages = packages,
-                    scannedCount = scannedCount,
                     fieldSections = fieldSections,
                 )
             }
@@ -384,7 +382,6 @@ data class InboundDetailUiState(
     val scanImagePath: String? = null,
     val draft: InboundDraftState = InboundDraftState(),
     val packages: List<InboundPackageEntity> = emptyList(),
-    val scannedCount: Int = 0,
     val fieldSections: Map<String, List<FieldDisplayItem>> = emptyMap(),
     val showExportDialog: Boolean = false,
     val suggestedExportFilename: String = "",

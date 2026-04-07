@@ -2,8 +2,6 @@ package com.remitos.app.ui.screens
 
 import androidx.compose.ui.res.stringResource
 import com.remitos.app.R
-import android.Manifest
-import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -63,10 +61,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.remitos.app.network.NetworkChecker
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTopBar
 import com.remitos.app.ui.components.SectionCard
@@ -86,7 +82,6 @@ import kotlinx.coroutines.launch
 fun InboundScanScreen(
     onBack: () -> Unit,
     onOpenCamera: () -> Unit,
-    onNavigateToBarcodeScanning: (Long, Int) -> Unit,
     capturedUri: Uri? = null,
     onCapturedUriHandled: () -> Unit = {},
     viewModel: InboundViewModel = hiltViewModel()
@@ -96,8 +91,6 @@ fun InboundScanScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val draft = uiState.draft
     var showMissingDialog by remember { mutableStateOf(false) }
-    var showCameraPermissionDialog by remember { mutableStateOf(false) }
-    var pendingScanInfo by remember { mutableStateOf<Pair<Long, Int>?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -108,16 +101,6 @@ fun InboundScanScreen(
         viewModel.updateImageUri(uri)
         if (uri != null) {
             viewModel.processImage(context)
-        }
-    }
-
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) {
-            onOpenCamera()
-        } else {
-            showCameraPermissionDialog = true
         }
     }
 
@@ -191,18 +174,7 @@ fun InboundScanScreen(
                         Text(stringResource(R.string.galeria), color = if (uiState.isProcessing) DisabledButtonContent else Color.White)
                     }
                     FilledTonalButton(
-                        onClick = {
-                            val permission = Manifest.permission.CAMERA
-                            if (ContextCompat.checkSelfPermission(
-                                    context,
-                                    permission,
-                                ) == PackageManager.PERMISSION_GRANTED
-                            ) {
-                                onOpenCamera()
-                            } else {
-                                cameraPermissionLauncher.launch(permission)
-                            }
-                        },
+                        onClick = onOpenCamera,
                         enabled = !uiState.isProcessing,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.filledTonalButtonColors(
@@ -473,17 +445,6 @@ fun InboundScanScreen(
         )
     }
 
-    if (showCameraPermissionDialog) {
-        AlertDialog(
-            onDismissRequest = { showCameraPermissionDialog = false },
-            confirmButton = {
-                TextButton(onClick = { showCameraPermissionDialog = false }) { Text(stringResource(R.string.aceptar)) }
-            },
-            title = { Text(stringResource(R.string.permiso_de_camara)) },
-            text = { Text(stringResource(R.string.se_necesita_acceso_a_la_camara_para_tomar_la_foto)) },
-        )
-    }
-
     if (uiState.showManualEntryPrompt) {
         AlertDialog(
             onDismissRequest = { viewModel.clearManualEntryPrompt() },
@@ -502,7 +463,6 @@ fun InboundScanScreen(
                     snackbarHostState.showSnackbar("Ingreso guardado correctamente")
                 }
                 viewModel.clearSaveState()
-                pendingScanInfo = Pair(state.noteId, state.packageCount)
             }
         }
         is SaveState.Error -> {
@@ -516,27 +476,6 @@ fun InboundScanScreen(
             )
         }
         null -> Unit
-    }
-
-    if (pendingScanInfo != null) {
-        AlertDialog(
-            onDismissRequest = { },
-            confirmButton = {
-                TextButton(onClick = {
-                    val info = pendingScanInfo!!
-                    pendingScanInfo = null
-                    onNavigateToBarcodeScanning(info.first, info.second)
-                }) { Text(stringResource(R.string.ahora)) }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    pendingScanInfo = null
-                    onBack()
-                }) { Text(stringResource(R.string.mas_tarde)) }
-            },
-            title = { Text(stringResource(R.string.escanear_bultos_titulo)) },
-            text = { Text(stringResource(R.string.escanear_bultos_mensaje)) },
-        )
     }
 }
 

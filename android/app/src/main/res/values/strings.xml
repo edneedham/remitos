@@ -22,10 +22,6 @@
     <string name="campo_requerido">Campo requerido.</string>
     <string name="cargando_ingreso">Cargando ingreso…</string>
     <string name="sin_imagen_asociada">Sin imagen asociada</string>
-    <string name="escaneo_de_c_digos">Escaneo de códigos</string>
-    <string name="bultos_escaneados">Bultos escaneados</string>
-    <string name="escaneo_completo">Escaneo completo</string>
-    <string name="c_digos_escaneados">Códigos escaneados:</string>
     <string name="galeria">Galeria</string>
     <string name="camara">Camara</string>
     <string name="guardar_ingreso">Guardar ingreso</string>
@@ -84,10 +80,6 @@
     <string name="en_punto">en punto</string>
     <string name="acciones">Acciones</string>
     <string name="remitos">Remitos</string>
-    <string name="escanear_bultos_titulo">Escanear bultos</string>
-    <string name="escanear_bultos_mensaje">El ingreso se guardó correctamente. ¿Querés escanear los códigos de barras de los bultos ahora o más tarde desde la sección de Historial?</string>
-    <string name="ahora">Ahora</string>
-    <string name="mas_tarde">Más tarde</string>
     <!-- Google Drive Export Strings -->
     <string name="exportar_a_google_drive">Exportar a Google Drive</string>
     <string name="subir_csv_a_google_drive">Subir CSV a Google Drive</string>

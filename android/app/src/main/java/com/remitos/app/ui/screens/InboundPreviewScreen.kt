@@ -64,7 +64,7 @@ private const val PREVIEW_MAX_EDGE_PX = 2000
 fun InboundPreviewScreen(
     photoUri: Uri?,
     onBack: () -> Unit,
-    onRetake: () -> Unit,
+    onRetake: (() -> Unit)? = null,
     onConfirm: (Uri) -> Unit,
     onPhotoUriHandled: () -> Unit = {},
 ) {
@@ -167,18 +167,20 @@ fun InboundPreviewScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.ItemSpacing),
                 ) {
-                    FilledTonalButton(
-                        onClick = onRetake,
-                        enabled = !isLoading,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        androidx.compose.material3.Icon(
-                            Icons.Outlined.CameraAlt,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(modifier = Modifier.size(6.dp))
-                        Text("Repetir")
+                    if (onRetake != null) {
+                        FilledTonalButton(
+                            onClick = onRetake,
+                            enabled = !isLoading,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            androidx.compose.material3.Icon(
+                                Icons.Outlined.CameraAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.size(6.dp))
+                            Text("Repetir")
+                        }
                     }
                     Button(
                         onClick = {
@@ -211,7 +213,9 @@ fun InboundPreviewScreen(
                     text = "No se encontro la imagen para previsualizar.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                FilledTonalButton(onClick = onRetake) { Text("Volver a la camara") }
+                if (onRetake != null) {
+                    FilledTonalButton(onClick = onRetake) { Text("Volver a la camara") }
+                }
             }
 
             Spacer(modifier = Modifier.height(Spacing.SectionSpacing))

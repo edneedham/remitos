@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Inbox
@@ -68,7 +67,6 @@ import com.remitos.app.ui.theme.Spacing
 fun InboundHistoryScreen(
     onBack: () -> Unit,
     onOpenDetail: (Long) -> Unit,
-    onScanBarcodes: (Long, Int) -> Unit,
 ) {
     val context = LocalContext.current
     val viewModel: InboundHistoryViewModel = hiltViewModel()
@@ -171,7 +169,6 @@ fun InboundHistoryScreen(
                         InboundHistoryCard(
                             note = note,
                             onOpenDetail = { onOpenDetail(note.id) },
-                            onScanBarcodes = { onScanBarcodes(note.id, note.cantBultosTotal) },
                         )
                     }
                     if (canLoadMore) {
@@ -197,7 +194,6 @@ fun InboundHistoryScreen(
 private fun InboundHistoryCard(
     note: InboundNoteEntity,
     onOpenDetail: () -> Unit,
-    onScanBarcodes: () -> Unit,
 ) {
     val dateStr = DateUtils.formatDate(note.createdAt)
 
@@ -304,22 +300,6 @@ private fun InboundHistoryCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                
-                // Scan barcode button
-                if (note.status != InboundNoteStatus.Anulada) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    IconButton(
-                        onClick = onScanBarcodes,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.QrCodeScanner,
-                            contentDescription = "Escanear códigos",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
             }
         }
     }

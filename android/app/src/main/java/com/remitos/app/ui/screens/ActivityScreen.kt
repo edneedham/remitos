@@ -49,12 +49,6 @@ fun ActivityScreen(onBack: () -> Unit) {
     val stats by viewModel.usageStats.collectAsStateWithLifecycle()
     val exportState by viewModel.exportState.collectAsStateWithLifecycle()
 
-    val averageTime = if (stats.totalScans > 0L) {
-        stats.totalScanTimeMs / stats.totalScans
-    } else {
-        null
-    }
-
     LaunchedEffect(exportState) {
         if (exportState is ExportState.Success) {
             val uri = (exportState as ExportState.Success).uri
@@ -108,14 +102,8 @@ fun ActivityScreen(onBack: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                    MetricRow(label = "Escaneos totales", value = stats.totalScans.toString(), lightText = false)
                     MetricRow(label = "Lecturas exitosas", value = stats.successfulParses.toString(), lightText = false)
                     MetricRow(label = "Correcciones manuales", value = stats.manualCorrections.toString(), lightText = false)
-                    MetricRow(
-                        label = "Tiempo promedio por escaneo",
-                        value = averageTime?.let { formatSeconds(it) } ?: "—",
-                        lightText = false,
-                    )
                 }
             }
 

@@ -8,7 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.remitos.app.data.OutboundSearchFilters
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.SettingsStore
-import com.remitos.app.data.UsageStats
+import com.remitos.app.data.DeviceUsageStats
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,15 +25,12 @@ class ActivityViewModel @Inject constructor(
     private val settingsStore: SettingsStore,
     private val repository: RemitosRepository
 ) : ViewModel() {
-    val usageStats: StateFlow<UsageStats> = settingsStore.usageStats.stateIn(
+    val usageStats: StateFlow<DeviceUsageStats> = settingsStore.usageStats.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
-        UsageStats(
-            totalScans = 0L,
+        DeviceUsageStats(
             successfulParses = 0L,
             manualCorrections = 0L,
-            totalScanTimeMs = 0L,
-            lastScanTimeMs = 0L,
         ),
     )
 

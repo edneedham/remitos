@@ -11,11 +11,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -27,6 +28,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.remitos.app.ocr.FieldPair
 import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.DisabledButtonBackground
+import com.remitos.app.ui.theme.DisabledButtonContent
 import com.remitos.app.ui.theme.Spacing
 
 @Composable
@@ -37,10 +40,20 @@ fun DetectedFieldsSection(
     onAddField: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val labelColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = BrandBlue,
-        unfocusedBorderColor = BrandBlue.copy(alpha = 0.5f),
-        cursorColor = BrandBlue,
+    // Match the Reversed variant styling from RemitosTextField
+    val textColor = BrandBlue
+    val labelColor = BrandBlue.copy(alpha = 0.6f)
+    val borderColor = BrandBlue
+    val cursorColor = BrandBlue
+    
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = borderColor,
+        unfocusedBorderColor = borderColor,
+        focusedLabelColor = labelColor,
+        unfocusedLabelColor = labelColor,
+        cursorColor = cursorColor,
+        focusedTextColor = textColor,
+        unfocusedTextColor = textColor,
     )
 
     fields.forEachIndexed { index, pair ->
@@ -55,8 +68,8 @@ fun DetectedFieldsSection(
                 label = { Text("Campo") },
                 modifier = Modifier.weight(0.4f),
                 singleLine = true,
-                colors = labelColors,
-                textStyle = MaterialTheme.typography.bodySmall,
+                colors = fieldColors,
+                textStyle = MaterialTheme.typography.bodySmall.copy(color = textColor),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             )
             OutlinedTextField(
@@ -65,8 +78,8 @@ fun DetectedFieldsSection(
                 label = { Text("Valor") },
                 modifier = Modifier.weight(0.6f),
                 singleLine = true,
-                colors = labelColors,
-                textStyle = MaterialTheme.typography.bodySmall,
+                colors = fieldColors,
+                textStyle = MaterialTheme.typography.bodySmall.copy(color = textColor),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             )
             IconButton(
@@ -85,16 +98,21 @@ fun DetectedFieldsSection(
         }
     }
 
-    OutlinedButton(
+    FilledTonalButton(
         onClick = onAddField,
         modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = BrandBlue,
+            contentColor = Color.White,
+        )
     ) {
         Icon(
             Icons.Outlined.Add,
             contentDescription = null,
             modifier = Modifier.size(18.dp),
+            tint = Color.White,
         )
         Box(modifier = Modifier.size(Spacing.ItemSpacing))
-        Text("Agregar campo")
+        Text("Agregar campo", color = Color.White)
     }
 }

@@ -93,9 +93,6 @@ class InboundViewModel @Inject constructor(
             }
             
             try {
-                withContext(ioDispatcher) {
-                    settingsStore.recordScanStarted()
-                }
                 val enableCorrection = withContext(ioDispatcher) {
                     settingsStore.getPerspectiveCorrectionEnabled()
                 }
@@ -194,7 +191,6 @@ class InboundViewModel @Inject constructor(
             } finally {
                 val durationMs = SystemClock.elapsedRealtime() - startTimeMs
                 withContext(ioDispatcher) {
-                    settingsStore.recordScanResult(durationMs, parseSuccess)
                     debugLog?.let { repository.insertDebugLog(it) }
                 }
                 _uiState.update { it.copy(

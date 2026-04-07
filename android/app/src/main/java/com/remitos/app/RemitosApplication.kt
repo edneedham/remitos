@@ -89,7 +89,6 @@ class RemitosApplication : Application() {
                     if (existingNotes.isEmpty()) {
                         val generator = TestDataGenerator(repo)
                         generator.generateTestData()
-                        generator.seedUsageStats(this@RemitosApplication)
                         generator.seedTemplateConfig(this@RemitosApplication)
                     }
                 }

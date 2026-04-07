@@ -52,7 +52,7 @@ import com.remitos.app.data.db.entity.SyncQueueEntity
         LocalScannedCodeEntity::class,
         SyncQueueEntity::class,
     ],
-    version = 13
+    version = 14
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun inboundDao(): InboundDao
@@ -306,6 +306,43 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Remove barcode-related columns from inbound_packages table
+                // SQLite doesn't support DROP COLUMN, so we recreate the table
+                
+                // Create new table without barcode columns
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS inbound_packages_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        inbound_note_id INTEGER NOT NULL,
+                        package_index INTEGER NOT NULL,
+                        status TEXT NOT NULL,
+                        FOREIGN KEY(inbound_note_id) REFERENCES inbound_notes(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                
+                // Copy data from old table to new table (only keeping non-barcode columns)
+                db.execSQL(
+                    """
+                    INSERT INTO inbound_packages_new (id, inbound_note_id, package_index, status)
+                    SELECT id, inbound_note_id, package_index, status FROM inbound_packages
+                    """.trimIndent()
+                )
+                
+                // Drop old table
+                db.execSQL("DROP TABLE inbound_packages")
+                
+                // Rename new table to original name
+                db.execSQL("ALTER TABLE inbound_packages_new RENAME TO inbound_packages")
+                
+                // Recreate index
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_inbound_packages_inbound_note_id ON inbound_packages(inbound_note_id)")
+            }
+        }
+
         private val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add barcode-related columns to inbound_packages table
@@ -396,7 +433,8 @@ abstract class AppDatabase : RoomDatabase() {
                 MIGRATION_9_10,
                 MIGRATION_10_11,
                 MIGRATION_11_12,
-                MIGRATION_12_13
+                MIGRATION_12_13,
+                MIGRATION_13_14
             ).build()
         }
     }

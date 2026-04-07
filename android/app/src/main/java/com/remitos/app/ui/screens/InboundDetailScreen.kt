@@ -93,7 +93,6 @@ import kotlin.math.roundToInt
 fun InboundDetailScreen(
     noteId: Long,
     onBack: () -> Unit,
-    onScanBarcodes: (Long, Int) -> Unit,
     viewModel: InboundDetailViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -162,19 +161,6 @@ fun InboundDetailScreen(
                     InboundDetailForm(
                         state = uiState,
                         onDraftChange = viewModel::updateDraft,
-                    )
-                    
-                    // Barcode scan section
-                    BarcodeScanSection(
-                        scannedCount = uiState.scannedCount,
-                        totalCount = uiState.draft.cantBultosTotal.toIntOrNull() ?: 0,
-                        packages = uiState.packages,
-                        onExportCsv = {
-                            viewModel.showExportDialog()
-                        },
-                        onScanBarcodes = {
-                            onScanBarcodes(noteId, uiState.draft.cantBultosTotal.toIntOrNull() ?: 0)
-                        }
                     )
                     
                     // Google Drive Manager
@@ -599,132 +585,4 @@ private fun ExportFilenameDialog(
             }
         }
     )
-}
-
-
-
-@Composable
-private fun BarcodeScanSection(
-    scannedCount: Int,
-    totalCount: Int,
-    packages: List<com.remitos.app.data.db.entity.InboundPackageEntity>,
-    onExportCsv: () -> Unit,
-    onScanBarcodes: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (scannedCount >= totalCount && totalCount > 0) 
-                Success100 else MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.escaneo_de_c_digos),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                // Show scan button if not all packages are scanned
-                if (scannedCount < totalCount && totalCount > 0) {
-                    TextButton(onClick = onScanBarcodes) {
-                        Text(stringResource(R.string.escanear))
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.bultos_escaneados),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = "$scannedCount / $totalCount",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = when {
-                        scannedCount >= totalCount && totalCount > 0 -> Success500
-                        scannedCount > 0 -> BrandBlue
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-            }
-            
-            if (scannedCount >= totalCount && totalCount > 0) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = Success500,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.escaneo_completo),
-                        color = Success500,
-                        fontWeight = FontWeight.Medium,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-            
-            // Show list of scanned packages
-            if (packages.any { it.barcodeRaw != null }) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.c_digos_escaneados),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                packages.filter { it.barcodeRaw != null }.take(5).forEach { pkg ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Bulto ${pkg.packageIndex}:",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            text = pkg.barcodeRaw?.take(25) ?: "",
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                
-                if (packages.count { it.barcodeRaw != null } > 5) {
-                    Text(
-                        text = "... y ${packages.count { it.barcodeRaw != null } - 5} más",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-        }
-    }
 }

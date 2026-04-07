@@ -102,13 +102,13 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 
+    // CameraX for document photo capture
     implementation("androidx.camera:camera-camera2:1.3.3")
     implementation("androidx.camera:camera-lifecycle:1.3.3")
     implementation("androidx.camera:camera-view:1.3.3")
 
-    // ML Kit
+    // ML Kit text recognition for OCR
     implementation("com.google.mlkit:text-recognition:16.0.1")
-    implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     // Google Sign-In and Drive API
     implementation("com.google.android.gms:play-services-auth:21.1.0")

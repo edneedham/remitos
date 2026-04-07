@@ -117,7 +117,7 @@ fun DebugScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Text(
-                            text = "Genera datos completos de demostración: 10 remitos, 3 listas de reparto, usuarios, estadísticas y configuración de plantilla.",
+                            text = "Genera datos completos de demostración: 10 remitos, 3 listas de reparto, usuarios y configuración de plantilla.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -127,7 +127,6 @@ fun DebugScreen(
                                     try {
                                         val generator = com.remitos.app.data.TestDataGenerator(viewModel.repository)
                                         generator.generateTestData()
-                                        generator.seedUsageStats(context)
                                         generator.seedTemplateConfig(context)
                                         snackbarHostState.showSnackbar(
                                             "Datos de demostración generados correctamente"

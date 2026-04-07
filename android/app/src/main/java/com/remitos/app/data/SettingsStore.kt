@@ -16,11 +16,8 @@ private val Context.dataStore by preferencesDataStore(name = "settings")
 
 class SettingsStore(private val context: Context) {
     private val perspectiveCorrectionKey = booleanPreferencesKey("perspective_correction_enabled")
-    private val totalScansKey = longPreferencesKey("usage_total_scans")
     private val successfulParsesKey = longPreferencesKey("usage_successful_parses")
     private val manualCorrectionsKey = longPreferencesKey("usage_manual_corrections")
-    private val totalScanTimeMsKey = longPreferencesKey("usage_total_scan_time_ms")
-    private val lastScanTimeMsKey = longPreferencesKey("usage_last_scan_time_ms")
 
     // Template Configuration Keys
     private val logoUriKey = stringPreferencesKey("template_logo_uri")
@@ -64,13 +61,10 @@ class SettingsStore(private val context: Context) {
         }
     }
 
-    val usageStats: Flow<UsageStats> = context.dataStore.data.map { prefs ->
-        UsageStats(
-            totalScans = prefs[totalScansKey] ?: 0L,
+    val usageStats: Flow<DeviceUsageStats> = context.dataStore.data.map { prefs ->
+        DeviceUsageStats(
             successfulParses = prefs[successfulParsesKey] ?: 0L,
             manualCorrections = prefs[manualCorrectionsKey] ?: 0L,
-            totalScanTimeMs = prefs[totalScanTimeMsKey] ?: 0L,
-            lastScanTimeMs = prefs[lastScanTimeMsKey] ?: 0L,
         )
     }
 
@@ -81,25 +75,6 @@ class SettingsStore(private val context: Context) {
     suspend fun setPerspectiveCorrectionEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[perspectiveCorrectionKey] = enabled
-        }
-    }
-
-    suspend fun recordScanStarted() {
-        context.dataStore.edit { prefs ->
-            val current = prefs[totalScansKey] ?: 0L
-            prefs[totalScansKey] = current + 1
-        }
-    }
-
-    suspend fun recordScanResult(durationMs: Long, parseSuccess: Boolean) {
-        context.dataStore.edit { prefs ->
-            val totalTime = (prefs[totalScanTimeMsKey] ?: 0L) + durationMs
-            prefs[totalScanTimeMsKey] = totalTime
-            prefs[lastScanTimeMsKey] = durationMs
-            if (parseSuccess) {
-                val current = prefs[successfulParsesKey] ?: 0L
-                prefs[successfulParsesKey] = current + 1
-            }
         }
     }
 
@@ -130,12 +105,9 @@ class SettingsStore(private val context: Context) {
     }
 }
 
-data class UsageStats(
-    val totalScans: Long,
+data class DeviceUsageStats(
     val successfulParses: Long,
     val manualCorrections: Long,
-    val totalScanTimeMs: Long,
-    val lastScanTimeMs: Long,
 )
 
 data class TemplateConfig(

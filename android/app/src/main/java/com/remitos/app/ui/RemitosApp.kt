@@ -24,7 +24,6 @@ import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.DatabaseManager
-import com.remitos.app.ui.screens.BarcodeScanningScreen
 import com.remitos.app.ui.screens.DashboardScreen
 import com.remitos.app.ui.screens.DebugScreen
 import com.remitos.app.ui.screens.DeviceSetupScreen
@@ -75,7 +74,6 @@ private object Routes {
     const val Activity = "activity"
     const val Settings = "settings"
     const val Debug = "debug"
-    const val BarcodeScanning = "barcode_scanning"
     const val Users = "users"
     const val Templates = "templates"
 }
@@ -238,9 +236,6 @@ private fun AppNavHost(navController: NavHostController) {
             InboundScanScreen(
                 onBack = { navController.popBackStack() },
                 onOpenCamera = { navController.navigate(Routes.InboundCamera) },
-                onNavigateToBarcodeScanning = { noteId, packageCount ->
-                    navController.navigate("${Routes.BarcodeScanning}/$noteId/$packageCount")
-                },
                 capturedUri = capturedUri,
                 onCapturedUriHandled = {
                     backStackEntry
@@ -305,9 +300,6 @@ private fun AppNavHost(navController: NavHostController) {
             InboundHistoryScreen(
                 onBack = { navController.popBackStack() },
                 onOpenDetail = { noteId -> navController.navigate("${Routes.InboundDetail}/$noteId") },
-                onScanBarcodes = { noteId, packageCount -> 
-                    navController.navigate("${Routes.BarcodeScanning}/$noteId/$packageCount")
-                },
             )
         }
         composable(
@@ -318,9 +310,6 @@ private fun AppNavHost(navController: NavHostController) {
             InboundDetailScreen(
                 noteId = noteId,
                 onBack = { navController.popBackStack() },
-                onScanBarcodes = { id, count -> 
-                    navController.navigate("${Routes.BarcodeScanning}/$id/$count")
-                },
             )
         }
         composable(Routes.OutboundHistory) {
@@ -354,25 +343,6 @@ private fun AppNavHost(navController: NavHostController) {
         composable(Routes.Templates) {
             TemplateConfigScreen(
                 onBack = { navController.popBackStack() },
-            )
-        }
-        
-        composable(
-            route = "${Routes.BarcodeScanning}/{noteId}/{expectedCount}",
-            arguments = listOf(
-                navArgument("noteId") { type = NavType.LongType },
-                navArgument("expectedCount") { type = NavType.IntType }
-            ),
-        ) { entry ->
-            val noteId = entry.arguments?.getLong("noteId") ?: 0L
-            val expectedCount = entry.arguments?.getInt("expectedCount") ?: 0
-            BarcodeScanningScreen(
-                inboundNoteId = noteId,
-                expectedCount = expectedCount,
-                onBack = { navController.popBackStack() },
-                onComplete = {
-                    navController.popBackStack(Routes.Dashboard, false)
-                }
             )
         }
         
