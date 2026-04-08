@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -18,16 +17,6 @@ import (
 	"server/internal/middleware"
 	"server/internal/repository"
 )
-
-// generateImageID creates a random string ID for images
-func generateImageID() string {
-	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
-	b := make([]byte, 16)
-	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(b)
-}
 
 // ImageHandler handles image upload and retrieval operations
 type ImageHandler struct {
@@ -173,15 +162,13 @@ func (h *ImageHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get warehouse ID from device
-	warehouseIDStr := device.WarehouseID.String()
-	warehouseID := &warehouseIDStr
-	userIDStr := claims.UserID
-	userID := &userIDStr
+	warehouseID := device.WarehouseID
+	userID, _ := uuid.Parse(claims.UserID)
 
 	// Generate GCS path (São Paulo region - southamerica-east1)
 	timestamp := time.Now().Format("20060102_150405")
 	gcsPath := fmt.Sprintf("remitos/%s/%s/%s_%s_%d.jpg",
-		warehouseIDStr,
+		warehouseID.String(),
 		time.Now().Format("2006/01/02"),
 		entityType,
 		timestamp,
@@ -214,14 +201,14 @@ func (h *ImageHandler) Upload(w http.ResponseWriter, r *http.Request) {
 
 	// Create database record
 	image := &repository.Image{
-		ID:           generateImageID(),
+		ID:           uuid.New(),
 		GcsPath:      gcsPath,
 		ContentType:  contentType,
 		FileSize:     header.Size,
 		EntityType:   entityType,
 		EntityID:     entityID,
-		WarehouseID:  warehouseID,
-		UploadedBy:   userID,
+		WarehouseID:  &warehouseID,
+		UploadedBy:   &userID,
 		UploadedAt:   time.Now(),
 		StorageClass: "STANDARD",
 	}
@@ -243,14 +230,14 @@ func (h *ImageHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Log.Info().
-		Str("image_id", image.ID).
+		Str("image_id", image.ID.String()).
 		Str("gcs_path", gcsPath).
 		Str("entity_type", entityType).
 		Int64("entity_id", entityID).
 		Msg("Image uploaded successfully")
 
 	resp := UploadImageResponse{
-		ImageID:   image.ID,
+		ImageID:   image.ID.String(),
 		SignedURL: signedURL,
 		GcsPath:   gcsPath,
 		ExpiresAt: expiresAt.Format(time.RFC3339),
@@ -277,8 +264,14 @@ func (h *ImageHandler) GetSignedURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get image from database (imageID is a string)
-	image, err := h.imageRepo.GetByID(ctx, imageID)
+	id, err := uuid.Parse(imageID)
+	if err != nil {
+		RespondWithError(w, ErrCodeInvalidRequest, "ID de imagen inválido", http.StatusBadRequest)
+		return
+	}
+
+	// Get image from database
+	image, err := h.imageRepo.GetByID(ctx, id)
 	if err != nil {
 		logger.Log.Error().Err(err).Str("image_id", imageID).Msg("Image not found")
 		RespondWithError(w, ErrCodeNotFound, "Imagen no encontrada", http.StatusNotFound)

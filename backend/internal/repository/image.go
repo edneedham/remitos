@@ -4,21 +4,22 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Image represents an image stored in Google Cloud Storage
 type Image struct {
-	ID           string    `json:"id"`
-	GcsPath      string    `json:"gcs_path"`
-	ContentType  string    `json:"content_type"`
-	FileSize     int64     `json:"file_size"`
-	EntityType   string    `json:"entity_type"`
-	EntityID     int64     `json:"entity_id"`
-	WarehouseID  *string   `json:"warehouse_id,omitempty"`
-	UploadedBy   *string   `json:"uploaded_by,omitempty"`
-	UploadedAt   time.Time `json:"uploaded_at"`
-	StorageClass string    `json:"storage_class"`
+	ID           uuid.UUID  `json:"id"`
+	GcsPath      string     `json:"gcs_path"`
+	ContentType  string     `json:"content_type"`
+	FileSize     int64      `json:"file_size"`
+	EntityType   string     `json:"entity_type"`
+	EntityID     int64      `json:"entity_id"`
+	WarehouseID  *uuid.UUID `json:"warehouse_id,omitempty"`
+	UploadedBy   *uuid.UUID `json:"uploaded_by,omitempty"`
+	UploadedAt   time.Time  `json:"uploaded_at"`
+	StorageClass string     `json:"storage_class"`
 }
 
 // ImageRepository handles database operations for images
@@ -89,7 +90,7 @@ func (r *ImageRepository) GetByEntity(ctx context.Context, entityType string, en
 }
 
 // GetByID retrieves an image by its ID
-func (r *ImageRepository) GetByID(ctx context.Context, id string) (*Image, error) {
+func (r *ImageRepository) GetByID(ctx context.Context, id uuid.UUID) (*Image, error) {
 	query := `
 		SELECT id, gcs_path, content_type, file_size, entity_type, entity_id, warehouse_id, uploaded_by, uploaded_at, storage_class
 		FROM images
@@ -114,7 +115,7 @@ func (r *ImageRepository) GetByID(ctx context.Context, id string) (*Image, error
 }
 
 // Delete removes an image record from the database
-func (r *ImageRepository) Delete(ctx context.Context, id string) error {
+func (r *ImageRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `DELETE FROM images WHERE id = $1`
 	_, err := r.pool.Exec(ctx, query, id)
 	return err

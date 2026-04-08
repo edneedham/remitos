@@ -2,16 +2,15 @@
 -- Stores metadata for images uploaded to Google Cloud Storage
 
 -- Images table to store GCS metadata
--- Using text for ID to avoid UUID extension dependencies
 CREATE TABLE IF NOT EXISTS images (
-    id TEXT PRIMARY KEY DEFAULT md5(random()::text || clock_timestamp()::text),
+    id UUID PRIMARY KEY,
     gcs_path VARCHAR(500) NOT NULL,
     content_type VARCHAR(100) NOT NULL DEFAULT 'image/jpeg',
     file_size BIGINT NOT NULL,
     entity_type VARCHAR(50) NOT NULL CHECK (entity_type IN ('inbound_note', 'outbound_list', 'scan')),
     entity_id BIGINT NOT NULL,
-    warehouse_id TEXT REFERENCES warehouses(id),
-    uploaded_by TEXT REFERENCES users(id),
+    warehouse_id UUID REFERENCES warehouses(id),
+    uploaded_by UUID REFERENCES users(id),
     uploaded_at TIMESTAMP NOT NULL DEFAULT NOW(),
     storage_class VARCHAR(20) DEFAULT 'STANDARD',
     
