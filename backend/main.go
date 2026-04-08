@@ -48,6 +48,7 @@ func main() {
 	deviceRepo := repository.NewDeviceRepository(db.Pool)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
 	subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
+	imageRepo := repository.NewImageRepository(db.Pool)
 	jwtSvc := jwt.NewService(cfg.JWTSecret)
 	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, deviceRepo, refreshTokenRepo, subscriptionRepo, db.Pool, jwtSvc)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo)
@@ -55,6 +56,13 @@ func main() {
 	scanHandler, err := handlers.NewScanHandler()
 	if err != nil {
 		logger.Log.Warn().Err(err).Msg("Failed to initialize scan handler, /scan endpoint will not be available")
+	}
+
+	// Initialize image handler (optional - won't fail startup if GCS is not configured)
+	imageHandler, err := handlers.NewImageHandler(imageRepo, deviceRepo)
+	if err != nil {
+		logger.Log.Warn().Err(err).Msg("Failed to initialize image handler, image upload will not be available")
+		imageHandler = nil
 	}
 
 	h := chi.NewRouter()
@@ -77,6 +85,13 @@ func main() {
 		r.Use(middleware.RequireRole("admin"))
 		r.Mount("/admin", adminHandler.Routes())
 	})
+	if imageHandler != nil {
+		h.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo}))
+			r.Mount("/images", imageHandler.Routes())
+		})
+		logger.Log.Info().Msg("Image upload endpoint registered at /images")
+	}
 	r := middleware.Router(h)
 
 	port := os.Getenv("PORT")

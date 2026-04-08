@@ -24,8 +24,8 @@ gcloud artifacts repositories create ${REPOSITORY} \
 echo "Authenticating with Artifact Registry..."
 gcloud auth configure-docker ${REGION}-docker.pkg.dev
 
-echo "Building Docker image..."
-docker build -t ${IMAGE_URL}:latest .
+echo "Building Docker image for linux/amd64..."
+docker buildx build --platform linux/amd64 -t ${IMAGE_URL}:latest . --load
 
 echo "Pushing image to Artifact Registry..."
 docker push ${IMAGE_URL}:latest
