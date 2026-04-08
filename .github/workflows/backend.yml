@@ -71,5 +71,6 @@ jobs:
         service: '${{ env.SERVICE_NAME }}'
         region: '${{ env.REGION }}'
         image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest'
+        service_account: '${{ env.SERVICE_ACCOUNT }}'
         # By not specifying env_vars here, it preserves the existing ones set in Cloud Run
         # By not specifying secrets here, it preserves the existing DB_PASSWORD and JWT_SECRET bindings
