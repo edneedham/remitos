@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -17,6 +18,9 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.RadioButton
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -182,6 +186,46 @@ fun SettingsScreen(
                 }
             }
 
+            val uploadTiming by viewModel.uploadTiming.collectAsStateWithLifecycle()
+
+            SettingsCard(
+                title = "Subida de imágenes",
+                icon = Icons.Outlined.Cloud,
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = "Las imágenes de los remitos se suben automáticamente para respaldo y visualización en el historial.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        // Immediate upload option
+                        UploadTimingOption(
+                            selected = uploadTiming == com.remitos.app.data.UploadTiming.IMMEDIATE,
+                            onClick = { viewModel.setUploadTiming(com.remitos.app.data.UploadTiming.IMMEDIATE) },
+                            title = "Inmediata",
+                            description = "Subir ahora",
+                        )
+
+                        // WiFi-only option
+                        UploadTimingOption(
+                            selected = uploadTiming == com.remitos.app.data.UploadTiming.WIFI_ONLY,
+                            onClick = { viewModel.setUploadTiming(com.remitos.app.data.UploadTiming.WIFI_ONLY) },
+                            title = "Solo WiFi",
+                            description = "Esperar WiFi",
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.weight(1f))
             Row(
                 modifier = Modifier
@@ -272,4 +316,41 @@ private fun formatBytes(bytes: Long): String {
     }
     val rounded = if (unitIndex == 0) value.toInt().toString() else String.format("%.1f", value)
     return "$rounded ${units[unitIndex]}"
+}
+
+@Composable
+private fun UploadTimingOption(
+    selected: Boolean,
+    onClick: () -> Unit,
+    title: String,
+    description: String,
+) {
+    Row(
+        modifier = Modifier
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.RadioButton,
+            )
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = null,
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }

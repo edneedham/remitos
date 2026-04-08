@@ -115,4 +115,30 @@ interface InboundDao {
 
     @Query("SELECT * FROM inbound_notes WHERE id = :id")
     suspend fun getNoteById(id: Long): InboundNoteEntity?
+
+    // Image upload methods
+    @Query("SELECT * FROM inbound_notes WHERE upload_status = :status")
+    suspend fun getNotesByUploadStatus(status: String): List<InboundNoteEntity>
+
+    @Query("UPDATE inbound_notes SET upload_status = :status, upload_retry_count = :retryCount WHERE id = :noteId")
+    suspend fun updateUploadStatus(noteId: Long, status: String, retryCount: Int = 0)
+
+    @Query("""
+        UPDATE inbound_notes 
+        SET upload_status = :status, 
+            image_url = :imageUrl, 
+            image_gcs_path = :imageGcsPath, 
+            image_uploaded_at = :timestamp 
+        WHERE id = :noteId
+    """)
+    suspend fun updateImageUploadInfo(
+        noteId: Long,
+        imageUrl: String,
+        imageGcsPath: String,
+        status: String,
+        timestamp: Long = System.currentTimeMillis()
+    )
+
+    @Query("UPDATE inbound_notes SET image_url = :imageUrl WHERE id = :noteId")
+    suspend fun updateImageUrl(noteId: Long, imageUrl: String)
 }

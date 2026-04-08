@@ -227,13 +227,31 @@ interface RemitosApiService {
     @POST("images/upload")
     suspend fun uploadImage(
         @Part image: MultipartBody.Part,
-        @Part("entity_type") entityType: String,
-        @Part("entity_id") entityId: Long
-    ): Response<Map<String, String>>
+        @Part("entity_type") entityType: okhttp3.RequestBody,
+        @Part("entity_id") entityId: okhttp3.RequestBody
+    ): Response<ImageUploadResponse>
 
     /**
-     * Get image URL for downloading.
+     * Get a fresh signed URL for an existing image.
      */
     @GET("images/{id}/url")
-    suspend fun getImageUrl(@Path("id") imageId: String): Response<Map<String, String>>
+    suspend fun getSignedUrl(@Path("id") imageId: String): Response<SignedUrlResponse>
 }
+
+/**
+ * Response from image upload endpoint.
+ */
+data class ImageUploadResponse(
+    val imageId: String,
+    val signedUrl: String,
+    val gcsPath: String,
+    val expiresAt: String
+)
+
+/**
+ * Response from signed URL refresh endpoint.
+ */
+data class SignedUrlResponse(
+    val signedUrl: String,
+    val expiresAt: String
+)

@@ -125,6 +125,34 @@ class InboundRepository(private val db: AppDatabase) {
         db.inboundDao().updatePackage(packageEntity)
     }
 
+    // Image upload methods
+    suspend fun getNotesByUploadStatus(status: com.remitos.app.data.db.entity.UploadStatus): List<InboundNoteEntity> {
+        return db.inboundDao().getNotesByUploadStatus(status.name.lowercase())
+    }
+
+    suspend fun updateUploadStatus(noteId: Long, status: com.remitos.app.data.db.entity.UploadStatus, retryCount: Int = 0) {
+        db.inboundDao().updateUploadStatus(noteId, status.name.lowercase(), retryCount)
+    }
+
+    suspend fun updateImageUploadInfo(
+        noteId: Long,
+        imageUrl: String,
+        imageGcsPath: String,
+        status: com.remitos.app.data.db.entity.UploadStatus
+    ) {
+        db.inboundDao().updateImageUploadInfo(
+            noteId,
+            imageUrl,
+            imageGcsPath,
+            status.name.lowercase(),
+            System.currentTimeMillis()
+        )
+    }
+
+    suspend fun updateImageUrl(noteId: Long, imageUrl: String) {
+        db.inboundDao().updateImageUrl(noteId, imageUrl)
+    }
+
     private suspend fun nextInboundRemitoInternoLocked(): String {
         val current = db.sequenceDao().getSequence(InboundRemitoSequenceName)
         val nextValue = if (current == null) {

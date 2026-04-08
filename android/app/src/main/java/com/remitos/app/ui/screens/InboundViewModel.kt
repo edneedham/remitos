@@ -53,6 +53,7 @@ class InboundViewModel @Inject constructor(
     private val settingsStore: SettingsStore,
     private val ocrProcessor: OcrProcessor,
     private val authManager: com.remitos.app.data.AuthManager,
+    private val imageUploadManager: com.remitos.app.data.ImageUploadManager,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
     private var lastOcrFields: Map<String, String> = emptyMap()
@@ -256,6 +257,11 @@ class InboundViewModel @Inject constructor(
                     noteId = repository.createInboundNote(note)
                     if (manualCorrection) {
                         settingsStore.recordManualCorrection()
+                    }
+                    
+                    // Trigger image upload after successful save
+                    stateSnapshot.selectedImageUri?.let { uri ->
+                        imageUploadManager.enqueueUpload(noteId, uri)
                     }
                 }
 

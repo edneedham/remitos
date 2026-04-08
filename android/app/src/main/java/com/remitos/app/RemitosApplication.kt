@@ -10,6 +10,7 @@ import com.remitos.app.data.SettingsStore
 import com.remitos.app.data.TestDataGenerator
 import com.remitos.app.data.db.AppDatabase
 import com.remitos.app.network.RemitosApiService
+import com.remitos.app.workers.ImageUploadWorkerScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -45,13 +46,8 @@ class RemitosApplication : Application() {
         get() = requireRepository()
 
     override fun onCreate() {
-        // For local development/screenshots, use: "http://10.0.2.2:8080/" (Android emulator localhost)
-        // For production, use: "https://remitos-api-865349418409.southamerica-east1.run.app"
-        val backendUrl = if (BuildConfig.DEBUG) {
-            "http://10.0.2.2:8080/"  // Local development server (use your IP for real device: http://192.168.0.103:8080/)
-        } else {
-            "https://remitos-api-865349418409.southamerica-east1.run.app"  // Production
-        }
+        // Production URL - always use Google Cloud Run backend
+        val backendUrl = "https://remitos-api-865349418409.southamerica-east1.run.app"
         FeatureFlags.configureBackendMode(backendUrl)
         super.onCreate()
 
@@ -69,6 +65,9 @@ class RemitosApplication : Application() {
         runBlocking {
             initializeCurrentUserContext()
         }
+
+        // Schedule background image upload worker
+        ImageUploadWorkerScheduler.schedule(this)
     }
 
     /**

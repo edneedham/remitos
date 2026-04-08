@@ -132,6 +132,86 @@ private data class Column(
     val width: Float,
 )
 
+/**
+ * Wraps text into multiple lines based on available width
+ * Returns list of lines (max 4 lines by default)
+ */
+private fun wrapText(text: String, paint: Paint, maxWidth: Float, maxLines: Int = 4): List<String> {
+    if (text.isEmpty()) return listOf("")
+    
+    // If single line fits, return early
+    if (paint.measureText(text) <= maxWidth) {
+        return listOf(text)
+    }
+    
+    val words = text.split(" ")
+    val lines = mutableListOf<String>()
+    var currentLine = ""
+    
+    for (word in words) {
+        val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
+        if (paint.measureText(testLine) <= maxWidth) {
+            currentLine = testLine
+        } else {
+            // Word doesn't fit, save current line and start new one
+            if (currentLine.isNotEmpty()) {
+                lines.add(currentLine)
+                // Check if we've reached max lines
+                if (lines.size >= maxLines) {
+                    // Truncate the last line with ellipsis if needed
+                    if (paint.measureText(lines.last()) > maxWidth - 10f) {
+                        lines[lines.size - 1] = truncateWithEllipsis(lines.last(), paint, maxWidth)
+                    }
+                    return lines
+                }
+            }
+            currentLine = word
+        }
+    }
+    
+    // Add remaining text
+    if (currentLine.isNotEmpty() && lines.size < maxLines) {
+        lines.add(currentLine)
+    }
+    
+    return lines
+}
+
+/**
+ * Truncates text with ellipsis to fit within maxWidth
+ */
+private fun truncateWithEllipsis(text: String, paint: Paint, maxWidth: Float): String {
+    val ellipsis = "..."
+    if (paint.measureText(ellipsis) > maxWidth) return ellipsis
+    
+    var low = 0
+    var high = text.length
+    while (low < high) {
+        val mid = (low + high + 1) / 2
+        val test = text.substring(0, mid) + ellipsis
+        if (paint.measureText(test) <= maxWidth) {
+            low = mid
+        } else {
+            high = mid - 1
+        }
+    }
+    return if (low > 0) text.substring(0, low) + ellipsis else ellipsis
+}
+
+/**
+ * Calculates the required height for a cell based on wrapped text
+ */
+private fun calculateCellHeight(
+    text: String, 
+    paint: Paint, 
+    maxWidth: Float, 
+    lineHeight: Float,
+    maxLines: Int = 4
+): Float {
+    val lines = wrapText(text, paint, maxWidth, maxLines)
+    return lines.size * lineHeight
+}
+
 private fun drawPage(context: Context, canvas: Canvas, list: OutboundListEntity, lines: List<OutboundLineWithRemito>, config: TemplateConfig) {
     val paint = Paint().apply { textSize = 12f; color = android.graphics.Color.BLACK }
     val boldPaint = Paint().apply { textSize = 12f; isFakeBoldText = true; color = android.graphics.Color.BLACK }
@@ -145,7 +225,6 @@ private fun drawPage(context: Context, canvas: Canvas, list: OutboundListEntity,
     var y = 26f
     val left = 24f
     val right = 818f
-    val rowHeight = 20f
 
     // Draw Logo if available
     config.logoUri?.let { uriString ->
@@ -220,15 +299,27 @@ private fun drawPage(context: Context, canvas: Canvas, list: OutboundListEntity,
 
     val tableTop = headerRowTop + titleHeight + 8f
     
+    // Column configuration with wrapping flags
+    val wrappingConfig = mapOf(
+        "Destinatario" to true,
+        "Direccion" to true, 
+        "Observaciones" to true
+    )
+    
+    // Wrapping configuration
+    val lineHeightForWrapping = 14f
+    val maxLinesPerCell = 4
+    val minRowHeight = 20f
+    
     val allColumns = mutableListOf(
-        Column("Nro. Cliente", 76f),
-        Column("Nro. Interno", 76f),
+        Column("Nro. Cliente", 98f),
+        Column("Nro. Interno", 79f),
         Column("Destinatario", 118f),
         Column("Direccion", 150f),
         Column("Localidad", 80f),
-        Column("Bultos", 54f)
+        Column("Bultos", 47f)
     )
-    if (config.showPeso) allColumns.add(Column("Peso", 54f))
+    if (config.showPeso) allColumns.add(Column("Peso", 47f))
     if (config.showVolumen) allColumns.add(Column("Volumen", 68f))
     if (config.showObservaciones) allColumns.add(Column("Observaciones", 110f))
     
@@ -241,22 +332,80 @@ private fun drawPage(context: Context, canvas: Canvas, list: OutboundListEntity,
     }
     val tableRight = right
 
-    canvas.drawRect(left, tableTop, tableRight, tableTop + rowHeight, linePaint)
+    // Draw header row
+    canvas.drawRect(left, tableTop, tableRight, tableTop + minRowHeight, linePaint)
     var x = left
     scaledColumns.forEach { col ->
-        canvas.drawRect(x, tableTop, x + col.width, tableTop + rowHeight, linePaint)
+        canvas.drawRect(x, tableTop, x + col.width, tableTop + minRowHeight, linePaint)
         canvas.drawText(col.title, x + 4f, tableTop + 14f, boldPaint)
         x += col.width
     }
 
-    var rowTop = tableTop + rowHeight
+    // Calculate row heights before drawing
+    val rowHeights = mutableListOf<Float>()
+    
+    lines.forEach { line ->
+        // Prepare values for this row
+        val values = mutableListOf(
+            line.remitoNumCliente,
+            line.remitoNumInterno ?: "",
+            "${line.recipientApellido} ${line.recipientNombre}",
+            line.recipientDireccion,
+            "",
+            line.packageQty.toString()
+        )
+        if (config.showPeso) values.add("")
+        if (config.showVolumen) values.add("")
+        if (config.showObservaciones) values.add("")
+        
+        // Calculate max height needed for this row
+        var maxCellHeight = minRowHeight
+        
+        values.forEachIndexed { index, value ->
+            val columnTitle = scaledColumns[index].title
+            if (wrappingConfig[columnTitle] == true) {
+                // This column wraps - calculate height
+                val colWidth = scaledColumns[index].width
+                val textWidth = colWidth - 6f // 3px padding each side
+                val cellHeight = calculateCellHeight(
+                    value, 
+                    paint, 
+                    textWidth, 
+                    lineHeightForWrapping, 
+                    maxLinesPerCell
+                )
+                maxCellHeight = maxOf(maxCellHeight, cellHeight + 6f) // Add padding
+            }
+        }
+        
+        rowHeights.add(maxCellHeight)
+    }
+    
+    // Calculate how many rows fit on the page
     val signatureBoxHeight = 28f
-    val signatureGap = 18f
+    val signatureGap = 28f
     val tableBottomLimit = 560f - signatureBoxHeight - signatureGap
-    val maxRows = ((tableBottomLimit - rowTop) / rowHeight).toInt().coerceAtLeast(8)
-    lines.take(maxRows).forEach { line ->
-        x = left
-        canvas.drawRect(left, rowTop, tableRight, rowTop + rowHeight, linePaint)
+    val footerSpace = 120f // Space needed for footer elements
+    
+    // Find how many rows fit
+    var rowTop = tableTop + minRowHeight
+    var rowsDrawn = 0
+    var cumulativeHeight = 0f
+    for (i in rowHeights.indices) {
+        if (rowTop + cumulativeHeight + rowHeights[i] > tableBottomLimit - footerSpace) {
+            break
+        }
+        cumulativeHeight += rowHeights[i]
+        rowsDrawn++
+    }
+    
+    // Draw rows with variable heights
+    rowTop = tableTop + minRowHeight
+    lines.take(rowsDrawn).forEachIndexed { rowIndex, line ->
+        val currentRowHeight = rowHeights[rowIndex]
+        
+        var x = left
+        canvas.drawRect(left, rowTop, tableRight, rowTop + currentRowHeight, linePaint)
         
         val values = mutableListOf(
             line.remitoNumCliente,
@@ -272,13 +421,32 @@ private fun drawPage(context: Context, canvas: Canvas, list: OutboundListEntity,
 
         values.forEachIndexed { index, value ->
             val col = scaledColumns[index]
-            canvas.drawRect(x, rowTop, x + col.width, rowTop + rowHeight, linePaint)
-            canvas.drawText(value, x + 3f, rowTop + 14f, paint)
+            val columnTitle = col.title
+            val shouldWrap = wrappingConfig[columnTitle] == true
+            
+            canvas.drawRect(x, rowTop, x + col.width, rowTop + currentRowHeight, linePaint)
+            
+            if (shouldWrap) {
+                // Draw wrapped text
+                val textWidth = col.width - 6f
+                val wrappedLines = wrapText(value, paint, textWidth, maxLinesPerCell)
+                
+                wrappedLines.forEachIndexed { lineIndex, lineText ->
+                    val yPosition = rowTop + 6f + (lineIndex * lineHeightForWrapping) + (lineHeightForWrapping / 2)
+                    canvas.drawText(lineText, x + 3f, yPosition, paint)
+                }
+            } else {
+                // Draw single line (centered vertically)
+                val yPosition = rowTop + (currentRowHeight / 2) + 6f
+                canvas.drawText(value, x + 3f, yPosition, paint)
+            }
+            
             x += col.width
         }
-        rowTop += rowHeight
+        rowTop += currentRowHeight
     }
 
+    // Position signature box based on actual table end
     val signatureTop = rowTop + signatureGap
     val signatureBoxWidth = 160f
     canvas.drawText("Firma:", right - signatureBoxWidth - 60f, signatureTop, paint)
@@ -290,7 +458,7 @@ private fun drawPage(context: Context, canvas: Canvas, list: OutboundListEntity,
         linePaint
     )
 
-    val aclaracionTop = signatureTop + 26f
+    val aclaracionTop = signatureTop + 36f
     canvas.drawText("Aclaración:", right - 200f, aclaracionTop, paint)
     canvas.drawLine(right - 130f, aclaracionTop + 6f, right, aclaracionTop + 6f, linePaint)
 
@@ -298,16 +466,28 @@ private fun drawPage(context: Context, canvas: Canvas, list: OutboundListEntity,
     canvas.drawRect(left, totalsTop - 14f, left + 70f, totalsTop + 6f, linePaint)
     canvas.drawText("Totales", left + 8f, totalsTop, boldPaint)
 
-    val totalBultos = lines.sumOf { it.packageQty }
-    val totalPedidos = lines.size
+    val totalBultos = lines.take(rowsDrawn).sumOf { it.packageQty }
+    val totalPedidos = rowsDrawn
     canvas.drawText("Cantidad de Bultos: $totalBultos", left, totalsTop + 26f, paint)
     canvas.drawText("Cantidad de Pedidos: $totalPedidos", left + 180f, totalsTop + 26f, paint)
     if (config.showVolumen) canvas.drawText("Volumen Total M³:", left + 380f, totalsTop + 26f, paint)
     if (config.showPeso) canvas.drawText("Peso Total Kgs:", left + 560f, totalsTop + 26f, paint)
     
+    // Draw continuation indicator if list was truncated
+    if (rowsDrawn < lines.size) {
+        val remainingCount = lines.size - rowsDrawn
+        val continuationY = totalsTop + 50f
+        val warningPaint = Paint(paint).apply { 
+            textSize = 10f
+            isFakeBoldText = true
+            color = android.graphics.Color.RED
+        }
+        canvas.drawText("... y $remainingCount pedido${if (remainingCount > 1) "s" else ""} más", left, continuationY, warningPaint)
+    }
+    
     // Draw legal text at the bottom
     if (config.legalText.isNotBlank()) {
-        val legalTop = totalsTop + 40f
+        val legalTop = totalsTop + (if (rowsDrawn < lines.size) 60f else 40f)
         val legalPaint = Paint(paint).apply { 
             textSize = 9f
             color = android.graphics.Color.DKGRAY 

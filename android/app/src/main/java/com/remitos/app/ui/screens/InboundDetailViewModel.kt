@@ -316,6 +316,9 @@ class InboundDetailViewModel @Inject constructor(
                     createdAt = note.createdAt,
                     updatedAt = note.updatedAt,
                     scanImagePath = note.scanImagePath,
+                    imageUrl = note.imageUrl,
+                    imageGcsPath = note.imageGcsPath,
+                    uploadStatus = note.uploadStatus,
                     draft = InboundDraftState(
                         senderCuit = note.senderCuit,
                         senderNombre = note.senderNombre,
@@ -380,6 +383,9 @@ data class InboundDetailUiState(
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L,
     val scanImagePath: String? = null,
+    val imageUrl: String? = null,  // GCS signed URL
+    val imageGcsPath: String? = null,  // GCS path for refresh
+    val uploadStatus: String = "pending",
     val draft: InboundDraftState = InboundDraftState(),
     val packages: List<InboundPackageEntity> = emptyList(),
     val fieldSections: Map<String, List<FieldDisplayItem>> = emptyMap(),

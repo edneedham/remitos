@@ -30,6 +30,7 @@ object DatabaseModule {
     }
 
     @Provides
+    @Singleton
     fun provideRepository(@ApplicationContext context: Context): RemitosRepository {
         return (context.applicationContext as RemitosApplication).requireRepository()
     }

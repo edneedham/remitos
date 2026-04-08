@@ -52,7 +52,7 @@ import com.remitos.app.data.db.entity.SyncQueueEntity
         LocalScannedCodeEntity::class,
         SyncQueueEntity::class,
     ],
-    version = 14
+    version = 15
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun inboundDao(): InboundDao
@@ -343,6 +343,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add image upload tracking columns to inbound_notes
+                db.execSQL("ALTER TABLE inbound_notes ADD COLUMN upload_status TEXT NOT NULL DEFAULT 'pending'")
+                db.execSQL("ALTER TABLE inbound_notes ADD COLUMN image_url TEXT")
+                db.execSQL("ALTER TABLE inbound_notes ADD COLUMN image_gcs_path TEXT")
+                db.execSQL("ALTER TABLE inbound_notes ADD COLUMN image_uploaded_at INTEGER")
+                db.execSQL("ALTER TABLE inbound_notes ADD COLUMN upload_retry_count INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         private val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add barcode-related columns to inbound_packages table
@@ -434,7 +445,8 @@ abstract class AppDatabase : RoomDatabase() {
                 MIGRATION_10_11,
                 MIGRATION_11_12,
                 MIGRATION_12_13,
-                MIGRATION_13_14
+                MIGRATION_13_14,
+                MIGRATION_14_15
             ).build()
         }
     }

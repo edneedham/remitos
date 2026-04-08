@@ -20,10 +20,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.CloudQueue
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Sync
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import java.io.File
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -292,15 +299,96 @@ private fun InboundHistoryCard(
                 }
             }
 
-            // Date badge and action
+            // Date badge, image, and upload status
             Spacer(modifier = Modifier.width(Spacing.ItemSpacing))
-            Column(horizontalAlignment = Alignment.End) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Upload status indicator
+                UploadStatusIndicator(note.uploadStatus)
+
+                // Image thumbnail (if available)
+                if (note.imageUrl != null || note.scanImagePath != null) {
+                    InboundHistoryImage(
+                        imageUrl = note.imageUrl,
+                        localPath = note.scanImagePath,
+                        modifier = Modifier.size(60.dp)
+                    )
+                }
+
                 Text(
                     text = dateStr,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun UploadStatusIndicator(uploadStatus: String) {
+    val (icon, tint) = when (uploadStatus) {
+        "uploaded" -> Pair(Icons.Outlined.CheckCircle, MaterialTheme.colorScheme.primary)
+        "pending" -> Pair(Icons.Outlined.CloudQueue, MaterialTheme.colorScheme.tertiary)
+        "uploading" -> Pair(Icons.Outlined.Sync, MaterialTheme.colorScheme.primary)
+        "failed" -> Pair(Icons.Outlined.CloudOff, MaterialTheme.colorScheme.error)
+        else -> Pair(Icons.Outlined.CloudQueue, MaterialTheme.colorScheme.outline)
+    }
+
+    val description = when (uploadStatus) {
+        "uploaded" -> "Imagen subida"
+        "pending" -> "Pendiente de subir"
+        "uploading" -> "Subiendo..."
+        "failed" -> "Error al subir"
+        else -> "Sin imagen"
+    }
+
+    Icon(
+        imageVector = icon,
+        contentDescription = description,
+        tint = tint,
+        modifier = Modifier.size(16.dp)
+    )
+}
+
+@Composable
+private fun InboundHistoryImage(
+    imageUrl: String?,
+    localPath: String?,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+
+    // Determine the image source
+    val imageModel = when {
+        imageUrl != null -> {
+            // Use the signed URL from GCS
+            ImageRequest.Builder(context)
+                .data(imageUrl)
+                .crossfade(true)
+                .build()
+        }
+        localPath != null && File(localPath).exists() -> {
+            // Fallback to local file
+            File(localPath)
+        }
+        else -> null
+    }
+
+    if (imageModel != null) {
+        Box(
+            modifier = modifier
+                .clip(MaterialTheme.shapes.small)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            AsyncImage(
+                model = imageModel,
+                contentDescription = "Imagen del remito",
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }

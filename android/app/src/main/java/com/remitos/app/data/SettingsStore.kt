@@ -8,13 +8,17 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.remitos.app.ocr.FieldMapper
 import com.remitos.app.ocr.FieldMapping
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
-class SettingsStore(private val context: Context) {
+@Singleton
+class SettingsStore @Inject constructor(@ApplicationContext private val context: Context) {
     private val perspectiveCorrectionKey = booleanPreferencesKey("perspective_correction_enabled")
     private val successfulParsesKey = longPreferencesKey("usage_successful_parses")
     private val manualCorrectionsKey = longPreferencesKey("usage_manual_corrections")
@@ -28,6 +32,9 @@ class SettingsStore(private val context: Context) {
 
     // Training Data Keys
     private val trainingDataKey = stringPreferencesKey("ocr_training_data")
+
+    // Image Upload Settings
+    private val imageUploadTimingKey = stringPreferencesKey("image_upload_timing")
 
     val perspectiveCorrectionEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[perspectiveCorrectionKey] ?: true
@@ -103,6 +110,26 @@ class SettingsStore(private val context: Context) {
             prefs[trainingDataKey] = FieldMapper.encodeTrainingData(updated)
         }
     }
+
+    val uploadTiming: Flow<UploadTiming> = context.dataStore.data.map { prefs ->
+        val value = prefs[imageUploadTimingKey] ?: UploadTiming.IMMEDIATE.name
+        UploadTiming.valueOf(value)
+    }
+
+    suspend fun getUploadTiming(): UploadTiming {
+        return uploadTiming.first()
+    }
+
+    suspend fun setUploadTiming(timing: UploadTiming) {
+        context.dataStore.edit { prefs ->
+            prefs[imageUploadTimingKey] = timing.name
+        }
+    }
+}
+
+enum class UploadTiming {
+    IMMEDIATE,   // Upload immediately after saving remito
+    WIFI_ONLY    // Queue and upload only when on WiFi
 }
 
 data class DeviceUsageStats(

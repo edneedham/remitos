@@ -44,6 +44,16 @@ data class InboundNoteEntity(
     val ocrTextBlob: String?,
     @ColumnInfo(name = "ocr_confidence_json")
     val ocrConfidenceJson: String?,
+    @ColumnInfo(name = "upload_status", defaultValue = "pending")
+    val uploadStatus: String = UploadStatus.PENDING.name.lowercase(),
+    @ColumnInfo(name = "image_url")
+    val imageUrl: String? = null,
+    @ColumnInfo(name = "image_gcs_path")
+    val imageGcsPath: String? = null,
+    @ColumnInfo(name = "image_uploaded_at")
+    val imageUploadedAt: Long? = null,
+    @ColumnInfo(name = "upload_retry_count", defaultValue = "0")
+    val uploadRetryCount: Int = 0,
     @ColumnInfo(name = "created_at")
     val createdAt: Long,
     @ColumnInfo(name = "updated_at")
@@ -51,3 +61,11 @@ data class InboundNoteEntity(
     @ColumnInfo(name = "extra_fields_json", defaultValue = "{}")
     val extraFieldsJson: String = "{}"
 )
+
+enum class UploadStatus {
+    PENDING,      // Waiting to be uploaded
+    UPLOADING,    // Currently being uploaded
+    UPLOADED,     // Successfully uploaded to GCS
+    FAILED,       // Upload failed
+    SKIPPED       // User chose not to upload (WiFi-only mode on cellular)
+}

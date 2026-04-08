@@ -157,7 +157,10 @@ fun InboundDetailScreen(
                 }
                 else -> {
                     InboundDetailHeader(uiState)
-                    InboundDetailImage(uiState.scanImagePath)
+                    InboundDetailImage(
+                        scanImagePath = uiState.scanImagePath,
+                        imageUrl = uiState.imageUrl
+                    )
                     InboundDetailForm(
                         state = uiState,
                         onDraftChange = viewModel::updateDraft,
@@ -321,7 +324,10 @@ private fun InboundDetailHeader(state: InboundDetailUiState) {
 }
 
 @Composable
-private fun InboundDetailImage(scanImagePath: String?) {
+private fun InboundDetailImage(
+    scanImagePath: String?,
+    imageUrl: String? = null
+) {
     val context = LocalContext.current
 
     Card(
@@ -330,10 +336,17 @@ private fun InboundDetailImage(scanImagePath: String?) {
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = MaterialTheme.shapes.medium,
     ) {
-        if (scanImagePath != null) {
+        // Determine image source priority: GCS URL > Local path
+        val imageData = when {
+            imageUrl != null -> imageUrl
+            scanImagePath != null -> Uri.parse(scanImagePath)
+            else -> null
+        }
+
+        if (imageData != null) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
-                    .data(Uri.parse(scanImagePath))
+                    .data(imageData)
                     .crossfade(true)
                     .build(),
                 contentDescription = stringResource(R.string.imagen_escaneada),

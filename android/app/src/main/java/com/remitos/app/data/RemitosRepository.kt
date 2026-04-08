@@ -10,6 +10,7 @@ import com.remitos.app.data.db.entity.OutboundLineEntity
 import com.remitos.app.data.db.entity.OutboundLineEditHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineStatusHistoryEntity
 import com.remitos.app.data.db.entity.OutboundLineWithRemito
+import com.remitos.app.data.db.entity.UploadStatus
 import androidx.sqlite.db.SupportSQLiteQuery
 import kotlinx.coroutines.flow.Flow
 
@@ -90,4 +91,15 @@ class RemitosRepository(internal val db: AppDatabase) {
         outboundRepository.insertLineStatusHistory(entries)
     suspend fun insertOutboundLineEditHistory(entries: List<OutboundLineEditHistoryEntity>) =
         outboundRepository.insertLineEditHistory(entries)
+
+    // Image upload methods
+    suspend fun getInboundNoteById(noteId: Long): InboundNoteEntity? = inboundRepository.getInboundNote(noteId)
+    suspend fun getNotesByUploadStatus(status: UploadStatus): List<InboundNoteEntity> =
+        inboundRepository.getNotesByUploadStatus(status)
+    suspend fun updateUploadStatus(noteId: Long, status: UploadStatus, retryCount: Int = 0) =
+        inboundRepository.updateUploadStatus(noteId, status, retryCount)
+    suspend fun updateImageUploadInfo(noteId: Long, imageUrl: String, imageGcsPath: String, status: UploadStatus) =
+        inboundRepository.updateImageUploadInfo(noteId, imageUrl, imageGcsPath, status)
+    suspend fun updateImageUrl(noteId: Long, imageUrl: String) =
+        inboundRepository.updateImageUrl(noteId, imageUrl)
 }

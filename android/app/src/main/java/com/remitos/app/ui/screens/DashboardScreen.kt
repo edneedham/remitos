@@ -430,7 +430,7 @@ private fun DashboardHeader(
     onLogout: () -> Unit,
 ) {
     BrandedBackground(
-        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
