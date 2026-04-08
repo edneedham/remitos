@@ -46,7 +46,6 @@ jobs:
       with:
         token_format: 'access_token'
         workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
-        service_account: '${{ env.SERVICE_ACCOUNT }}'
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -71,6 +70,6 @@ jobs:
         service: '${{ env.SERVICE_NAME }}'
         region: '${{ env.REGION }}'
         image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest'
-        service_account: '${{ env.SERVICE_ACCOUNT }}'
+        flags: '--service-account=${{ env.SERVICE_ACCOUNT }}'
         # By not specifying env_vars here, it preserves the existing ones set in Cloud Run
         # By not specifying secrets here, it preserves the existing DB_PASSWORD and JWT_SECRET bindings
