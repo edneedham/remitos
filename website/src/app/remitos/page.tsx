@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Mail, User, MessageSquare, Smartphone, CheckCircle, Package, Truck } from 'lucide-react';
-import AndroidFrame from '../ui/components/website/AndroidFrame';
+import Image from 'next/image';
 
 interface ContactFormState {
   errors?: {
@@ -157,7 +157,14 @@ export default function RemitosPage() {
                 </p>
               </div>
               <div className="flex justify-center">
-                <AndroidFrame />
+                <Image
+                  src="/screenshots/dashboard.png"
+                  alt="Dashboard de la app de repartos"
+                  width={320}
+                  height={680}
+                  className="rounded-3xl shadow-2xl"
+                  priority
+                />
               </div>
             </div>
           </div>

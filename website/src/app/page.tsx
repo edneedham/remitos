@@ -3,8 +3,8 @@ import {
   ArrowRight,
   CheckCircle,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
-import AndroidFrame from './ui/components/website/AndroidFrame';
 
 export default function Home() {
   return (
@@ -101,7 +101,14 @@ export default function Home() {
                 </div>
               </div>
               <div className="shrink-0">
-                <AndroidFrame />
+                <Image
+                  src="/screenshots/dashboard.png"
+                  alt="Dashboard de la app de repartos"
+                  width={320}
+                  height={680}
+                  className="rounded-3xl shadow-2xl"
+                  priority
+                />
               </div>
             </div>
           </div>
