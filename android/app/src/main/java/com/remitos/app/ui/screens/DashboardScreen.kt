@@ -84,6 +84,7 @@ import androidx.compose.runtime.collectAsState
 import com.remitos.app.data.NetworkMonitor
 import com.remitos.app.data.SyncManager
 import com.remitos.app.data.SyncState
+import com.remitos.app.data.TokenData
 import com.remitos.app.ui.components.SyncModal
 
 private const val AUTO_LOCK_TIMEOUT_MS = 5 * 60 * 1000L // 5 minutes
@@ -168,7 +169,22 @@ fun DashboardScreen(
                 val currentUserId = app.authManager.getCurrentUser()
                 currentUserId?.let { userId ->
                     val user = db.localUserDao().getById(userId)
-                    role = user?.role ?: "operator"
+                    if (user != null) {
+                        role = user.role
+                        app.authManager.saveToken(
+                            userId,
+                            com.remitos.app.data.TokenData(
+                                accessToken = "offline_$userId",
+                                refreshToken = "",
+                                expiresAt = System.currentTimeMillis() + 24 * 60 * 60 * 1000,
+                                userEmail = user.username,
+                                userName = user.username,
+                                role = user.role
+                            )
+                        )
+                    } else {
+                        role = "operator"
+                    }
                 }
             } catch (e: Exception) {
                 role = "operator"

@@ -1,6 +1,7 @@
 package com.remitos.app.ui.screens
 
 import com.remitos.app.data.AuthManager
+import com.remitos.app.data.ImageUploadManager
 import com.remitos.app.data.RemitosRepository
 import com.remitos.app.data.SettingsStore
 import com.remitos.app.ocr.OcrFieldKeys
@@ -32,6 +33,7 @@ class InboundViewModelTest {
     private lateinit var settingsStore: SettingsStore
     private lateinit var ocrProcessor: OcrProcessor
     private lateinit var authManager: AuthManager
+    private lateinit var imageUploadManager: ImageUploadManager
 
     @Before
     fun setUp() {
@@ -40,6 +42,7 @@ class InboundViewModelTest {
         settingsStore = mock()
         ocrProcessor = mock()
         authManager = mock()
+        imageUploadManager = mock()
     }
 
     @After
@@ -49,7 +52,14 @@ class InboundViewModelTest {
 
     @Test
     fun save_withZeroBultos_succeeds() = runTest {
-        val viewModel = InboundViewModel(repository, settingsStore, ocrProcessor, authManager, testDispatcher)
+        val viewModel = InboundViewModel(
+            repository,
+            settingsStore,
+            ocrProcessor,
+            authManager,
+            imageUploadManager,
+            testDispatcher
+        )
         whenever(repository.createInboundNote(any())).thenReturn(1L)
         viewModel.updateDraft(
             viewModel.uiState.value.draft.copy(
@@ -74,7 +84,14 @@ class InboundViewModelTest {
 
     @Test
     fun save_success_resetsDraftAndClearsImage() = runTest {
-        val viewModel = InboundViewModel(repository, settingsStore, ocrProcessor, authManager, testDispatcher)
+        val viewModel = InboundViewModel(
+            repository,
+            settingsStore,
+            ocrProcessor,
+            authManager,
+            imageUploadManager,
+            testDispatcher
+        )
         whenever(repository.createInboundNote(org.mockito.kotlin.any())).thenReturn(1L)
         viewModel.updateDraft(
             viewModel.uiState.value.draft.copy(
@@ -100,7 +117,14 @@ class InboundViewModelTest {
 
     @Test
     fun save_persistsOcrMetadata() = runTest {
-        val viewModel = InboundViewModel(repository, settingsStore, ocrProcessor, authManager, testDispatcher)
+        val viewModel = InboundViewModel(
+            repository,
+            settingsStore,
+            ocrProcessor,
+            authManager,
+            imageUploadManager,
+            testDispatcher
+        )
         whenever(repository.createInboundNote(org.mockito.kotlin.any())).thenReturn(1L)
         viewModel.updateDraft(
             viewModel.uiState.value.draft.copy(
@@ -128,7 +152,14 @@ class InboundViewModelTest {
 
     @Test
     fun save_defaultsExtraFieldsToEmptyJson() = runTest {
-        val viewModel = InboundViewModel(repository, settingsStore, ocrProcessor, authManager, testDispatcher)
+        val viewModel = InboundViewModel(
+            repository,
+            settingsStore,
+            ocrProcessor,
+            authManager,
+            imageUploadManager,
+            testDispatcher
+        )
         whenever(repository.createInboundNote(any())).thenReturn(1L)
         viewModel.updateDraft(
             viewModel.uiState.value.draft.copy(

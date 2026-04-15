@@ -87,12 +87,12 @@ fun DeviceSetupScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 24.dp),
+                        .padding(start = 24.dp, end = 24.dp, top = 54.dp, bottom = 32.dp),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_logo_wordmark),
@@ -105,7 +105,6 @@ fun DeviceSetupScreen(
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium,
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Inicia sesión como administrador para registrar este dispositivo",
                             style = MaterialTheme.typography.bodySmall,
@@ -270,12 +269,12 @@ fun DeviceSetupScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 24.dp),
+                        .padding(start = 24.dp, end = 24.dp, top = 54.dp, bottom = 32.dp),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_logo_wordmark),
@@ -288,7 +287,6 @@ fun DeviceSetupScreen(
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium,
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Seleccioná el depósito para este dispositivo",
                             style = MaterialTheme.typography.bodySmall,

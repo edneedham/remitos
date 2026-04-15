@@ -81,14 +81,14 @@ class InboundRepository(private val db: AppDatabase) {
                 db.inboundDao().deletePackages(packageIds)
             }
 
-            db.inboundDao().updateInbound(note)
+            db.inboundDao().updateInbound(note.copy(needsSync = true))
         }
     }
 
     suspend fun voidInboundNote(noteId: Long) {
         db.withTransaction {
             val note = db.inboundDao().getInboundNote(noteId) ?: return@withTransaction
-            val voided = note.copy(status = InboundNoteStatus.Anulada, updatedAt = System.currentTimeMillis())
+            val voided = note.copy(status = InboundNoteStatus.Anulada, updatedAt = System.currentTimeMillis(), needsSync = true)
             db.inboundDao().updateInbound(voided)
             db.inboundDao().updatePackageStatusForNote(noteId, InboundPackageStatus.Anulado)
         }

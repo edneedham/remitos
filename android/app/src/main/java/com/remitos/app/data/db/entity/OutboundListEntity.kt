@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["status"]),
         Index(value = ["issue_date"]),
+        Index(value = ["needs_sync"]),
     ]
 )
 data class OutboundListEntity(
@@ -28,5 +29,11 @@ data class OutboundListEntity(
     @ColumnInfo(name = "checklist_signed_at")
     val checklistSignedAt: Long?,
     @ColumnInfo(name = "status")
-    val status: String
+    val status: String,
+    @ColumnInfo(name = "cloud_id", defaultValue = "NULL")
+    val cloudId: String? = null,
+    @ColumnInfo(name = "last_synced_at", defaultValue = "0")
+    val lastSyncedAt: Long = 0,
+    @ColumnInfo(name = "needs_sync", defaultValue = "1")
+    val needsSync: Boolean = true
 )

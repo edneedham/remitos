@@ -26,6 +26,7 @@ import androidx.room.PrimaryKey
         Index("outbound_list_id"),
         Index("inbound_note_id"),
         Index("status"),
+        Index("needs_sync"),
     ]
 )
 data class OutboundLineEntity(
@@ -56,5 +57,11 @@ data class OutboundLineEntity(
     @ColumnInfo(name = "returned_qty")
     val returnedQty: Int,
     @ColumnInfo(name = "missing_qty")
-    val missingQty: Int
+    val missingQty: Int,
+    @ColumnInfo(name = "cloud_id", defaultValue = "NULL")
+    val cloudId: String? = null,
+    @ColumnInfo(name = "last_synced_at", defaultValue = "0")
+    val lastSyncedAt: Long = 0,
+    @ColumnInfo(name = "needs_sync", defaultValue = "1")
+    val needsSync: Boolean = true
 )

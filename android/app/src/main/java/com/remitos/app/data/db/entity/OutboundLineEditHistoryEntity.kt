@@ -32,5 +32,7 @@ data class OutboundLineEditHistoryEntity(
     @ColumnInfo(name = "reason")
     val reason: String,
     @ColumnInfo(name = "created_at")
-    val createdAt: Long
+    val createdAt: Long,
+    @ColumnInfo(name = "synced", defaultValue = "0")
+    val synced: Boolean = false
 )

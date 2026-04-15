@@ -267,10 +267,176 @@ data class SyncRequest(
     val lastSyncTimestamp: Long,
     
     @SerializedName("inbound_notes")
-    val inboundNotes: List<InboundNoteDto>,
+    val inboundNotes: List<SyncInboundNoteDto>,
     
     @SerializedName("outbound_lists")
-    val outboundLists: List<OutboundListDto>
+    val outboundLists: List<SyncOutboundListDto>,
+    
+    @SerializedName("status_history")
+    val statusHistory: List<SyncStatusHistoryDto>,
+    
+    @SerializedName("edit_history")
+    val editHistory: List<SyncEditHistoryDto>
+)
+
+data class SyncInboundNoteDto(
+    @SerializedName("local_id")
+    val localId: Long,
+    
+    @SerializedName("cloud_id")
+    val cloudId: String? = null,
+    
+    @SerializedName("remito_num_cliente")
+    val remitoNumCliente: String,
+    
+    @SerializedName("remito_num_interno")
+    val remitoNumInterno: String? = null,
+    
+    @SerializedName("cant_bultos_total")
+    val cantBultosTotal: Int,
+    
+    @SerializedName("cuit_remitente")
+    val cuitRemitente: String? = null,
+    
+    @SerializedName("nombre_remitente")
+    val nombreRemitente: String? = null,
+    
+    @SerializedName("apellido_remitente")
+    val apellidoRemitente: String? = null,
+    
+    @SerializedName("nombre_destinatario")
+    val nombreDestinatario: String? = null,
+    
+    @SerializedName("apellido_destinatario")
+    val apellidoDestinatario: String? = null,
+    
+    @SerializedName("direccion_destinatario")
+    val direccionDestinatario: String? = null,
+    
+    @SerializedName("telefono_destinatario")
+    val telefonoDestinatario: String? = null,
+    
+    val status: String,
+    
+    @SerializedName("created_at")
+    val createdAt: Long,
+    
+    @SerializedName("updated_at")
+    val updatedAt: Long
+)
+
+data class SyncOutboundListDto(
+    @SerializedName("local_id")
+    val localId: Long,
+    
+    @SerializedName("cloud_id")
+    val cloudId: String? = null,
+    
+    @SerializedName("list_number")
+    val listNumber: Long,
+    
+    @SerializedName("issue_date")
+    val issueDate: Long,
+    
+    @SerializedName("driver_nombre")
+    val driverNombre: String,
+    
+    @SerializedName("driver_apellido")
+    val driverApellido: String,
+    
+    val status: String,
+    
+    val lines: List<SyncOutboundLineDto>,
+    
+    @SerializedName("checklist_signature_path")
+    val checklistSignaturePath: String? = null,
+    
+    @SerializedName("checklist_signed_at")
+    val checklistSignedAt: Long? = null,
+    
+    @SerializedName("created_at")
+    val createdAt: Long? = null
+)
+
+data class SyncOutboundLineDto(
+    @SerializedName("local_id")
+    val localId: Long,
+    
+    @SerializedName("cloud_id")
+    val cloudId: String? = null,
+    
+    @SerializedName("local_inbound_note_id")
+    val localInboundNoteId: Long,
+    
+    @SerializedName("inbound_note_cloud_id")
+    val inboundNoteCloudId: String? = null,
+    
+    @SerializedName("package_qty")
+    val packageQty: Int,
+    
+    @SerializedName("allocated_package_ids")
+    val allocatedPackageIds: String? = null,
+    
+    @SerializedName("delivery_number")
+    val deliveryNumber: String,
+    
+    @SerializedName("recipient_nombre")
+    val recipientNombre: String,
+    
+    @SerializedName("recipient_apellido")
+    val recipientApellido: String,
+    
+    @SerializedName("recipient_direccion")
+    val recipientDireccion: String,
+    
+    @SerializedName("recipient_telefono")
+    val recipientTelefono: String,
+    
+    val status: String,
+    
+    @SerializedName("delivered_qty")
+    val deliveredQty: Int,
+    
+    @SerializedName("returned_qty")
+    val returnedQty: Int,
+    
+    @SerializedName("missing_qty")
+    val missingQty: Int
+)
+
+data class SyncStatusHistoryDto(
+    @SerializedName("local_id")
+    val localId: Long,
+    
+    @SerializedName("local_outbound_line_id")
+    val localOutboundLineId: Long,
+    
+    val status: String,
+    
+    @SerializedName("created_at")
+    val createdAt: Long
+)
+
+data class SyncEditHistoryDto(
+    @SerializedName("local_id")
+    val localId: Long,
+    
+    @SerializedName("local_outbound_line_id")
+    val localOutboundLineId: Long,
+    
+    @SerializedName("field_name")
+    val fieldName: String,
+    
+    @SerializedName("old_value")
+    val oldValue: String,
+    
+    @SerializedName("new_value")
+    val newValue: String,
+    
+    val reason: String,
+    
+    @SerializedName("created_at")
+    val createdAt: Long
 )
 
 data class SyncResponse(
@@ -278,13 +444,35 @@ data class SyncResponse(
     val serverTimestamp: Long,
     
     @SerializedName("inbound_notes")
-    val inboundNotes: List<InboundNoteDto>,
+    val inboundNotes: List<SyncInboundNoteDto>,
     
     @SerializedName("outbound_lists")
-    val outboundLists: List<OutboundListDto>,
+    val outboundLists: List<SyncOutboundListDto>,
+    
+    @SerializedName("id_mappings")
+    val idMappings: SyncIdMappings,
     
     @SerializedName("conflicts")
-    val conflicts: List<ConflictDto>
+    val conflicts: List<ConflictDto> = emptyList()
+)
+
+data class SyncIdMappings(
+    @SerializedName("inbound_notes")
+    val inboundNotes: List<IdMapping> = emptyList(),
+    
+    @SerializedName("outbound_lists")
+    val outboundLists: List<IdMapping> = emptyList(),
+    
+    @SerializedName("outbound_lines")
+    val outboundLines: List<IdMapping> = emptyList()
+)
+
+data class IdMapping(
+    @SerializedName("local_id")
+    val localId: Long,
+    
+    @SerializedName("cloud_id")
+    val cloudId: String
 )
 
 data class UserStatusResponse(

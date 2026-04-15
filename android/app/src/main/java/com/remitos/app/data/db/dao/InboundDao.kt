@@ -120,7 +120,7 @@ interface InboundDao {
     @Query("SELECT * FROM inbound_notes WHERE upload_status = :status")
     suspend fun getNotesByUploadStatus(status: String): List<InboundNoteEntity>
 
-    @Query("UPDATE inbound_notes SET upload_status = :status, upload_retry_count = :retryCount WHERE id = :noteId")
+    @Query("UPDATE inbound_notes SET upload_status = :status, upload_retry_count = :retryCount, needs_sync = 1 WHERE id = :noteId")
     suspend fun updateUploadStatus(noteId: Long, status: String, retryCount: Int = 0)
 
     @Query("""
@@ -128,7 +128,8 @@ interface InboundDao {
         SET upload_status = :status, 
             image_url = :imageUrl, 
             image_gcs_path = :imageGcsPath, 
-            image_uploaded_at = :timestamp 
+            image_uploaded_at = :timestamp,
+            needs_sync = 1
         WHERE id = :noteId
     """)
     suspend fun updateImageUploadInfo(
@@ -139,6 +140,21 @@ interface InboundDao {
         timestamp: Long = System.currentTimeMillis()
     )
 
-    @Query("UPDATE inbound_notes SET image_url = :imageUrl WHERE id = :noteId")
+    @Query("UPDATE inbound_notes SET image_url = :imageUrl, needs_sync = 1 WHERE id = :noteId")
     suspend fun updateImageUrl(noteId: Long, imageUrl: String)
+
+    @Query("SELECT * FROM inbound_notes WHERE needs_sync = 1")
+    suspend fun getUnsynced(): List<InboundNoteEntity>
+
+    @Query("SELECT * FROM inbound_notes WHERE cloud_id = :cloudId")
+    suspend fun getByCloudId(cloudId: String): InboundNoteEntity?
+
+    @Query("UPDATE inbound_notes SET needs_sync = 0, last_synced_at = :timestamp, cloud_id = :cloudId WHERE id = :id")
+    suspend fun markSynced(id: Long, cloudId: String, timestamp: Long)
+
+    @Query("UPDATE inbound_notes SET needs_sync = 1 WHERE id = :id")
+    suspend fun markNeedsSync(id: Long)
+
+    @Query("UPDATE inbound_notes SET needs_sync = 0, last_synced_at = :timestamp WHERE cloud_id = :cloudId")
+    suspend fun markSyncedByCloudId(cloudId: String, timestamp: Long)
 }

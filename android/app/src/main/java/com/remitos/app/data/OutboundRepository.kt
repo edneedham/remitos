@@ -55,6 +55,7 @@ class OutboundRepository(private val db: AppDatabase) {
             }
 
             db.inboundDao().updatePackageStatus(packageIds, InboundPackageStatus.Asignado)
+            db.inboundDao().markNeedsSync(line.inboundNoteId)
             val lineWithList = line.copy(
                 outboundListId = listId,
                 allocatedPackageIds = packageIds.joinToString(",")
@@ -81,6 +82,7 @@ class OutboundRepository(private val db: AppDatabase) {
                 }
 
                 db.inboundDao().updatePackageStatus(packageIds, InboundPackageStatus.Asignado)
+                db.inboundDao().markNeedsSync(line.inboundNoteId)
                 val lineWithList = line.copy(
                     outboundListId = listId,
                     allocatedPackageIds = packageIds.joinToString(",")
@@ -130,6 +132,8 @@ class OutboundRepository(private val db: AppDatabase) {
             }
             db.outboundDao().insertLineStatusHistory(historyEntries)
             db.outboundDao().updateLineStatus(targets.map { it.id }, OutboundLineStatus.EnTransito)
+            targets.forEach { db.outboundDao().markLineNeedsSync(it.id) }
+            db.outboundDao().markListNeedsSync(listId)
         }
     }
 
@@ -147,6 +151,11 @@ class OutboundRepository(private val db: AppDatabase) {
             )
             db.outboundDao().insertLineStatusHistory(listOf(history))
             db.outboundDao().updateLineOutcome(lineId, status, deliveredQty, returnedQty)
+            db.outboundDao().markLineNeedsSync(lineId)
+            val line = db.outboundDao().getOutboundLine(lineId)
+            if (line != null) {
+                db.outboundDao().markListNeedsSync(line.outboundListId)
+            }
         }
     }
 
@@ -197,6 +206,11 @@ class OutboundRepository(private val db: AppDatabase) {
                 recipientTelefono = recipientTelefono,
                 missingQty = missingQty,
             )
+            db.outboundDao().markLineNeedsSync(lineId)
+            val line = db.outboundDao().getOutboundLine(lineId)
+            if (line != null) {
+                db.outboundDao().markListNeedsSync(line.outboundListId)
+            }
         }
     }
 
@@ -206,6 +220,7 @@ class OutboundRepository(private val db: AppDatabase) {
 
     suspend fun closeOutboundList(listId: Long) {
         db.outboundDao().updateOutboundListStatus(listId, OutboundListStatus.Cerrada)
+        db.outboundDao().markListNeedsSync(listId)
     }
 
     suspend fun insertLineStatusHistory(entries: List<OutboundLineStatusHistoryEntity>) {

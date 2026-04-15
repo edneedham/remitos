@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.RawQuery
+import androidx.room.Update
 import androidx.sqlite.db.SupportSQLiteQuery
 import com.remitos.app.data.db.entity.OutboundLineEntity
 import com.remitos.app.data.db.entity.OutboundLineEditHistoryEntity
@@ -54,7 +55,7 @@ interface OutboundDao {
     @Query("SELECT * FROM outbound_lists WHERE id = :listId")
     suspend fun getOutboundList(listId: Long): OutboundListEntity?
 
-    @Query("UPDATE outbound_lists SET status = :status WHERE id = :listId")
+    @Query("UPDATE outbound_lists SET status = :status, needs_sync = 1 WHERE id = :listId")
     suspend fun updateOutboundListStatus(listId: Long, status: String)
 
     @Query("SELECT * FROM outbound_lines WHERE outbound_list_id = :listId")
@@ -66,7 +67,7 @@ interface OutboundDao {
     @Query("UPDATE outbound_lines SET status = :status WHERE outbound_list_id = :listId")
     suspend fun updateLineStatusForList(listId: Long, status: String)
 
-    @Query("UPDATE outbound_lines SET status = :status WHERE id IN (:lineIds)")
+    @Query("UPDATE outbound_lines SET status = :status, needs_sync = 1 WHERE id IN (:lineIds)")
     suspend fun updateLineStatus(lineIds: List<Long>, status: String)
 
     @Query(
@@ -74,7 +75,8 @@ interface OutboundDao {
         UPDATE outbound_lines
         SET status = :status,
             delivered_qty = :deliveredQty,
-            returned_qty = :returnedQty
+            returned_qty = :returnedQty,
+            needs_sync = 1
         WHERE id = :lineId
         """
     )
@@ -93,7 +95,8 @@ interface OutboundDao {
             recipient_apellido = :recipientApellido,
             recipient_direccion = :recipientDireccion,
             recipient_telefono = :recipientTelefono,
-            missing_qty = :missingQty
+            missing_qty = :missingQty,
+            needs_sync = 1
         WHERE id = :lineId
         """
     )
@@ -116,4 +119,55 @@ interface OutboundDao {
         """
     )
     suspend fun getLinesForListWithRemito(listId: Long): List<OutboundLineWithRemito>
+
+    @Query("SELECT * FROM outbound_lists WHERE needs_sync = 1")
+    suspend fun getUnsyncedLists(): List<OutboundListEntity>
+
+    @Query("SELECT * FROM outbound_lines WHERE needs_sync = 1")
+    suspend fun getUnsyncedLines(): List<OutboundLineEntity>
+
+    @Query("SELECT * FROM outbound_lines WHERE outbound_list_id = :listId")
+    suspend fun getLinesForListSync(listId: Long): List<OutboundLineEntity>
+
+    @Query("SELECT * FROM outbound_lists WHERE cloud_id = :cloudId")
+    suspend fun getListByCloudId(cloudId: String): OutboundListEntity?
+
+    @Query("UPDATE outbound_lists SET needs_sync = 0, last_synced_at = :timestamp, cloud_id = :cloudId WHERE id = :id")
+    suspend fun markListSynced(id: Long, cloudId: String, timestamp: Long)
+
+    @Query("UPDATE outbound_lines SET needs_sync = 0, last_synced_at = :timestamp, cloud_id = :cloudId WHERE id = :id")
+    suspend fun markLineSynced(id: Long, cloudId: String, timestamp: Long)
+
+    @Query("UPDATE outbound_lists SET needs_sync = 1 WHERE id = :id")
+    suspend fun markListNeedsSync(id: Long)
+
+    @Query("UPDATE outbound_lines SET needs_sync = 1 WHERE id = :id")
+    suspend fun markLineNeedsSync(id: Long)
+
+    @Query("SELECT * FROM outbound_line_status_history WHERE synced = 0")
+    suspend fun getUnsyncedStatusHistory(): List<OutboundLineStatusHistoryEntity>
+
+    @Query("SELECT * FROM outbound_line_edit_history WHERE synced = 0")
+    suspend fun getUnsyncedEditHistory(): List<OutboundLineEditHistoryEntity>
+
+    @Query("UPDATE outbound_line_status_history SET synced = 1 WHERE id IN (:ids)")
+    suspend fun markStatusHistorySynced(ids: List<Long>)
+
+    @Query("UPDATE outbound_line_edit_history SET synced = 1 WHERE id IN (:ids)")
+    suspend fun markEditHistorySynced(ids: List<Long>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertList(list: OutboundListEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertLines(lines: List<OutboundLineEntity>)
+
+    @Update
+    suspend fun updateOutboundList(list: OutboundListEntity)
+
+    @Update
+    suspend fun updateOutboundLine(line: OutboundLineEntity)
+
+    @Query("SELECT * FROM outbound_lines WHERE cloud_id = :cloudId")
+    suspend fun getLineByCloudId(cloudId: String): OutboundLineEntity?
 }

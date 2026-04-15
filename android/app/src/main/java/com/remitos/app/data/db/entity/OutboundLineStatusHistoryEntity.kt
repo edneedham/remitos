@@ -26,5 +26,7 @@ data class OutboundLineStatusHistoryEntity(
     @ColumnInfo(name = "status")
     val status: String,
     @ColumnInfo(name = "created_at")
-    val createdAt: Long
+    val createdAt: Long,
+    @ColumnInfo(name = "synced", defaultValue = "0")
+    val synced: Boolean = false
 )

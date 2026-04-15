@@ -52,7 +52,7 @@ import com.remitos.app.data.db.entity.SyncQueueEntity
         LocalScannedCodeEntity::class,
         SyncQueueEntity::class,
     ],
-    version = 15
+    version = 16
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun inboundDao(): InboundDao
@@ -354,6 +354,29 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add sync tracking columns for bidirectional sync
+                db.execSQL("ALTER TABLE inbound_notes ADD COLUMN cloud_id TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE inbound_notes ADD COLUMN last_synced_at INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE inbound_notes ADD COLUMN needs_sync INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_inbound_notes_needs_sync ON inbound_notes(needs_sync)")
+
+                db.execSQL("ALTER TABLE outbound_lists ADD COLUMN cloud_id TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE outbound_lists ADD COLUMN last_synced_at INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE outbound_lists ADD COLUMN needs_sync INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_outbound_lists_needs_sync ON outbound_lists(needs_sync)")
+
+                db.execSQL("ALTER TABLE outbound_lines ADD COLUMN cloud_id TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE outbound_lines ADD COLUMN last_synced_at INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE outbound_lines ADD COLUMN needs_sync INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_outbound_lines_needs_sync ON outbound_lines(needs_sync)")
+
+                db.execSQL("ALTER TABLE outbound_line_status_history ADD COLUMN synced INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE outbound_line_edit_history ADD COLUMN synced INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         private val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add barcode-related columns to inbound_packages table
@@ -446,7 +469,8 @@ abstract class AppDatabase : RoomDatabase() {
                 MIGRATION_11_12,
                 MIGRATION_12_13,
                 MIGRATION_13_14,
-                MIGRATION_14_15
+                MIGRATION_14_15,
+                MIGRATION_15_16
             ).build()
         }
     }

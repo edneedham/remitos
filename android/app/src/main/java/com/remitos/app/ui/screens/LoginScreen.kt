@@ -74,6 +74,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.remitos.app.R
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.UserInfo
+import com.remitos.app.data.TokenData
 import com.remitos.app.data.db.entity.LocalDeviceEntity
 import com.remitos.app.data.db.entity.LocalSessionEntity
 import com.remitos.app.data.db.entity.LocalUserEntity
@@ -185,7 +186,7 @@ fun LoginScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         LoginContent(
-            modifier = Modifier.padding(padding),
+            modifier = Modifier.padding(bottom = padding.calculateBottomPadding()),
             deviceInfo = deviceInfo,
             accounts = accounts,
             uiState = uiState,
@@ -244,6 +245,17 @@ fun LoginScreen(
                                 
                                 // Create local session
                                 app.authManager.setCurrentUser(user.id)
+                                app.authManager.saveToken(
+                                    user.id,
+                                    TokenData(
+                                        accessToken = "offline_${user.id}",
+                                        refreshToken = "",
+                                        expiresAt = System.currentTimeMillis() + 24 * 60 * 60 * 1000,
+                                        userEmail = user.username,
+                                        userName = user.username,
+                                        role = user.role
+                                    )
+                                )
                                 db.localSessionDao().insert(
                                     LocalSessionEntity(
                                         userId = user.id,
@@ -324,12 +336,12 @@ private fun LoginContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 24.dp),
+                .padding(start = 24.dp, end = 24.dp, top = 54.dp, bottom = 32.dp),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_logo_wordmark),

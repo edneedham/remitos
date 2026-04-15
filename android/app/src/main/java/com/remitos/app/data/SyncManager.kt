@@ -1,6 +1,7 @@
 package com.remitos.app.data
 
 import android.content.Context
+import android.util.Log
 import com.remitos.app.network.ApiClient
 import com.remitos.app.network.RemitosApiService
 import com.remitos.app.network.UserStatusResponse
@@ -27,6 +28,14 @@ class SyncManager(
     private val authManager: AuthManager,
     private val networkMonitor: NetworkMonitor
 ) {
+    companion object {
+        private const val TAG = "SyncManager"
+        private const val PREFS_NAME = "sync_prefs"
+        private const val KEY_LAST_SYNC_TIMESTAMP = "last_sync_timestamp"
+    }
+
+    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
     private val _syncState = MutableStateFlow<SyncState>(SyncState.Idle)
     val syncState: StateFlow<SyncState> = _syncState.asStateFlow()
 
@@ -42,7 +51,6 @@ class SyncManager(
         CoroutineScope(Dispatchers.IO).launch {
             networkMonitor.isOnline.collect { isOnline ->
                 if (isOnline && !wasOffline) {
-                    // Network restored - wait 2-3 seconds then sync
                     delay(2500)
                     if (networkMonitor.isCurrentlyOnline()) {
                         syncIfNeeded()
@@ -55,6 +63,7 @@ class SyncManager(
 
     fun syncIfNeeded() {
         if (_isSyncing.value) return
+        if (!FeatureFlags.enableCloudSync) return
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -62,9 +71,8 @@ class SyncManager(
                 _syncState.value = SyncState.Syncing
                 _syncMessage.value = "Verificando estado..."
 
-                // Check user status first
                 val statusResponse = checkUserStatus()
-                
+
                 if (statusResponse != null) {
                     when {
                         statusResponse.userStatus != "active" -> {
@@ -82,19 +90,37 @@ class SyncManager(
                     }
                 }
 
-                // If user is active, do full sync
                 _syncMessage.value = "Sincronizando datos..."
-                performFullSync()
+                val result = performFullSync()
 
-                _syncState.value = SyncState.Success
+                when (result) {
+                    is SyncService.SyncResult.Success -> {
+                        saveLastSyncTimestamp(result.serverTimestamp)
+                        _syncState.value = SyncState.Success
+                    }
+                    is SyncService.SyncResult.Error -> {
+                        _syncState.value = SyncState.Error(result.message)
+                    }
+                }
             } catch (e: Exception) {
+                Log.e(TAG, "Sync failed", e)
                 _syncState.value = SyncState.Error(e.message ?: "Error de sincronización")
             } finally {
-                // Set isSyncing to false first so modal dismisses, then clear message
                 _isSyncing.value = false
                 _syncMessage.value = null
             }
         }
+    }
+
+    private suspend fun performFullSync(): SyncService.SyncResult {
+        val userId = authManager.getCurrentUser()
+            ?: return SyncService.SyncResult.Error("Not authenticated")
+
+        val db = DatabaseManager.getDatabase(context, userId)
+        val syncService = SyncService(context, authManager, db)
+        val lastSyncTimestamp = getLastSyncTimestamp()
+
+        return syncService.performFullSync(lastSyncTimestamp)
     }
 
     private suspend fun checkUserStatus(): UserStatusResponse? {
@@ -111,31 +137,17 @@ class SyncManager(
                 null
             }
         } catch (e: Exception) {
+            Log.d(TAG, "User status check failed (offline?)", e)
             null
         }
     }
 
-    private suspend fun performFullSync() {
-        withContext(Dispatchers.IO) {
-            try {
-                val userId = authManager.getCurrentUser() ?: return@withContext
-                val db = DatabaseManager.getOfflineDatabase(context)
-                
-                // Get unsynced data
-                val unsyncedDocuments = db.localDocumentDao().getUnsynced()
-                val unsyncedCodes = db.localScannedCodeDao().getUnsynced()
+    private fun getLastSyncTimestamp(): Long {
+        return prefs.getLong(KEY_LAST_SYNC_TIMESTAMP, 0L)
+    }
 
-                // For now, we'll just update local activity timestamp
-                // Full sync implementation would send unsynced data to server
-                // and receive updates in response
-                db.localSessionDao().updateLastActivity(System.currentTimeMillis())
-                
-                // Minimum display duration so users can see the sync happening
-                delay(1500)
-            } catch (e: Exception) {
-                // Log but don't fail
-            }
-        }
+    private fun saveLastSyncTimestamp(timestamp: Long) {
+        prefs.edit().putLong(KEY_LAST_SYNC_TIMESTAMP, timestamp).apply()
     }
 
     fun resetState() {

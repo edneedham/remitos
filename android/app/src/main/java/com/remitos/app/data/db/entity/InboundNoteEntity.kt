@@ -11,6 +11,7 @@ import com.remitos.app.ocr.OcrFieldKeys
     indices = [
         Index(value = [OcrFieldKeys.RemitoNumCliente]),
         Index(value = [OcrFieldKeys.RemitoNumInterno]),
+        Index(value = ["needs_sync"]),
     ]
 )
 data class InboundNoteEntity(
@@ -59,7 +60,13 @@ data class InboundNoteEntity(
     @ColumnInfo(name = "updated_at")
     val updatedAt: Long,
     @ColumnInfo(name = "extra_fields_json", defaultValue = "{}")
-    val extraFieldsJson: String = "{}"
+    val extraFieldsJson: String = "{}",
+    @ColumnInfo(name = "cloud_id", defaultValue = "NULL")
+    val cloudId: String? = null,
+    @ColumnInfo(name = "last_synced_at", defaultValue = "0")
+    val lastSyncedAt: Long = 0,
+    @ColumnInfo(name = "needs_sync", defaultValue = "1")
+    val needsSync: Boolean = true
 )
 
 enum class UploadStatus {
