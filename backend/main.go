@@ -65,6 +65,9 @@ func main() {
 		imageHandler = nil
 	}
 
+	syncRepo := repository.NewSyncRepository(db.Pool)
+	syncHandler := handlers.NewSyncHandler(syncRepo)
+
 	h := chi.NewRouter()
 
 	h.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -92,6 +95,11 @@ func main() {
 		})
 		logger.Log.Info().Msg("Image upload endpoint registered at /images")
 	}
+	h.Group(func(r chi.Router) {
+		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo}))
+		r.Mount("/sync", syncHandler.Routes())
+	})
+	logger.Log.Info().Msg("Sync endpoint registered at /sync")
 	r := middleware.Router(h)
 
 	port := os.Getenv("PORT")
