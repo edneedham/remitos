@@ -1,7 +1,5 @@
 import {
-  Smartphone,
   ArrowRight,
-  CheckCircle,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -12,103 +10,132 @@ export default function Home() {
       <main className="grow">
         {/* Hero Section */}
         <div className="border-b border-gray-200">
-          <section className="w-3/5 mx-auto py-20 px-8 bg-white">
-          <div className="mt-16">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light mb-8 leading-tight">
-              Herramientas de logística para manejar tu negocio.{' '}
-              <span className="opacity-80">
-                Reducí la carga manual de datos, generá hojas de reparto y
-                exportá la info para usarla en otras plataformas.
-              </span>
-            </h1>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/signup"
-                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200"
-              >
-                Arrancá hoy
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-              <Link
-                href="#"
-                className="inline-flex items-center px-6 py-3 bg-white text-gray-900 font-semibold rounded-lg border border-gray-900 hover:bg-gray-50 transition-colors duration-200"
-              >
-                Agendá una demo
-              </Link>
-            </div>
-          </div>
-        </section>
-        </div>
-
-        {/* Solutions Section */}
-        <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">
-              Nuestras Soluciones
-            </h2>
-
-            <div className="flex items-center justify-center gap-12">
-              <div className="max-w-lg">
-                {/* Remitos - Inlog App */}
-                <div className="bg-white border border-gray-200 p-8 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
-                  <div className="text-emerald-700 mb-6 flex justify-center">
-                    <Smartphone size={64} />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4 text-center">
-                    App de Repartos
-                  </h3>
-                  <p className="text-gray-700 mb-6 text-center">
-                    Aplicación Android para el manejo de remitos y repartos.
-                    Escanea con OCR, gestiona listas de reparto y realiza seguimiento
-                    de entregas.
+          <section className="w-full max-w-7xl mx-auto py-20 px-8 bg-white">
+            <div className="mt-16 rounded-3xl bg-blue-50 px-8 pt-8 pb-0">
+              <div className="flex flex-col lg:flex-row items-center lg:items-start gap-12">
+                <div className="flex-1 lg:pt-[7%]">
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-8 leading-tight">
+                    Herramientas de logística para manejar tu negocio.
+                  </h1>
+                  <p className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-gray-600 mb-8 leading-tight">
+                    Reducí la carga manual de datos, generá hojas de reparto y
+                    exportá la info para usarla en otras plataformas.
                   </p>
-                  <ul className="space-y-3 mb-8">
-                    <li className="flex items-start">
-                      <CheckCircle
-                        className="text-emerald-700 mt-1 mr-3 flex-shrink-0"
-                        size={20}
-                      />
-                      <span className="text-gray-700">
-                        Escaneo de remitos con OCR
-                      </span>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle
-                        className="text-emerald-700 mt-1 mr-3 flex-shrink-0"
-                        size={20}
-                      />
-                      <span className="text-gray-700">
-                        Gestión de listas de reparto
-                      </span>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle
-                        className="text-emerald-700 mt-1 mr-3 flex-shrink-0"
-                        size={20}
-                      />
-                      <span className="text-gray-700">100% Offline</span>
-                    </li>
-                  </ul>
-                  <div className="text-center">
+                  <div className="flex items-center gap-4">
                     <Link
-                      href="/remitos"
-                      className="inline-flex items-center px-6 py-3 bg-emerald-700 text-white font-semibold rounded-lg hover:bg-emerald-800 transition-colors duration-200"
+                      href="/signup"
+                      className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200"
                     >
-                      Ver App
+                      Arrancá hoy
                       <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                    <Link
+                      href="#"
+                      className="inline-flex items-center px-6 py-3 bg-white text-gray-900 font-semibold rounded-lg border border-gray-900 hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      Agendá una demo
                     </Link>
                   </div>
                 </div>
+                <div className="shrink-0 h-[470px] overflow-hidden rounded-t-3xl lg:mt-28">
+                  <Image
+                    src="/screenshots/dashboard.png"
+                    alt="Dashboard de la app de repartos"
+                    width={320}
+                    height={680}
+                    className="w-[420px] h-auto max-w-none"
+                    priority
+                  />
+                </div>
               </div>
-              <div className="shrink-0">
+            </div>
+          </section>
+        </div>
+
+        {/* Workflow: scan → reparto → PDF → export */}
+        <section
+          className="py-20 px-8 bg-gray-50 border-b border-gray-200"
+          aria-labelledby="workflow-heading"
+        >
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <h2
+                id="workflow-heading"
+                className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4"
+              >
+                Del remito al PDF y a tus planillas
+              </h2>
+              <p className="text-lg text-gray-600">
+                Un flujo continuo: capturás datos, armás el reparto, entregás un
+                PDF al chofer y exportás la información para contabilidad u otras
+                herramientas.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-12 xl:gap-8">
+              <div className="flex flex-col items-center text-center">
                 <Image
-                  src="/screenshots/dashboard.png"
-                  alt="Dashboard de la app de repartos"
+                  src="/screenshots/scan.png"
+                  alt="Pantalla de escaneo y captura de remito"
                   width={320}
                   height={680}
-                  className="rounded-3xl shadow-2xl"
-                  priority
+                  className="mb-4 h-auto w-full max-w-[260px]"
                 />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  1. Escaneá el remito
+                </h3>
+                <p className="text-sm text-gray-600 max-w-xs">
+                  Capturá la imagen y extraé los datos que necesitás para el
+                  ingreso.
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center text-center">
+                <Image
+                  src="/screenshots/reparto-form.png"
+                  alt="Formulario de armado de lista de reparto"
+                  width={320}
+                  height={680}
+                  className="mb-4 h-auto w-full max-w-[260px]"
+                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  2. Armá la lista de reparto
+                </h3>
+                <p className="text-sm text-gray-600 max-w-xs">
+                  Organizá qué sale en cada salida y asigná bultos al chofer.
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center text-center">
+                <Image
+                  src="/screenshots/reparto-pdf.png"
+                  alt="Vista previa del PDF de hoja de reparto"
+                  width={320}
+                  height={680}
+                  className="mb-4 h-auto w-full max-w-[260px]"
+                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  3. PDF para el chofer
+                </h3>
+                <p className="text-sm text-gray-600 max-w-xs">
+                  Generá un documento claro para la ruta y la firma en destino.
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center text-center">
+                <Image
+                  src="/screenshots/exportar-csv.png"
+                  alt="Opciones para exportar datos a CSV"
+                  width={320}
+                  height={680}
+                  className="mb-4 h-auto w-full max-w-[260px]"
+                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  4. Exportá para el depósito
+                </h3>
+                <p className="text-sm text-gray-600 max-w-xs">
+                  Llevá los datos a Excel, tu contador o el sistema que uses.
+                </p>
               </div>
             </div>
           </div>
