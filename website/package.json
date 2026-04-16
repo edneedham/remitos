@@ -2,6 +2,7 @@
   "name": "enpunto-website",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "type": "module",
   "engines": {
     "node": ">=20.x"
@@ -16,6 +17,7 @@
     "dotenv": "^16.4.7",
     "lucide-react": "^0.479.0",
     "next": "^16.0.4",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zod": "^3.24.2"

@@ -1,0 +1,25 @@
+import type { Metadata } from 'next';
+import MobileSignupForm from './MobileSignupForm';
+
+export const metadata: Metadata = {
+  title: 'Registro (móvil) | En Punto',
+  description: 'Creá tu cuenta en En Punto desde tu teléfono.',
+};
+
+export default function MobileSignupPage() {
+  return (
+    <div className="min-h-[70vh] bg-gray-50 px-4 py-10">
+      <div className="max-w-md mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+            Creá tu cuenta
+          </h1>
+          <p className="text-gray-600 text-sm sm:text-base">
+            Completá los datos para arrancar con En Punto.
+          </p>
+        </div>
+        <MobileSignupForm />
+      </div>
+    </div>
+  );
+}

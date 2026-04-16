@@ -3,6 +3,8 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import HeroSignupRow from './ui/components/website/HeroSignupRow';
+import HeroQrOverlay from './ui/components/website/HeroQrOverlay';
 
 export default function Home() {
   return (
@@ -21,31 +23,20 @@ export default function Home() {
                     Reducí la carga manual de datos, generá hojas de reparto y
                     exportá la info para usarla en otras plataformas.
                   </p>
-                  <div className="flex items-center gap-4">
-                    <Link
-                      href="/signup"
-                      className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                    >
-                      Arrancá hoy
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                    <Link
-                      href="#"
-                      className="inline-flex items-center px-6 py-3 bg-white text-gray-900 font-semibold rounded-lg border border-gray-900 hover:bg-gray-50 transition-colors duration-200"
-                    >
-                      Agendá una demo
-                    </Link>
-                  </div>
+                  <HeroSignupRow />
                 </div>
-                <div className="shrink-0 h-[470px] overflow-hidden rounded-t-3xl lg:mt-28">
-                  <Image
-                    src="/screenshots/dashboard.png"
-                    alt="Dashboard de la app de repartos"
-                    width={320}
-                    height={680}
-                    className="w-[420px] h-auto max-w-none"
-                    priority
-                  />
+                <div className="relative shrink-0 w-full max-w-[340px] lg:mt-28">
+                  <div className="h-[380px] overflow-hidden rounded-t-3xl">
+                    <Image
+                      src="/screenshots/dashboard.png"
+                      alt="Dashboard de la app de repartos"
+                      width={320}
+                      height={680}
+                      className="w-[340px] h-auto max-w-none"
+                      priority
+                    />
+                  </div>
+                  <HeroQrOverlay />
                 </div>
               </div>
             </div>
