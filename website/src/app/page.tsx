@@ -37,7 +37,7 @@ export default function Home() {
                     </Link>
                   </div>
                 </div>
-                <div className="shrink-0 h-[470px] overflow-hidden rounded-t-3xl shadow-2xl lg:mt-28">
+                <div className="shrink-0 h-[470px] overflow-hidden rounded-t-3xl lg:mt-28">
                   <Image
                     src="/screenshots/dashboard.png"
                     alt="Dashboard de la app de repartos"
@@ -51,6 +51,95 @@ export default function Home() {
             </div>
           </section>
         </div>
+
+        {/* Workflow: scan → reparto → PDF → export */}
+        <section
+          className="py-20 px-8 bg-gray-50 border-b border-gray-200"
+          aria-labelledby="workflow-heading"
+        >
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <h2
+                id="workflow-heading"
+                className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4"
+              >
+                Del remito al PDF y a tus planillas
+              </h2>
+              <p className="text-lg text-gray-600">
+                Un flujo continuo: capturás datos, armás el reparto, entregás un
+                PDF al chofer y exportás la información para contabilidad u otras
+                herramientas.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-12 xl:gap-8">
+              <div className="flex flex-col items-center text-center">
+                <Image
+                  src="/screenshots/scan.png"
+                  alt="Pantalla de escaneo y captura de remito"
+                  width={320}
+                  height={680}
+                  className="mb-4 h-auto w-full max-w-[260px]"
+                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  1. Escaneá el remito
+                </h3>
+                <p className="text-sm text-gray-600 max-w-xs">
+                  Capturá la imagen y extraé los datos que necesitás para el
+                  ingreso.
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center text-center">
+                <Image
+                  src="/screenshots/reparto-form.png"
+                  alt="Formulario de armado de lista de reparto"
+                  width={320}
+                  height={680}
+                  className="mb-4 h-auto w-full max-w-[260px]"
+                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  2. Armá la lista de reparto
+                </h3>
+                <p className="text-sm text-gray-600 max-w-xs">
+                  Organizá qué sale en cada salida y asigná bultos al chofer.
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center text-center">
+                <Image
+                  src="/screenshots/reparto-pdf.png"
+                  alt="Vista previa del PDF de hoja de reparto"
+                  width={320}
+                  height={680}
+                  className="mb-4 h-auto w-full max-w-[260px]"
+                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  3. PDF para el chofer
+                </h3>
+                <p className="text-sm text-gray-600 max-w-xs">
+                  Generá un documento claro para la ruta y la firma en destino.
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center text-center">
+                <Image
+                  src="/screenshots/exportar-csv.png"
+                  alt="Opciones para exportar datos a CSV"
+                  width={320}
+                  height={680}
+                  className="mb-4 h-auto w-full max-w-[260px]"
+                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  4. Exportá para el depósito
+                </h3>
+                <p className="text-sm text-gray-600 max-w-xs">
+                  Llevá los datos a Excel, tu contador o el sistema que uses.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* CTA Section */}
         <section className="py-20 px-8 bg-gray-900">
