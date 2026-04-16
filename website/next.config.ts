@@ -1,8 +1,12 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import type { NextConfig } from 'next';
+
+const websiteRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
   turbopack: {
-    rootDirectory: '.',
+    root: websiteRoot,
   },
   async rewrites() {
     const apiUrl = process.env.API_URL || 'http://localhost:8080';

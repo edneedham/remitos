@@ -1,4 +1,6 @@
-@import 'tailwindcss';
+/* Relative import so dev/bundlers never resolve `tailwindcss` from a parent folder
+   (e.g. `/Users/ed/remitos` when a lockfile exists under `/Users/ed`). */
+@import '../../node_modules/tailwindcss/index.css';
 
 :root {
   --background: #ffffff;
