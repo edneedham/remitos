@@ -36,3 +36,46 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
+
+/* Page content: 14% narrower than Tailwind max-w-* defaults (scale ×0.86). */
+@layer utilities {
+  .max-w-content {
+    max-width: 61.92rem; /* max-w-6xl */
+  }
+  .max-w-content-wide {
+    max-width: 68.8rem; /* max-w-7xl */
+  }
+  .max-w-content-narrow {
+    max-width: 48.16rem; /* max-w-4xl */
+  }
+  .max-w-content-prose {
+    max-width: 41.28rem; /* max-w-3xl */
+  }
+  .max-w-content-snug {
+    max-width: 36.12rem; /* max-w-2xl */
+  }
+}
+
+/* Opens from beneath the empresa/cuenta block: slides down into view */
+@keyframes signup-payment-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.signup-payment-reveal {
+  animation: signup-payment-reveal 500ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  transform-origin: top center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signup-payment-reveal {
+    animation-duration: 1ms;
+    animation-timing-function: linear;
+  }
+}

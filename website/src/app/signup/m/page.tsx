@@ -3,7 +3,7 @@ import SignupTrialForm from '../SignupTrialForm';
 
 export const metadata: Metadata = {
   title: 'Registro (móvil) | En Punto',
-  description: 'Creá tu cuenta en En Punto desde tu teléfono.',
+  description: 'Probá 7 días gratis con En Punto desde tu teléfono.',
 };
 
 export default function MobileSignupPage() {
@@ -12,13 +12,15 @@ export default function MobileSignupPage() {
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-            Creá tu cuenta
+            Probá 7 días gratis
           </h1>
           <p className="text-gray-600 text-sm sm:text-base">
             Completá los datos para arrancar con En Punto.
           </p>
         </div>
-        <SignupTrialForm />
+        <div className="rounded-xl bg-white border border-gray-200 p-6 shadow-sm sm:p-8">
+          <SignupTrialForm variant="embedded" />
+        </div>
       </div>
     </div>
   );

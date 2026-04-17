@@ -3,7 +3,7 @@ import SignupGate from './SignupGate';
 
 export const metadata: Metadata = {
   title: 'Registro | En Punto',
-  description: 'Creá tu cuenta en En Punto.',
+  description: 'Probá 7 días gratis con En Punto.',
 };
 
 export default function SignupPage() {

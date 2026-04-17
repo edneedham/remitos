@@ -6,7 +6,7 @@ export default async function Terms() {
       <main className="grow">
         {/* Hero Section */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h1 className="text-4xl font-bold text-blue-600 mb-8 text-left">
               Términos y Condiciones de Uso
             </h1>
@@ -19,7 +19,7 @@ export default async function Terms() {
 
         {/* Introduction Section */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               Introducción
             </h2>
@@ -78,7 +78,7 @@ export default async function Terms() {
 
         {/* Section 1: Definiciones Generales */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               1. Definiciones Generales
             </h2>
@@ -150,7 +150,7 @@ export default async function Terms() {
 
         {/* Section 2: Condiciones del servicio */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               2. Condiciones del servicio
             </h2>
@@ -259,7 +259,7 @@ export default async function Terms() {
 
         {/* Section 3: Restricciones */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               3. Restricciones
             </h2>
@@ -321,7 +321,7 @@ export default async function Terms() {
 
         {/* Section 4: Propiedad */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               4. Propiedad
             </h2>
@@ -360,7 +360,7 @@ export default async function Terms() {
 
         {/* Section 5: RESPONSABILIDAD */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               5. RESPONSABILIDAD
             </h2>
@@ -539,7 +539,7 @@ export default async function Terms() {
 
         {/* Section 6: Propiedad Intelectual */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               6. Propiedad Intelectual
             </h2>
@@ -564,7 +564,7 @@ export default async function Terms() {
 
         {/* Section 7: Indemnización */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               7. Indemnización
             </h2>
@@ -636,7 +636,7 @@ export default async function Terms() {
 
         {/* Section 8: Ley Aplicable */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               8. Ley Aplicable y Política de resolución de conflictos
             </h2>
@@ -674,7 +674,7 @@ export default async function Terms() {
 
         {/* Section 9: Notificaciones */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               9. Notificaciones
             </h2>
@@ -699,7 +699,7 @@ export default async function Terms() {
 
         {/* Final CTA Section */}
         <section className="py-20 px-8 bg-gray-100">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-4xl font-bold text-gray-900 mb-6 text-center">
               ¿Preguntas?
             </h2>

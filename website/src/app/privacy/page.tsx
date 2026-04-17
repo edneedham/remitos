@@ -6,7 +6,7 @@ export default async function Privacy() {
       <main className="grow">
         {/* Hero Section */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h1 className="text-4xl font-bold text-blue-600 mb-8 text-left">
               Acuerdo de Privacidad y Confidencialidad
             </h1>
@@ -19,7 +19,7 @@ export default async function Privacy() {
 
         {/* Section 1: Introducción */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               1. Introducción
             </h2>
@@ -59,7 +59,7 @@ export default async function Privacy() {
 
         {/* Section 2: Consentimiento informado */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               2. Consentimiento informado
             </h2>
@@ -92,7 +92,7 @@ export default async function Privacy() {
 
         {/* Section 4: Definición de Usuario */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               3. Definición de Usuario
             </h2>
@@ -151,7 +151,7 @@ export default async function Privacy() {
 
         {/* Section 5: Definición de datos */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               4. Definición de datos
             </h2>
@@ -332,7 +332,7 @@ export default async function Privacy() {
 
         {/* Section 6: Métodos de tratamiento */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               5. Métodos de tratamiento
             </h2>
@@ -406,7 +406,7 @@ export default async function Privacy() {
 
         {/* Section 7: Modalidad y lugar del tratamiento */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               6. Modalidad y lugar del tratamiento de datos personales
             </h2>
@@ -644,7 +644,7 @@ export default async function Privacy() {
 
         {/* Section 8: Resolución de Conflictos */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               7. Resolución de Conflictos en Materia de Protección de Datos
             </h2>
@@ -678,7 +678,7 @@ export default async function Privacy() {
 
         {/* Final CTA Section */}
         <section className="py-20 px-8 bg-gray-100">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-4xl font-bold text-gray-900 mb-6 text-center">
               ¿Preguntas?
             </h2>

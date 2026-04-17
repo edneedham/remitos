@@ -27,7 +27,7 @@ export default async function PlataformaPage() {
           className="flex flex-col md:flex-row items-center justify-center min-h-[70vh] bg-white p-8 md:p-12 lg:p-16 border-b border-gray-200"
         >
           {/* Content */}
-          <div className="relative z-10 w-full max-w-6xl mx-auto flex flex-col md:flex-row items-center">
+          <div className="relative z-10 w-full max-w-content mx-auto flex flex-col md:flex-row items-center">
             {/* Left Column: Text Content */}
             <div className="w-full md:w-1/2 text-center md:text-left mb-10 md:mb-0 md:pr-10 lg:pr-16">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-800 mb-6 leading-tight">
@@ -69,7 +69,7 @@ export default async function PlataformaPage() {
 
         {/* Who is this for? Section */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-4xl font-bold text-gray-800 mb-12 text-center">
               Una Plataforma, Dos Soluciones
             </h2>
@@ -169,7 +169,7 @@ export default async function PlataformaPage() {
 
         {/* How it Works Section */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-4xl font-bold text-gray-800 mb-12 text-center">
               Logística Simplificada en Tres Pasos
             </h2>
@@ -235,11 +235,11 @@ export default async function PlataformaPage() {
 
         {/* Professionals Section */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-4xl font-bold text-gray-800 mb-6 text-center">
               Para los Profesionales que Mueven Argentina
             </h2>
-            <p className="text-xl text-gray-600 mb-12 text-center max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 mb-12 text-center max-w-content-prose mx-auto">
               En Punto está diseñado para empresas y transportistas que valoran
               la confianza, la eficiencia y el trabajo bien hecho.
             </p>
@@ -307,7 +307,7 @@ export default async function PlataformaPage() {
 
         {/* Features Section */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-4xl font-bold text-gray-800 mb-12 text-center">
               Más que un simple listado de trabajos
             </h2>
@@ -360,7 +360,7 @@ export default async function PlataformaPage() {
 
         {/* Final CTA Section */}
         <section className="py-20 px-8 bg-blue-600">
-          <div className="max-w-4xl mx-auto text-center">
+          <div className="max-w-content-narrow mx-auto text-center">
             <h2 className="text-4xl font-bold text-white mb-6">
               ¿Listo para empezar?
             </h2>

@@ -4,10 +4,10 @@ import ContactForm from '../ui/forms/contact';
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="max-w-4xl mx-auto py-12 px-4">
+      <main className="max-w-content-narrow mx-auto py-12 px-4">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Contáctanos</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-content-snug mx-auto">
             ¿Tienes alguna pregunta o comentario? Nos encantaría saber de ti.
           </p>
         </div>

@@ -15,7 +15,7 @@ export default function Header() {
 
   return (
     <header className="bg-white shadow-sm relative z-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-content-wide mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="shrink-0 flex items-center">
             <Link
@@ -26,10 +26,11 @@ export default function Header() {
               <Image
                 src="/enpunto-new.svg"
                 alt="En Punto"
-                width={150}
-                height={60}
-                className="h-auto w-auto max-w-[150px]"
+                width={140}
+                height={25}
+                className="h-8 w-auto max-w-[180px] sm:h-9"
                 priority
+                unoptimized
               />
             </Link>
           </div>
