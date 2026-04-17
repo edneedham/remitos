@@ -16,6 +16,7 @@ import (
 	"server/internal/jwt"
 	"server/internal/logger"
 	"server/internal/middleware"
+	"server/internal/payments/mercadopago"
 	"server/internal/repository"
 )
 
@@ -50,7 +51,8 @@ func main() {
 	subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
 	imageRepo := repository.NewImageRepository(db.Pool)
 	jwtSvc := jwt.NewService(cfg.JWTSecret)
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, deviceRepo, refreshTokenRepo, subscriptionRepo, db.Pool, jwtSvc)
+	mpClient := mercadopago.New(cfg.MercadoPagoAccessToken)
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, deviceRepo, refreshTokenRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo)
 	adminHandler := handlers.NewAdminHandler(userRepo, deviceRepo, jwtSvc)
 	scanHandler, err := handlers.NewScanHandler()
@@ -100,7 +102,7 @@ func main() {
 		r.Mount("/sync", syncHandler.Routes())
 	})
 	logger.Log.Info().Msg("Sync endpoint registered at /sync")
-	r := middleware.Router(h)
+	r := middleware.Router(h, cfg.CorsAllowedOrigins)
 
 	port := os.Getenv("PORT")
 	if port == "" {

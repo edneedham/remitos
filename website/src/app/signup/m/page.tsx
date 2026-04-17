@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import MobileSignupForm from './MobileSignupForm';
+import SignupTrialForm from '../SignupTrialForm';
 
 export const metadata: Metadata = {
   title: 'Registro (móvil) | En Punto',
@@ -18,7 +18,7 @@ export default function MobileSignupPage() {
             Completá los datos para arrancar con En Punto.
           </p>
         </div>
-        <MobileSignupForm />
+        <SignupTrialForm />
       </div>
     </div>
   );
