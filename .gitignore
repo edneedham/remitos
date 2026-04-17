@@ -14,6 +14,10 @@ local.properties
 /android/opencv-sdk/
 /todo/
 
+# Local env files (secrets — Mercado Pago, DB, JWT)
+backend/.env
+website/.env.local
+
 # Large binaries that should use LFS or not be tracked
 *.zip
 *.tar.gz
