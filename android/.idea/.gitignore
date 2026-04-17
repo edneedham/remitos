@@ -1,3 +1,6 @@
 # Default ignored files
 /shelf/
 /workspace.xml
+
+# IDE caches (device streaming, indexes, etc.) — recreated locally; do not commit
+/caches/
