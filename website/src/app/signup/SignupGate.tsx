@@ -52,13 +52,11 @@ export default function SignupGate() {
               Preferís el celular?
             </h2>
             <p className="text-gray-600 mb-6 text-sm sm:text-base">
-              Escaneá el código para abrir el registro en tu teléfono o copiá el
-              enlace.
+              Escaneá el código con el celular para abrir el registro móvil.
             </p>
             <div className="inline-block rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
               <QRCodeSVG value={mobileUrl} size={220} level="M" includeMargin />
             </div>
-            <p className="mt-6 text-sm text-gray-500 break-all">{mobileUrl}</p>
           </div>
         </div>
       </div>

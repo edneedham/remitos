@@ -45,8 +45,9 @@ export default function Footer() {
             >
               <Image
                 src="/logo-white.png"
-                width="20"
-                height="20"
+                width={20}
+                height={20}
+                className="size-5"
                 alt="X logo in white"
               />
             </Link>
@@ -57,8 +58,9 @@ export default function Footer() {
             >
               <Image
                 src="/InBug-White.png"
-                width="24"
-                height="24"
+                width={24}
+                height={24}
+                className="size-6"
                 alt="Linkedin logo in white"
               />
             </Link>

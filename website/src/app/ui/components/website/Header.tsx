@@ -28,6 +28,7 @@ export default function Header() {
                 alt="En Punto"
                 width={150}
                 height={60}
+                className="h-auto w-auto max-w-[150px]"
                 priority
               />
             </Link>

@@ -71,6 +71,7 @@ export default function Home() {
                   width={320}
                   height={680}
                   className="mb-4 h-auto w-full max-w-[260px]"
+                  priority
                 />
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">
                   1. Escaneá el remito
