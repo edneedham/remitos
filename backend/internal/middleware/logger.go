@@ -34,8 +34,11 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-func Router(h http.Handler) *chi.Mux {
+func Router(h http.Handler, corsAllowedOrigins []string) *chi.Mux {
 	r := chi.NewRouter()
+	if len(corsAllowedOrigins) > 0 {
+		r.Use(CORS(corsAllowedOrigins))
+	}
 	r.Use(Logger)
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Not Found", http.StatusNotFound)

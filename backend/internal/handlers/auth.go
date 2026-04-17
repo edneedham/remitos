@@ -17,6 +17,7 @@ import (
 	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/models"
+	"server/internal/payments/mercadopago"
 	"server/internal/repository"
 	"server/internal/validation"
 )
@@ -30,9 +31,11 @@ type AuthHandler struct {
 	subscriptionRepo *repository.SubscriptionRepository
 	db               *pgxpool.Pool
 	jwtSvc           *jwt.Service
+	mp               *mercadopago.Client
+	signupAllowMock  bool
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool) *AuthHandler {
 	return &AuthHandler{
 		userRepo:         userRepo,
 		companyRepo:      companyRepo,
@@ -42,6 +45,8 @@ func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository
 		subscriptionRepo: subscriptionRepo,
 		db:               db,
 		jwtSvc:           jwtSvc,
+		mp:               mp,
+		signupAllowMock:  signupAllowMock,
 	}
 }
 
@@ -583,6 +588,7 @@ func (h *AuthHandler) GetUserStatus(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Routes() *chi.Mux {
 	r := chi.NewRouter()
 	r.Post("/registrarse", h.Register)
+	r.Post("/signup/trial", h.SignupTrial)
 	r.Post("/login", h.Login)
 	r.Post("/device", h.RegisterDevice)
 	r.Post("/refresh", h.Refresh)

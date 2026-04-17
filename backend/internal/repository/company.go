@@ -78,3 +78,29 @@ func (r *CompanyRepository) Create(ctx context.Context, company *models.Company)
 	}
 	return nil
 }
+
+// CreateTrial inserts a company with 7-day-style trial fields and Mercado Pago ids (card on file for later charges).
+func (r *CompanyRepository) CreateTrial(ctx context.Context, company *models.Company) error {
+	query := `
+		INSERT INTO companies (
+			id, code, name, created_at, updated_at,
+			status, is_verified, subscription_plan,
+			trial_ends_at, max_warehouses, max_users,
+			mp_customer_id, mp_card_id
+		)
+		VALUES ($1, $2, $3, $4, $5, 'active', false, 'trial', $6, $7, $8, $9, $10)
+	`
+	_, err := r.pool.Exec(ctx, query,
+		company.ID,
+		company.Code,
+		company.Name,
+		company.CreatedAt,
+		company.UpdatedAt,
+		company.TrialEndsAt,
+		company.MaxWarehouses,
+		company.MaxUsers,
+		company.MpCustomerID,
+		company.MpCardID,
+	)
+	return err
+}
