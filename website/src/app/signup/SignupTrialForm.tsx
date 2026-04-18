@@ -11,6 +11,14 @@ import {
 } from '@mercadopago/sdk-react';
 import { ArrowRight, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/apiUrl';
+import {
+  validateCardholderName,
+  validateIdNumber,
+  validateSignupTrialAccount,
+  validateSignupTrialAccountField,
+  type SignupTrialAccountErrors,
+  type SignupTrialAccountField,
+} from '../lib/validations/signupTrial';
 import MercadoPagoLogo from './MercadoPagoLogo';
 
 type IdType = { id: string; name: string };
@@ -20,13 +28,44 @@ const useMockPayment =
 
 export type SignupTrialFormVariant = 'card' | 'embedded';
 
-const ACCOUNT_FIELD_IDS = [
-  'su-company',
-  'su-code',
-  'su-email',
-  'su-password',
-  'su-password-confirm',
-] as const;
+const ACCOUNT_FIELD_IDS: SignupTrialAccountField[] = [
+  'companyName',
+  'companyCode',
+  'email',
+  'password',
+  'passwordConfirm',
+];
+
+const ACCOUNT_FIELD_DOM_ID: Record<SignupTrialAccountField, string> = {
+  companyName: 'su-company',
+  companyCode: 'su-code',
+  email: 'su-email',
+  password: 'su-password',
+  passwordConfirm: 'su-password-confirm',
+};
+
+const VALIDATION_DEBOUNCE_MS = 350;
+
+function scrollAndFocusById(elementId: string) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  window.requestAnimationFrame(() => {
+    if (el instanceof HTMLElement && typeof el.focus === 'function') {
+      const tag = el.tagName.toLowerCase();
+      if (tag === 'input' || tag === 'select' || tag === 'textarea' || tag === 'button') {
+        el.focus({ preventScroll: true });
+      }
+    }
+  });
+}
+
+function scrollErrorAlertIntoView() {
+  document.getElementById('signup-form-alert')?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center',
+  });
+}
 
 export default function SignupTrialForm({
   variant = 'card',
@@ -48,6 +87,12 @@ export default function SignupTrialForm({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accountFieldErrors, setAccountFieldErrors] =
+    useState<SignupTrialAccountErrors>({});
+  const [paymentFieldErrors, setPaymentFieldErrors] = useState<{
+    cardholderName?: string;
+    idNumber?: string;
+  }>({});
   const [done, setDone] = useState<{
     trialEndsAt: string;
     companyCode: string;
@@ -55,6 +100,34 @@ export default function SignupTrialForm({
 
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
   const paymentSectionRef = useRef<HTMLDivElement>(null);
+
+  const accountValuesRef = useRef({
+    companyName,
+    companyCode,
+    email,
+    password,
+    passwordConfirm,
+  });
+  accountValuesRef.current = {
+    companyName,
+    companyCode,
+    email,
+    password,
+    passwordConfirm,
+  };
+
+  const accountDebounceTimersRef = useRef<
+    Partial<Record<SignupTrialAccountField, ReturnType<typeof setTimeout>>>
+  >({});
+
+  const paymentValuesRef = useRef({ cardholderName, idNumber });
+  paymentValuesRef.current = { cardholderName, idNumber };
+
+  const paymentDebounceTimersRef = useRef<
+    Partial<
+      Record<'cardholderName' | 'idNumber', ReturnType<typeof setTimeout>>
+    >
+  >({});
 
   useEffect(() => {
     if (useMockPayment || !publicKey) {
@@ -88,19 +161,18 @@ export default function SignupTrialForm({
     return () => window.clearTimeout(id);
   }, [paymentSectionOpen]);
 
-  const accountSectionValid = useMemo(() => {
-    const code = companyCode.trim();
-    const em = email.trim();
-    return (
-      companyName.trim().length >= 2 &&
-      code.length >= 2 &&
-      code.length <= 32 &&
-      /^[A-Za-z0-9_-]+$/.test(code) &&
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em) &&
-      password.length >= 8 &&
-      password === passwordConfirm
-    );
-  }, [companyName, companyCode, email, password, passwordConfirm]);
+  useEffect(() => {
+    const accountTimers = accountDebounceTimersRef.current;
+    const paymentTimers = paymentDebounceTimersRef.current;
+    return () => {
+      Object.values(accountTimers).forEach((t) => {
+        if (t) clearTimeout(t);
+      });
+      Object.values(paymentTimers).forEach((t) => {
+        if (t) clearTimeout(t);
+      });
+    };
+  }, []);
 
   const paymentSectionValid = useMemo(() => {
     if (useMockPayment) return true;
@@ -110,37 +182,191 @@ export default function SignupTrialForm({
     );
   }, [useMockPayment, publicKey, mpReady, cardholderName, idNumber]);
 
-  const canSubmit = useMemo(
-    () =>
-      !loading &&
-      accountSectionValid &&
-      paymentSectionValid &&
-      (useMockPayment || (Boolean(publicKey) && mpReady)),
-    [
-      accountSectionValid,
-      loading,
-      mpReady,
-      paymentSectionValid,
-      publicKey,
-      useMockPayment,
-    ],
+  /** Mercado Pago no listo o falta clave pública (salvo modo mock). */
+  const mpBlocksSubmit = useMemo(
+    () => !useMockPayment && (!Boolean(publicKey) || !mpReady),
+    [mpReady, publicKey, useMockPayment],
   );
 
-  const validateAccountFields = useCallback(() => {
-    setError(null);
-    for (const fieldId of ACCOUNT_FIELD_IDS) {
-      const el = document.getElementById(fieldId) as HTMLInputElement | null;
-      if (el && !el.checkValidity()) {
-        el.reportValidity();
-        return false;
+  const canSubmit = useMemo(
+    () => !loading && !mpBlocksSubmit,
+    [loading, mpBlocksSubmit],
+  );
+
+  const scrollFirstAccountErrorIntoView = useCallback(
+    (errs: SignupTrialAccountErrors) => {
+      for (const key of ACCOUNT_FIELD_IDS) {
+        if (errs[key]) {
+          scrollAndFocusById(ACCOUNT_FIELD_DOM_ID[key]);
+          break;
+        }
+      }
+    },
+    [],
+  );
+
+  const cancelAccountFieldDebounce = useCallback(
+    (field: SignupTrialAccountField) => {
+      const t = accountDebounceTimersRef.current[field];
+      if (t) {
+        clearTimeout(t);
+        delete accountDebounceTimersRef.current[field];
+      }
+    },
+    [],
+  );
+
+  const cancelAllAccountDebounces = useCallback(() => {
+    const timers = accountDebounceTimersRef.current;
+    for (const field of ACCOUNT_FIELD_IDS) {
+      const t = timers[field];
+      if (t) {
+        clearTimeout(t);
+        delete timers[field];
       }
     }
-    if (password !== passwordConfirm) {
-      setError('Las contraseñas no coinciden.');
-      return false;
+  }, []);
+
+  const cancelAllPaymentDebounces = useCallback(() => {
+    const timers = paymentDebounceTimersRef.current;
+    for (const key of ['cardholderName', 'idNumber'] as const) {
+      const t = timers[key];
+      if (t) {
+        clearTimeout(t);
+        delete timers[key];
+      }
     }
-    return true;
-  }, [password, passwordConfirm]);
+  }, []);
+
+  const applyDebouncedAccountFieldValidation = useCallback(
+    (field: SignupTrialAccountField) => {
+      const values = accountValuesRef.current;
+      const fields: SignupTrialAccountField[] =
+        field === 'password' || field === 'passwordConfirm'
+          ? ['password', 'passwordConfirm']
+          : [field];
+      setAccountFieldErrors((prev) => {
+        const next = { ...prev };
+        for (const f of fields) {
+          const err = validateSignupTrialAccountField(f, values);
+          if (err) next[f] = err;
+          else delete next[f];
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const scheduleDebouncedAccountValidation = useCallback(
+    (field: SignupTrialAccountField) => {
+      const prev = accountDebounceTimersRef.current[field];
+      if (prev) clearTimeout(prev);
+      accountDebounceTimersRef.current[field] = setTimeout(() => {
+        delete accountDebounceTimersRef.current[field];
+        applyDebouncedAccountFieldValidation(field);
+      }, VALIDATION_DEBOUNCE_MS);
+    },
+    [applyDebouncedAccountFieldValidation],
+  );
+
+  const cancelPaymentFieldDebounce = useCallback(
+    (field: 'cardholderName' | 'idNumber') => {
+      const t = paymentDebounceTimersRef.current[field];
+      if (t) {
+        clearTimeout(t);
+        delete paymentDebounceTimersRef.current[field];
+      }
+    },
+    [],
+  );
+
+  const applyDebouncedPaymentFieldValidation = useCallback(
+    (field: 'cardholderName' | 'idNumber') => {
+      if (useMockPayment) return;
+      const v = paymentValuesRef.current;
+      const err =
+        field === 'cardholderName'
+          ? validateCardholderName(v.cardholderName)
+          : validateIdNumber(v.idNumber);
+      setPaymentFieldErrors((prev) => {
+        const next = { ...prev };
+        if (err) next[field] = err;
+        else delete next[field];
+        return next;
+      });
+    },
+    [useMockPayment],
+  );
+
+  const scheduleDebouncedPaymentValidation = useCallback(
+    (field: 'cardholderName' | 'idNumber') => {
+      if (useMockPayment) return;
+      const prev = paymentDebounceTimersRef.current[field];
+      if (prev) clearTimeout(prev);
+      paymentDebounceTimersRef.current[field] = setTimeout(() => {
+        delete paymentDebounceTimersRef.current[field];
+        applyDebouncedPaymentFieldValidation(field);
+      }, VALIDATION_DEBOUNCE_MS);
+    },
+    [applyDebouncedPaymentFieldValidation, useMockPayment],
+  );
+
+  const runAccountValidation = useCallback(() => {
+    const errs = validateSignupTrialAccount({
+      companyName,
+      companyCode,
+      email,
+      password,
+      passwordConfirm,
+    });
+    setAccountFieldErrors(errs);
+    return errs;
+  }, [
+    companyCode,
+    companyName,
+    email,
+    password,
+    passwordConfirm,
+  ]);
+
+  const clearAccountFieldError = useCallback((field: SignupTrialAccountField) => {
+    setAccountFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }, []);
+
+  const handleAccountBlur = useCallback(
+    (field: SignupTrialAccountField) => {
+      cancelAccountFieldDebounce(field);
+      if (field === 'password') {
+        cancelAccountFieldDebounce('passwordConfirm');
+      }
+      if (field === 'passwordConfirm') {
+        cancelAccountFieldDebounce('password');
+      }
+
+      const fieldsToValidate: SignupTrialAccountField[] =
+        field === 'password' || field === 'passwordConfirm'
+          ? ['password', 'passwordConfirm']
+          : [field];
+
+      setAccountFieldErrors((prev) => {
+        const next = { ...prev };
+        const values = accountValuesRef.current;
+        for (const f of fieldsToValidate) {
+          const err = validateSignupTrialAccountField(f, values);
+          if (err) next[f] = err;
+          else delete next[f];
+        }
+        return next;
+      });
+    },
+    [cancelAccountFieldDebounce],
+  );
 
   const togglePaymentSection = useCallback(() => {
     setPaymentSectionOpen((open) => !open);
@@ -150,15 +376,46 @@ export default function SignupTrialForm({
     async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
-      if (!validateAccountFields()) {
+      cancelAllAccountDebounces();
+      cancelAllPaymentDebounces();
+      setPaymentFieldErrors({});
+      if (mpBlocksSubmit) {
+        setError(
+          'Esperá a que cargue el formulario de pago o revisá la configuración.',
+        );
+        window.requestAnimationFrame(() => {
+          scrollErrorAlertIntoView();
+        });
         return;
       }
+
+      const accountErrs = runAccountValidation();
+      if (Object.keys(accountErrs).length > 0) {
+        window.requestAnimationFrame(() => {
+          scrollFirstAccountErrorIntoView(accountErrs);
+        });
+        return;
+      }
+
       if (!paymentSectionValid) {
+        const panelWasOpen = paymentSectionOpen;
+        setPaymentSectionOpen(true);
+        if (!useMockPayment) {
+          const chErr = validateCardholderName(cardholderName);
+          const idErr = validateIdNumber(idNumber);
+          setPaymentFieldErrors({
+            ...(chErr ? { cardholderName: chErr } : {}),
+            ...(idErr ? { idNumber: idErr } : {}),
+          });
+          const focusId = chErr ? 'su-chname' : idErr ? 'su-idnum' : undefined;
+          if (focusId) {
+            window.setTimeout(
+              () => scrollAndFocusById(focusId),
+              panelWasOpen ? 80 : 420,
+            );
+          }
+        }
         setError('Completá los datos de pago.');
-        return;
-      }
-      if (password !== passwordConfirm) {
-        setError('Las contraseñas no coinciden.');
         return;
       }
       const api = getApiBaseUrl();
@@ -233,11 +490,17 @@ export default function SignupTrialForm({
       email,
       idNumber,
       idType,
+      cancelAllAccountDebounces,
+      cancelAllPaymentDebounces,
+      mpBlocksSubmit,
       password,
       passwordConfirm,
       paymentSectionValid,
       publicKey,
-      validateAccountFields,
+      paymentSectionOpen,
+      scrollFirstAccountErrorIntoView,
+      runAccountValidation,
+      useMockPayment,
     ],
   );
 
@@ -290,6 +553,20 @@ export default function SignupTrialForm({
 
   const mainStackClass = variant === 'embedded' ? 'space-y-4' : 'space-y-6';
 
+  const accountInputClass = (field: SignupTrialAccountField) =>
+    `w-full px-4 py-3 border rounded-lg ${
+      accountFieldErrors[field]
+        ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+        : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+    }`;
+
+  const paymentInputClass = (hasError: boolean) =>
+    `w-full h-12 px-4 border rounded-lg box-border ${
+      hasError
+        ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+        : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+    }`;
+
   return (
     <form
       onSubmit={handleFormSubmit}
@@ -317,11 +594,30 @@ export default function SignupTrialForm({
             <input
               id="su-company"
               value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              required
-              minLength={2}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              onChange={(e) => {
+                setCompanyName(e.target.value);
+                clearAccountFieldError('companyName');
+                scheduleDebouncedAccountValidation('companyName');
+              }}
+              onBlur={() => handleAccountBlur('companyName')}
+              autoComplete="organization"
+              maxLength={200}
+              aria-invalid={Boolean(accountFieldErrors.companyName)}
+              aria-required
+              aria-describedby={
+                accountFieldErrors.companyName ? 'su-company-error' : undefined
+              }
+              className={accountInputClass('companyName')}
             />
+            {accountFieldErrors.companyName && (
+              <p
+                id="su-company-error"
+                className="mt-1.5 text-sm text-red-600"
+                role="alert"
+              >
+                {accountFieldErrors.companyName}
+              </p>
+            )}
           </div>
           <div>
             <label
@@ -333,14 +629,34 @@ export default function SignupTrialForm({
             <input
               id="su-code"
               value={companyCode}
-              onChange={(e) => setCompanyCode(e.target.value.toUpperCase())}
-              required
-              minLength={2}
+              onChange={(e) => {
+                setCompanyCode(e.target.value.toUpperCase());
+                clearAccountFieldError('companyCode');
+                scheduleDebouncedAccountValidation('companyCode');
+              }}
+              onBlur={() => handleAccountBlur('companyCode')}
               maxLength={32}
-              pattern="[A-Za-z0-9_-]+"
-              title="Letras, números, guiones"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg font-mono uppercase focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              autoCapitalize="characters"
+              spellCheck={false}
+              aria-invalid={Boolean(accountFieldErrors.companyCode)}
+              aria-required
+              aria-describedby={
+                accountFieldErrors.companyCode ? 'su-code-error' : undefined
+              }
+              className={`${accountInputClass('companyCode')} font-mono uppercase`}
             />
+            {accountFieldErrors.companyCode && (
+              <p
+                id="su-code-error"
+                className="mt-1.5 text-sm text-red-600"
+                role="alert"
+              >
+                {accountFieldErrors.companyCode}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              Letras, números, guiones o guiones bajos.
+            </p>
           </div>
 
           <div>
@@ -353,12 +669,31 @@ export default function SignupTrialForm({
             <input
               id="su-email"
               type="email"
+              inputMode="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              onChange={(e) => {
+                setEmail(e.target.value);
+                clearAccountFieldError('email');
+                scheduleDebouncedAccountValidation('email');
+              }}
+              onBlur={() => handleAccountBlur('email')}
               autoComplete="email"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              aria-invalid={Boolean(accountFieldErrors.email)}
+              aria-required
+              aria-describedby={
+                accountFieldErrors.email ? 'su-email-error' : undefined
+              }
+              className={accountInputClass('email')}
             />
+            {accountFieldErrors.email && (
+              <p
+                id="su-email-error"
+                className="mt-1.5 text-sm text-red-600"
+                role="alert"
+              >
+                {accountFieldErrors.email}
+              </p>
+            )}
           </div>
           <div>
             <label
@@ -371,12 +706,38 @@ export default function SignupTrialForm({
               id="su-password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                clearAccountFieldError('password');
+                clearAccountFieldError('passwordConfirm');
+                scheduleDebouncedAccountValidation('password');
+                scheduleDebouncedAccountValidation('passwordConfirm');
+              }}
+              onBlur={() => handleAccountBlur('password')}
               autoComplete="new-password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              maxLength={72}
+              aria-invalid={Boolean(accountFieldErrors.password)}
+              aria-required
+              aria-describedby={
+                accountFieldErrors.password
+                  ? 'su-password-error'
+                  : 'su-password-hint'
+              }
+              className={accountInputClass('password')}
             />
+            {accountFieldErrors.password ? (
+              <p
+                id="su-password-error"
+                className="mt-1.5 text-sm text-red-600"
+                role="alert"
+              >
+                {accountFieldErrors.password}
+              </p>
+            ) : (
+              <p id="su-password-hint" className="mt-1 text-xs text-gray-500">
+                Entre 8 y 72 caracteres.
+              </p>
+            )}
           </div>
           <div>
             <label
@@ -389,12 +750,32 @@ export default function SignupTrialForm({
               id="su-password-confirm"
               type="password"
               value={passwordConfirm}
-              onChange={(e) => setPasswordConfirm(e.target.value)}
-              required
-              minLength={8}
+              onChange={(e) => {
+                setPasswordConfirm(e.target.value);
+                clearAccountFieldError('passwordConfirm');
+                scheduleDebouncedAccountValidation('passwordConfirm');
+              }}
+              onBlur={() => handleAccountBlur('passwordConfirm')}
               autoComplete="new-password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              maxLength={72}
+              aria-invalid={Boolean(accountFieldErrors.passwordConfirm)}
+              aria-required
+              aria-describedby={
+                accountFieldErrors.passwordConfirm
+                  ? 'su-password-confirm-error'
+                  : undefined
+              }
+              className={accountInputClass('passwordConfirm')}
             />
+            {accountFieldErrors.passwordConfirm && (
+              <p
+                id="su-password-confirm-error"
+                className="mt-1.5 text-sm text-red-600"
+                role="alert"
+              >
+                {accountFieldErrors.passwordConfirm}
+              </p>
+            )}
           </div>
         </div>
 
@@ -462,9 +843,47 @@ export default function SignupTrialForm({
                     <input
                       id="su-chname"
                       value={cardholderName}
-                      onChange={(e) => setCardholderName(e.target.value)}
-                      className="w-full h-12 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      onChange={(e) => {
+                        setCardholderName(e.target.value);
+                        setPaymentFieldErrors((p) => {
+                          if (!p.cardholderName) return p;
+                          const next = { ...p };
+                          delete next.cardholderName;
+                          return next;
+                        });
+                        scheduleDebouncedPaymentValidation('cardholderName');
+                      }}
+                      onBlur={() => {
+                        cancelPaymentFieldDebounce('cardholderName');
+                        if (useMockPayment) return;
+                        const err = validateCardholderName(cardholderName);
+                        setPaymentFieldErrors((prev) => {
+                          const next = { ...prev };
+                          if (err) next.cardholderName = err;
+                          else delete next.cardholderName;
+                          return next;
+                        });
+                      }}
+                      autoComplete="cc-name"
+                      aria-invalid={Boolean(paymentFieldErrors.cardholderName)}
+                      aria-describedby={
+                        paymentFieldErrors.cardholderName
+                          ? 'su-chname-error'
+                          : undefined
+                      }
+                      className={paymentInputClass(
+                        Boolean(paymentFieldErrors.cardholderName),
+                      )}
                     />
+                    {paymentFieldErrors.cardholderName && (
+                      <p
+                        id="su-chname-error"
+                        className="mt-1.5 text-sm text-red-600"
+                        role="alert"
+                      >
+                        {paymentFieldErrors.cardholderName}
+                      </p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -497,9 +916,45 @@ export default function SignupTrialForm({
                       <input
                         id="su-idnum"
                         value={idNumber}
-                        onChange={(e) => setIdNumber(e.target.value)}
-                        className="w-full h-12 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onChange={(e) => {
+                          setIdNumber(e.target.value);
+                          setPaymentFieldErrors((p) => {
+                            if (!p.idNumber) return p;
+                            const next = { ...p };
+                            delete next.idNumber;
+                            return next;
+                          });
+                          scheduleDebouncedPaymentValidation('idNumber');
+                        }}
+                        onBlur={() => {
+                          cancelPaymentFieldDebounce('idNumber');
+                          if (useMockPayment) return;
+                          const err = validateIdNumber(idNumber);
+                          setPaymentFieldErrors((prev) => {
+                            const next = { ...prev };
+                            if (err) next.idNumber = err;
+                            else delete next.idNumber;
+                            return next;
+                          });
+                        }}
+                        autoComplete="off"
+                        aria-invalid={Boolean(paymentFieldErrors.idNumber)}
+                        aria-describedby={
+                          paymentFieldErrors.idNumber ? 'su-idnum-error' : undefined
+                        }
+                        className={paymentInputClass(
+                          Boolean(paymentFieldErrors.idNumber),
+                        )}
                       />
+                      {paymentFieldErrors.idNumber && (
+                        <p
+                          id="su-idnum-error"
+                          className="mt-1.5 text-sm text-red-600"
+                          role="alert"
+                        >
+                          {paymentFieldErrors.idNumber}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -564,7 +1019,11 @@ export default function SignupTrialForm({
 
       <div className="mt-8 space-y-5 border-t border-gray-100 pt-8">
         {error && (
-          <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          <p
+            id="signup-form-alert"
+            tabIndex={-1}
+            className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2 outline-none"
+          >
             {error}
           </p>
         )}
