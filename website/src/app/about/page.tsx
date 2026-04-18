@@ -8,12 +8,12 @@ export default async function About() {
       <main className="grow">
         {/* Hero Section */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h1 className="text-4xl font-bold text-blue-600 mb-12 text-center">
               Empresas y conductores, ahora mas cerca
             </h1>
 
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed text-center">
+            <p className="text-xl text-gray-600 mb-8 max-w-content-prose mx-auto leading-relaxed text-center">
               Enpunto nació de una necesidad real. Cansados de la informalidad,
               la incertidumbre y las herramientas obsoletas, decidimos construir
               la plataforma que siempre quisimos usar: un mercado de transporte
@@ -33,7 +33,7 @@ export default async function About() {
 
         {/* Problem Section */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-4xl font-bold text-gray-800 mb-12 text-center">
               Hecho por y para profesionales del sector
             </h2>
@@ -98,7 +98,7 @@ export default async function About() {
 
         {/* Founders Section */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-4xl font-bold text-gray-800 mb-12 text-center">
               Un equipo con experiencia real
             </h2>
@@ -211,7 +211,7 @@ export default async function About() {
 
         {/* Values Section */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-4xl font-bold text-gray-800 mb-12 text-center">
               Nuestra Promesa: Confianza, Eficiencia y Transparencia
             </h2>
@@ -310,7 +310,7 @@ export default async function About() {
 
         {/* Final CTA Section */}
         <section className="py-20 px-8 bg-gray-100">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-4xl font-bold text-gray-900 mb-6 text-center">
               ¿Listo para transformar tu logística?
             </h2>

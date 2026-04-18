@@ -9,7 +9,7 @@ export default function LicensesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto py-20 px-8">
+      <div className="max-w-content mx-auto py-20 px-8">
         <h1 className="text-4xl font-bold text-blue-600 mb-4 text-left">
           Licencias de Software de Terceros
         </h1>

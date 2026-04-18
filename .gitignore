@@ -14,6 +14,9 @@ local.properties
 /android/opencv-sdk/
 /todo/
 
+# Local working notes (not for the repo)
+/note.md
+
 # Local env files (secrets — Mercado Pago, DB, JWT)
 backend/.env
 website/.env.local

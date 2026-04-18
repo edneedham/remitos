@@ -12,7 +12,7 @@ export default function Home() {
       <main className="grow">
         {/* Hero Section */}
         <div className="border-b border-gray-200">
-          <section className="w-full max-w-7xl mx-auto py-20 px-8 bg-white">
+          <section className="w-full max-w-content-wide mx-auto py-20 px-8 bg-white">
             <div className="mt-16 rounded-3xl bg-blue-50 px-8 pt-8 pb-0">
               <div className="flex flex-col lg:flex-row items-center lg:items-start gap-12">
                 <div className="flex-1 lg:pt-[7%]">
@@ -48,8 +48,8 @@ export default function Home() {
           className="py-20 px-8 bg-gray-50 border-b border-gray-200"
           aria-labelledby="workflow-heading"
         >
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center max-w-3xl mx-auto mb-14">
+          <div className="max-w-content-wide mx-auto">
+            <div className="text-center max-w-content-prose mx-auto mb-14">
               <h2
                 id="workflow-heading"
                 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4"
@@ -135,7 +135,7 @@ export default function Home() {
 
         {/* CTA Section */}
         <section className="py-20 px-8 bg-gray-900">
-          <div className="max-w-4xl mx-auto text-center">
+          <div className="max-w-content-narrow mx-auto text-center">
             <h2 className="text-3xl font-bold text-white mb-6">
               ¿Necesitas una solución personalizada?
             </h2>

@@ -6,7 +6,7 @@ export default async function Cookies() {
       <main className="grow">
         {/* Hero Section */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h1 className="text-4xl font-bold text-blue-600 mb-8 text-left">
               Política de Cookies
             </h1>
@@ -19,7 +19,7 @@ export default async function Cookies() {
 
         {/* Introduction Section */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <p className="text-gray-600 mb-6 leading-relaxed">
               El presente documento es un anexo de los Términos y condiciones de
               los servicios provistos por ROASAL S.A.S. o las aplicaciones
@@ -51,7 +51,7 @@ export default async function Cookies() {
 
         {/* Section 1: Cookies Overview */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               1. ¿Qué son las Cookies?
             </h2>
@@ -90,7 +90,7 @@ export default async function Cookies() {
 
         {/* Section 2: No Tracking or Advertising */}
         <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               2. Publicidad y Seguimiento
             </h2>
@@ -118,7 +118,7 @@ export default async function Cookies() {
 
         {/* Section 3: User Choices */}
         <section className="py-20 px-8 bg-white">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-8">
               3. Opciones del usuario
             </h2>
@@ -150,7 +150,7 @@ export default async function Cookies() {
 
         {/* Final CTA Section */}
         <section className="py-20 px-8 bg-gray-100">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-content mx-auto">
             <h2 className="text-4xl font-bold text-gray-900 mb-6 text-center">
               ¿Preguntas?
             </h2>
