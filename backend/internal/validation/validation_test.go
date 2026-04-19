@@ -70,3 +70,20 @@ func TestStruct_PasswordTooShort(t *testing.T) {
 		t.Fatal("expected errors, got nil")
 	}
 }
+
+func TestStructFieldErrors_JSONKeys(t *testing.T) {
+	req := TestRequest{
+		Email:    "",
+		Password: "",
+	}
+	fields := StructFieldErrors(req)
+	if _, ok := fields["email"]; !ok {
+		t.Fatalf("expected email key, got %v", fields)
+	}
+	if _, ok := fields["password"]; !ok {
+		t.Fatalf("expected password key, got %v", fields)
+	}
+	if fields["email"] == "" || fields["password"] == "" {
+		t.Fatal("expected non-empty messages")
+	}
+}

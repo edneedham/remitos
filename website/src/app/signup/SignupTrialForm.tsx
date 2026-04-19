@@ -14,6 +14,7 @@ import { getApiBaseUrl } from '../lib/apiUrl';
 import {
   validateCardholderName,
   validateIdNumber,
+  SIGNUP_TRIAL_API_FIELD_MAP,
   validateSignupTrialAccount,
   validateSignupTrialAccountField,
   type SignupTrialAccountErrors,
@@ -462,10 +463,26 @@ export default function SignupTrialForm({
         const data = (await res.json().catch(() => ({}))) as {
           message?: string;
           error?: string;
+          fields?: Record<string, string>;
           trial_ends_at?: string;
           company_code?: string;
         };
         if (!res.ok) {
+          if (data.fields && typeof data.fields === 'object') {
+            const fromApi: SignupTrialAccountErrors = {};
+            for (const [k, v] of Object.entries(data.fields)) {
+              const formKey = SIGNUP_TRIAL_API_FIELD_MAP[k];
+              if (formKey && typeof v === 'string' && v.length > 0) {
+                fromApi[formKey] = v;
+              }
+            }
+            if (Object.keys(fromApi).length > 0) {
+              setAccountFieldErrors((prev) => ({ ...prev, ...fromApi }));
+              window.requestAnimationFrame(() => {
+                scrollFirstAccountErrorIntoView(fromApi);
+              });
+            }
+          }
           setError(
             data.message ||
               (typeof data.error === 'string' ? data.error : '') ||
@@ -574,7 +591,7 @@ export default function SignupTrialForm({
       noValidate
     >
       <div className={mainStackClass}>
-        <div className="min-w-0 space-y-1.5 sm:max-w-xl">
+        <div className="min-w-0 space-y-1.5 sm:max-w-md">
           <h2 className="text-lg font-semibold text-gray-900">
             Empresa y cuenta
           </h2>

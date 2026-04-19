@@ -4,6 +4,12 @@ import com.google.gson.annotations.SerializedName
 
 // Auth Request/Response Models
 
+data class ApiErrorBody(
+    val error: String? = null,
+    val message: String? = null,
+    val fields: Map<String, String>? = null
+)
+
 data class RegisterRequest(
     val email: String,
     val password: String,

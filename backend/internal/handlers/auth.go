@@ -50,13 +50,6 @@ func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository
 	}
 }
 
-type LoginRequest struct {
-	CompanyCode string `json:"company_code" validate:"required"`
-	Username    string `json:"username" validate:"required"`
-	Password    string `json:"password" validate:"required"`
-	DeviceName  string `json:"device_name" validate:"omitempty"`
-}
-
 type RegisterDeviceRequest struct {
 	DeviceUUID  string  `json:"device_uuid" validate:"required"`
 	Platform    string  `json:"platform" validate:"required"`
@@ -94,11 +87,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if errs := validation.Struct(req); errs != nil {
-		for _, err := range errs {
-			RespondWithError(w, ErrCodeInvalidRequest, err, http.StatusBadRequest)
-			return
-		}
+	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
+		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		return
 	}
 
 	ctx := r.Context()
@@ -251,17 +242,17 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req LoginRequest
+	var req models.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 
-	if errs := validation.Struct(req); errs != nil {
-		for _, err := range errs {
-			RespondWithError(w, ErrCodeInvalidRequest, err, http.StatusBadRequest)
-			return
-		}
+	validation.NormalizeLoginRequest(&req)
+
+	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
+		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		return
 	}
 
 	ctx := r.Context()
@@ -348,11 +339,11 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if errs := validation.Struct(req); errs != nil {
-		for _, err := range errs {
-			RespondWithError(w, ErrCodeInvalidRequest, err, http.StatusBadRequest)
-			return
-		}
+	req.RefreshToken = strings.TrimSpace(req.RefreshToken)
+
+	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
+		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		return
 	}
 
 	ctx := r.Context()
@@ -430,6 +421,26 @@ func generateRefreshToken() string {
 	return hex.EncodeToString(bytes)
 }
 
+func normalizeRegisterDeviceRequest(req *RegisterDeviceRequest) {
+	req.DeviceUUID = strings.TrimSpace(req.DeviceUUID)
+	req.Platform = strings.TrimSpace(req.Platform)
+	req.WarehouseID = strings.TrimSpace(req.WarehouseID)
+	req.DeviceName = strings.TrimSpace(req.DeviceName)
+	req.Username = strings.TrimSpace(req.Username)
+	if req.Model != nil {
+		v := strings.TrimSpace(*req.Model)
+		req.Model = &v
+	}
+	if req.OSVersion != nil {
+		v := strings.TrimSpace(*req.OSVersion)
+		req.OSVersion = &v
+	}
+	if req.AppVersion != nil {
+		v := strings.TrimSpace(*req.AppVersion)
+		req.AppVersion = &v
+	}
+}
+
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	userClaims := middleware.GetUserClaims(r)
 	logger.Log.Info().Str("user_id", userClaims.UserID).Msg("User logged out")
@@ -446,10 +457,10 @@ func (h *AuthHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if errs := validation.Struct(req); errs != nil {
-		for _, err := range errs {
-			RespondWithError(w, ErrCodeInvalidRequest, err, http.StatusBadRequest)
-		}
+	normalizeRegisterDeviceRequest(&req)
+
+	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
+		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 

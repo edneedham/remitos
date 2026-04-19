@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,14 +26,14 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if errs := validation.Struct(req); errs != nil {
-		for _, err := range errs {
-			RespondWithError(w, ErrCodeInvalidRequest, err, http.StatusBadRequest)
-			return
-		}
+	validation.NormalizeSignupTrialRequest(&req)
+
+	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
+		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		return
 	}
 
-	cardToken := strings.TrimSpace(req.CardToken)
+	cardToken := req.CardToken
 	if cardToken == "" {
 		if !h.signupAllowMock {
 			RespondWithError(w, ErrCodeInvalidRequest, "Token de tarjeta requerido", http.StatusBadRequest)
@@ -44,9 +43,9 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	email := strings.TrimSpace(strings.ToLower(req.Email))
-	companyCode := strings.TrimSpace(strings.ToUpper(req.CompanyCode))
-	companyName := strings.TrimSpace(req.CompanyName)
+	email := req.Email
+	companyCode := req.CompanyCode
+	companyName := req.CompanyName
 
 	if existing, err := h.userRepo.GetByEmail(ctx, email); err != nil {
 		logger.Log.Error().Err(err).Msg("signup trial: email check")

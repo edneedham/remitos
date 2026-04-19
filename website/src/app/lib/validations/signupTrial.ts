@@ -1,5 +1,7 @@
 /** Rules aligned with backend `SignupTrialRequest` (see `backend/internal/models/user.go`). */
 
+import { SIGNUP_TRIAL_LIMITS } from './signupTrialLimits';
+
 const COMPANY_CODE_RE = /^[A-Za-z0-9_-]+$/;
 
 // Practical email check; backend uses go-playground/validator `email` tag.
@@ -12,6 +14,14 @@ export type SignupTrialAccountField =
   | 'email'
   | 'password'
   | 'passwordConfirm';
+
+/** JSON keys from the API `fields` object → form field keys */
+export const SIGNUP_TRIAL_API_FIELD_MAP: Record<string, SignupTrialAccountField> = {
+  email: 'email',
+  password: 'password',
+  company_name: 'companyName',
+  company_code: 'companyCode',
+};
 
 export type SignupTrialAccountErrors = Partial<
   Record<SignupTrialAccountField, string>
@@ -48,16 +58,24 @@ export function validateSignupTrialAccountField(
 export function validateCompanyName(value: string): string | null {
   const s = value.trim();
   if (!s) return 'Ingresá el nombre de la empresa.';
-  if (s.length < 2) return 'El nombre debe tener al menos 2 caracteres.';
-  if (s.length > 200) return 'El nombre no puede superar los 200 caracteres.';
+  if (s.length < SIGNUP_TRIAL_LIMITS.companyNameMin) {
+    return `El nombre debe tener al menos ${SIGNUP_TRIAL_LIMITS.companyNameMin} caracteres.`;
+  }
+  if (s.length > SIGNUP_TRIAL_LIMITS.companyNameMax) {
+    return `El nombre no puede superar los ${SIGNUP_TRIAL_LIMITS.companyNameMax} caracteres.`;
+  }
   return null;
 }
 
 export function validateCompanyCode(value: string): string | null {
   const s = value.trim().toUpperCase();
   if (!s) return 'Ingresá el código de empresa.';
-  if (s.length < 2) return 'El código debe tener al menos 2 caracteres.';
-  if (s.length > 32) return 'El código no puede superar los 32 caracteres.';
+  if (s.length < SIGNUP_TRIAL_LIMITS.companyCodeMin) {
+    return `El código debe tener al menos ${SIGNUP_TRIAL_LIMITS.companyCodeMin} caracteres.`;
+  }
+  if (s.length > SIGNUP_TRIAL_LIMITS.companyCodeMax) {
+    return `El código no puede superar los ${SIGNUP_TRIAL_LIMITS.companyCodeMax} caracteres.`;
+  }
   if (!COMPANY_CODE_RE.test(s)) {
     return 'Usá solo letras, números, guiones o guiones bajos.';
   }
@@ -73,8 +91,12 @@ export function validateSignupEmail(value: string): string | null {
 
 export function validateSignupPassword(value: string): string | null {
   if (!value) return 'Ingresá una contraseña.';
-  if (value.length < 8) return 'La contraseña debe tener al menos 8 caracteres.';
-  if (value.length > 72) return 'La contraseña no puede superar los 72 caracteres.';
+  if (value.length < SIGNUP_TRIAL_LIMITS.passwordMin) {
+    return `La contraseña debe tener al menos ${SIGNUP_TRIAL_LIMITS.passwordMin} caracteres.`;
+  }
+  if (value.length > SIGNUP_TRIAL_LIMITS.passwordMax) {
+    return `La contraseña no puede superar los ${SIGNUP_TRIAL_LIMITS.passwordMax} caracteres.`;
+  }
   return null;
 }
 

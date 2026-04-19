@@ -43,11 +43,9 @@ func (h *AdminHandler) CreateOperator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if errs := validation.Struct(req); errs != nil {
-		for _, err := range errs {
-			RespondWithError(w, ErrCodeInvalidRequest, err, http.StatusBadRequest)
-			return
-		}
+	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
+		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		return
 	}
 
 	ctx := r.Context()
@@ -170,11 +168,9 @@ func (h *AdminHandler) UpdateOperatorStatus(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if errs := validation.Struct(req); errs != nil {
-		for _, err := range errs {
-			RespondWithError(w, ErrCodeInvalidRequest, err, http.StatusBadRequest)
-			return
-		}
+	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
+		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		return
 	}
 
 	ctx := r.Context()
@@ -221,11 +217,9 @@ func (h *AdminHandler) UpdateOperatorPassword(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if errs := validation.Struct(req); errs != nil {
-		for _, err := range errs {
-			RespondWithError(w, ErrCodeInvalidRequest, err, http.StatusBadRequest)
-			return
-		}
+	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
+		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		return
 	}
 
 	ctx := r.Context()

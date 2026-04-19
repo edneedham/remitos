@@ -6,7 +6,9 @@ import com.remitos.app.data.AuthManager
 import com.remitos.app.data.FeatureFlags
 import com.remitos.app.data.TokenData
 import com.remitos.app.data.UserInfo
+import com.google.gson.Gson
 import com.remitos.app.network.ApiClient
+import com.remitos.app.network.ApiErrorBody
 import com.remitos.app.network.LoginRequest
 import com.remitos.app.network.RemitosApiService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
 import javax.inject.Inject
 
@@ -46,6 +49,19 @@ class LoginViewModel @Inject constructor(
 
     init {
         loadSavedAccounts()
+    }
+
+    private fun parseLoginErrorBody(response: Response<*>): String {
+        val raw = response.errorBody()?.string()?.trim()?.takeIf { it.isNotEmpty() }
+            ?: return ""
+        return try {
+            val err = Gson().fromJson(raw, ApiErrorBody::class.java)
+            val fieldMsg = err.fields?.values?.firstOrNull()
+            listOfNotNull(err.message, fieldMsg).firstOrNull()?.trim()?.takeIf { it.isNotEmpty() }
+                ?: raw
+        } catch (_: Exception) {
+            raw
+        }
     }
 
     /**
@@ -116,11 +132,16 @@ class LoginViewModel @Inject constructor(
                     }
                 } else {
                     val errorMessage = when (response.code()) {
+                        400 -> parseLoginErrorBody(response).ifBlank {
+                            "Revisá los datos e intente de nuevo."
+                        }
                         401 -> "Código de empresa, usuario o contraseña incorrectos"
                         403 -> "Cuenta desactivada. Contacte al administrador."
                         429 -> "Demasiados intentos. Intente más tarde."
                         in 500..599 -> "Error del servidor. Intente más tarde."
-                        else -> "Error de autenticación: ${response.code()}"
+                        else -> parseLoginErrorBody(response).ifBlank {
+                            "Error de autenticación: ${response.code()}"
+                        }
                     }
                     _uiState.value = LoginUiState.Error(errorMessage)
                 }
