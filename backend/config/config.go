@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -21,6 +22,12 @@ type Config struct {
 	CorsAllowedOrigins []string
 	// If true, signup accepts trial without a real card token (development only).
 	SignupAllowMockPayment bool
+
+	// Optional: GCS bucket and object path for signed Android APK downloads (same credentials as images).
+	GCSReleasesBucket    string
+	AndroidReleaseObject string
+	// Signed URL TTL for APK GET links (browser initiates download shortly after request).
+	ReleasesSignedURLExpiry time.Duration
 }
 
 func Load() *Config {
@@ -36,6 +43,10 @@ func Load() *Config {
 		MercadoPagoAccessToken: getEnv("MERCADOPAGO_ACCESS_TOKEN", ""),
 		CorsAllowedOrigins:     splitCommaTrim(getEnv("CORS_ALLOWED_ORIGINS", "")),
 		SignupAllowMockPayment: getEnv("SIGNUP_ALLOW_MOCK_PAYMENT", "") == "true",
+
+		GCSReleasesBucket:       getEnv("GCS_RELEASES_BUCKET", ""),
+		AndroidReleaseObject:    getEnv("ANDROID_RELEASE_OBJECT", ""),
+		ReleasesSignedURLExpiry: time.Duration(getEnvAsInt("GCS_RELEASES_SIGNED_URL_MINUTES", 15)) * time.Minute,
 	}
 }
 

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -52,7 +55,31 @@ func main() {
 	imageRepo := repository.NewImageRepository(db.Pool)
 	jwtSvc := jwt.NewService(cfg.JWTSecret)
 	mpClient := mercadopago.New(cfg.MercadoPagoAccessToken)
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, deviceRepo, refreshTokenRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment)
+
+	var authReleases *handlers.AuthReleasesConfig
+	if cfg.GCSReleasesBucket != "" && cfg.AndroidReleaseObject != "" {
+		releaseClient, err := storage.NewClient(context.Background())
+		if err != nil {
+			logger.Log.Warn().Err(err).Msg("GCS releases storage unavailable; /auth/downloads/android disabled")
+		} else {
+			expiry := cfg.ReleasesSignedURLExpiry
+			if expiry <= 0 {
+				expiry = 15 * time.Minute
+			}
+			authReleases = &handlers.AuthReleasesConfig{
+				Storage: releaseClient,
+				Bucket:  cfg.GCSReleasesBucket,
+				Object:  cfg.AndroidReleaseObject,
+				Expiry:  expiry,
+			}
+			logger.Log.Info().
+				Str("bucket", cfg.GCSReleasesBucket).
+				Str("object", cfg.AndroidReleaseObject).
+				Msg("Android APK releases (signed URLs) enabled")
+		}
+	}
+
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, deviceRepo, refreshTokenRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo)
 	adminHandler := handlers.NewAdminHandler(userRepo, deviceRepo, jwtSvc)
 	scanHandler, err := handlers.NewScanHandler()

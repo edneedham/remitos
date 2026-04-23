@@ -2,8 +2,10 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"server/internal/models"
@@ -37,6 +39,52 @@ func (r *CompanyRepository) GetByCode(ctx context.Context, code string) (*models
 		return nil, err
 	}
 	return &company, nil
+}
+
+// GetByIDForBilling loads company rows needed for subscription / download entitlement checks.
+func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID) (*models.Company, error) {
+	query := `
+		SELECT
+			id, code, name, COALESCE(cuit, '') AS cuit,
+			status, is_verified, subscription_plan,
+			subscription_expires_at, trial_ends_at,
+			max_warehouses, max_users,
+			created_at, updated_at, archived_at
+		FROM companies WHERE id = $1
+	`
+	var c models.Company
+	var maxW, maxU sql.NullInt32
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&c.ID,
+		&c.Code,
+		&c.Name,
+		&c.Cuit,
+		&c.Status,
+		&c.IsVerified,
+		&c.SubscriptionPlan,
+		&c.SubscriptionExpiresAt,
+		&c.TrialEndsAt,
+		&maxW,
+		&maxU,
+		&c.CreatedAt,
+		&c.UpdatedAt,
+		&c.ArchivedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if maxW.Valid {
+		v := int(maxW.Int32)
+		c.MaxWarehouses = &v
+	}
+	if maxU.Valid {
+		v := int(maxU.Int32)
+		c.MaxUsers = &v
+	}
+	return &c, nil
 }
 
 func (r *CompanyRepository) GetByID(ctx context.Context, id string) (*models.Company, error) {
