@@ -37,7 +37,8 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
-/* Page content: 14% narrower than Tailwind max-w-* defaults (scale ×0.86). */
+/* Page columns: scaled rem caps below xl; from 1200px cap at 70vw.
+   Prose/snug stay rem-only so headings copy stays readable inside columns. */
 @layer utilities {
   .max-w-content {
     max-width: 61.92rem; /* max-w-6xl */
@@ -53,6 +54,23 @@ body {
   }
   .max-w-content-snug {
     max-width: 36.12rem; /* max-w-2xl */
+  }
+
+  /* Header/footer row: wider than page columns at large viewports */
+  .max-w-site-chrome {
+    max-width: 68.8rem;
+  }
+
+  @media (min-width: 1200px) {
+    .max-w-content,
+    .max-w-content-wide,
+    .max-w-content-narrow {
+      max-width: 70vw;
+    }
+
+    .max-w-site-chrome {
+      max-width: 80vw;
+    }
   }
 }
 

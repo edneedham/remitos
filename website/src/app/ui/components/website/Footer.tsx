@@ -4,12 +4,18 @@ import Image from 'next/image';
 export default function Footer() {
   return (
     <footer className="bg-gray-800 text-white p-6">
-      <div className="container mx-auto flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+      <div className="mx-auto flex w-full max-w-site-chrome flex-col items-center justify-between space-y-4 px-4 sm:px-6 md:flex-row md:space-y-0 lg:px-8">
         <p className="text-sm text-gray-400">
           © {new Date().getFullYear()} En Punto. Todos los derechos reservados.
         </p>
 
         <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 text-sm">
+          <Link
+            href="/contact"
+            className="text-gray-300 hover:text-white transition-colors"
+          >
+            Contacto
+          </Link>
           <Link
             href="/privacy"
             className="text-gray-300 hover:text-white transition-colors"

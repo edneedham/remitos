@@ -6,21 +6,33 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
+	"server/internal/billing"
 	"server/internal/jwt"
 	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/models"
 	"server/internal/payments/mercadopago"
+	"server/internal/releases"
 	"server/internal/repository"
 	"server/internal/validation"
 )
+
+// AuthReleasesConfig enables GET /auth/downloads/android via GCS signed URLs (optional).
+type AuthReleasesConfig struct {
+	Storage *storage.Client
+	Bucket  string
+	Object  string
+	Expiry  time.Duration
+}
 
 type AuthHandler struct {
 	userRepo         *repository.UserRepository
@@ -33,9 +45,10 @@ type AuthHandler struct {
 	jwtSvc           *jwt.Service
 	mp               *mercadopago.Client
 	signupAllowMock  bool
+	releases         *AuthReleasesConfig
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig) *AuthHandler {
 	return &AuthHandler{
 		userRepo:         userRepo,
 		companyRepo:      companyRepo,
@@ -47,6 +60,7 @@ func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository
 		jwtSvc:           jwtSvc,
 		mp:               mp,
 		signupAllowMock:  signupAllowMock,
+		releases:         releases,
 	}
 }
 
@@ -450,6 +464,101 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+type meEntitlementResponse struct {
+	CanDownloadApp          bool       `json:"can_download_app"`
+	SubscriptionPlan        string     `json:"subscription_plan"`
+	TrialEndsAt             *time.Time `json:"trial_ends_at,omitempty"`
+	SubscriptionExpiresAt   *time.Time `json:"subscription_expires_at,omitempty"`
+}
+
+// GetMeEntitlement returns whether the user's company may download the Android app (trial or paid).
+func (h *AuthHandler) GetMeEntitlement(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims.UserID == "" || claims.CompanyID == "" {
+		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		return
+	}
+	companyID, err := uuid.Parse(claims.CompanyID)
+	if err != nil {
+		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		return
+	}
+	company, err := h.companyRepo.GetByIDForBilling(r.Context(), companyID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetMeEntitlement: company")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	if company == nil {
+		RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+		return
+	}
+	now := time.Now()
+	RespondWithJSON(w, http.StatusOK, meEntitlementResponse{
+		CanDownloadApp:        billing.CompanyHasAppDownloadAccess(now, company),
+		SubscriptionPlan:      company.SubscriptionPlan,
+		TrialEndsAt:           company.TrialEndsAt,
+		SubscriptionExpiresAt: company.SubscriptionExpiresAt,
+	})
+}
+
+type androidDownloadResponse struct {
+	SignedURL string `json:"signed_url"`
+	ExpiresAt string `json:"expires_at"`
+	Filename  string `json:"filename"`
+}
+
+// GetAndroidDownloadURL returns a short-lived signed GCS URL to the release APK (entitled companies only).
+func (h *AuthHandler) GetAndroidDownloadURL(w http.ResponseWriter, r *http.Request) {
+	if h.releases == nil || h.releases.Storage == nil || h.releases.Bucket == "" || h.releases.Object == "" {
+		RespondWithError(w, ErrCodeInternalError, "Descarga de la aplicación no disponible en este servidor", http.StatusServiceUnavailable)
+		return
+	}
+	claims := middleware.GetUserClaims(r)
+	if claims.UserID == "" || claims.CompanyID == "" {
+		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		return
+	}
+	companyID, err := uuid.Parse(claims.CompanyID)
+	if err != nil {
+		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		return
+	}
+	company, err := h.companyRepo.GetByIDForBilling(r.Context(), companyID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetAndroidDownloadURL: company")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	if company == nil {
+		RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+		return
+	}
+	if !billing.CompanyHasAppDownloadAccess(time.Now(), company) {
+		RespondWithError(w, ErrCodeForbidden, "Tu plan no incluye descargar la aplicación en este momento.", http.StatusForbidden)
+		return
+	}
+	expiry := h.releases.Expiry
+	if expiry <= 0 {
+		expiry = 15 * time.Minute
+	}
+	urlStr, expiresAt, err := releases.SignedGETURL(r.Context(), h.releases.Storage, h.releases.Bucket, h.releases.Object, expiry)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetAndroidDownloadURL: signed URL")
+		RespondWithError(w, ErrCodeInternalError, "Error al generar enlace de descarga", http.StatusInternalServerError)
+		return
+	}
+	filename := path.Base(h.releases.Object)
+	if filename == "." || filename == "/" || filename == "" {
+		filename = "app-release.apk"
+	}
+	RespondWithJSON(w, http.StatusOK, androidDownloadResponse{
+		SignedURL: urlStr,
+		ExpiresAt: expiresAt.Format(time.RFC3339),
+		Filename:  filename,
+	})
+}
+
 func (h *AuthHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 	var req RegisterDeviceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -607,6 +716,8 @@ func (h *AuthHandler) Routes() *chi.Mux {
 		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: h.jwtSvc, DeviceRepo: h.deviceRepo}))
 		r.Post("/logout", h.Logout)
 		r.Get("/user/status", h.GetUserStatus)
+		r.Get("/me/entitlement", h.GetMeEntitlement)
+		r.Get("/downloads/android", h.GetAndroidDownloadURL)
 	})
 	return r
 }

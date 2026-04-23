@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function MobileSignupPage() {
   return (
     <div className="min-h-[70vh] bg-gray-50 px-4 py-10">
-      <div className="max-w-md mx-auto">
+      <div className="mx-auto w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             Probá 7 días gratis

@@ -14,8 +14,8 @@ const benefits = [
  */
 export default function SignupMarketingAside() {
   return (
-    <aside className="flex flex-col justify-center bg-[var(--color-brand)] px-8 py-10 text-white sm:py-12 lg:px-10 lg:py-12 xl:px-12">
-      <div className="mx-auto max-w-md space-y-10">
+    <aside className="flex flex-col justify-start bg-[var(--color-brand)] px-8 pb-10 pt-8 text-white sm:pb-12 lg:px-10 lg:pb-12 lg:pt-10 xl:px-12">
+      <div className="w-full space-y-10">
         <header className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-white/80">
             Período de prueba

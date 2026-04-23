@@ -11,28 +11,30 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       <main className="grow">
         {/* Hero Section */}
-        <div className="border-b border-gray-200">
-          <section className="w-full max-w-content-wide mx-auto py-20 px-8 bg-white">
-            <div className="mt-16 rounded-3xl bg-blue-50 px-8 pt-8 pb-0">
-              <div className="flex flex-col lg:flex-row items-center lg:items-start gap-12">
-                <div className="flex-1 lg:pt-[7%]">
+        <div className="border-b border-gray-200 bg-white">
+          <section className="py-20 px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto mt-16 w-full max-w-[80vw] rounded-3xl bg-blue-50 px-6 pt-8 pb-0 sm:px-8">
+              <div className="flex flex-col items-center gap-12 lg:min-h-[460px] lg:flex-row lg:items-stretch">
+                <div className="flex w-full flex-1 flex-col justify-center lg:max-w-xl lg:pr-6">
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-8 leading-tight">
                     Herramientas de logística para manejar tu negocio.
                   </h1>
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-gray-600 mb-8 leading-tight">
+                  <p className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-600 mb-8 leading-snug">
                     Reducí la carga manual de datos, generá hojas de reparto y
                     exportá la info para usarla en otras plataformas.
                   </p>
-                  <HeroSignupRow />
+                  <div className="mb-10 lg:mb-14">
+                    <HeroSignupRow />
+                  </div>
                 </div>
-                <div className="relative shrink-0 w-full max-w-[340px] lg:mt-28">
-                  <div className="h-[380px] overflow-hidden rounded-t-3xl">
+                <div className="relative flex w-full max-w-[420px] shrink-0 flex-col justify-end lg:mx-0">
+                  <div className="h-[460px] overflow-hidden rounded-t-3xl">
                     <Image
                       src="/screenshots/dashboard.png"
                       alt="Dashboard de la app de repartos"
-                      width={320}
-                      height={680}
-                      className="w-[340px] h-auto max-w-none"
+                      width={400}
+                      height={850}
+                      className="h-auto w-full max-w-[420px]"
                       priority
                     />
                   </div>
@@ -45,10 +47,10 @@ export default function Home() {
 
         {/* Workflow: scan → reparto → PDF → export */}
         <section
-          className="py-20 px-8 bg-gray-50 border-b border-gray-200"
+          className="border-b border-gray-200 bg-gray-50 py-20 px-4 sm:px-6 lg:px-8"
           aria-labelledby="workflow-heading"
         >
-          <div className="max-w-content-wide mx-auto">
+          <div className="mx-auto w-full max-w-[80vw]">
             <div className="text-center max-w-content-prose mx-auto mb-14">
               <h2
                 id="workflow-heading"
@@ -134,8 +136,8 @@ export default function Home() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 px-8 bg-gray-900">
-          <div className="max-w-content-narrow mx-auto text-center">
+        <section className="bg-gray-900 py-20 px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-[80vw] text-center">
             <h2 className="text-3xl font-bold text-white mb-6">
               ¿Necesitas una solución personalizada?
             </h2>
