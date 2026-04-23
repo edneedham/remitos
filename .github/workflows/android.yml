@@ -1,14 +1,26 @@
 name: Android CI
 
+# CI runs on PRs and pushes to main (android/). Release APK is uploaded to GCS only when you push
+# a version tag like v1.2.3 (see "Upload release APK to Google Cloud Storage"), or manually via workflow_dispatch.
+
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'android/**'
   pull_request:
     branches: [ "main" ]
     paths:
       - 'android/**'
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'android/**'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      publish_to_gcs:
+        description: 'After build, upload release APK to GCS (requires repo Variables + GCP_RELEASES_SA_KEY)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build:
@@ -56,9 +68,39 @@ jobs:
     - name: Build Debug APK
       run: ./gradlew assembleDebug
 
-    - name: Upload APK
+    # Release APK uses ANDROID_RELEASE_* env vars when set (see android/app/build.gradle.kts); otherwise signs with debug keys for CI.
+    - name: Build Release APK
+      run: ./gradlew assembleRelease
+
+    - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
         path: android/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 7
+
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release
+        path: android/app/build/outputs/apk/release/app-release.apk
+        retention-days: 30
+
+    # Publish to GCS only on release tags (v*) or manual workflow_dispatch with publish_to_gcs=true.
+    # Variables: GCS_RELEASES_BUCKET, ANDROID_RELEASE_OBJECT. Secret: GCP_RELEASES_SA_KEY.
+    - name: Authenticate to Google Cloud (releases bucket)
+      if: ${{ github.event.repository.fork == false && vars.GCS_RELEASES_BUCKET != '' && vars.ANDROID_RELEASE_OBJECT != '' && secrets.GCP_RELEASES_SA_KEY != '' && ((github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to_gcs == 'true')) }}
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_RELEASES_SA_KEY }}
+
+    - name: Set up gcloud
+      if: ${{ github.event.repository.fork == false && vars.GCS_RELEASES_BUCKET != '' && vars.ANDROID_RELEASE_OBJECT != '' && secrets.GCP_RELEASES_SA_KEY != '' && ((github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to_gcs == 'true')) }}
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Upload release APK to Google Cloud Storage
+      if: ${{ github.event.repository.fork == false && vars.GCS_RELEASES_BUCKET != '' && vars.ANDROID_RELEASE_OBJECT != '' && secrets.GCP_RELEASES_SA_KEY != '' && ((github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to_gcs == 'true')) }}
+      working-directory: ${{ github.workspace }}
+      run: |
+        gcloud storage cp "${{ github.workspace }}/android/app/build/outputs/apk/release/app-release.apk" \
+          "gs://${{ vars.GCS_RELEASES_BUCKET }}/${{ vars.ANDROID_RELEASE_OBJECT }}"
