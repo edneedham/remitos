@@ -17,6 +17,12 @@ local.properties
 # Local working notes (not for the repo)
 /note.md
 
+# Cursor IDE (local settings / generated state)
+.cursor/
+
+# Auto-generated planning docs from tooling
+docs/signup_email_flow_context_*.plan.md
+
 # Local env files (secrets — Mercado Pago, DB, JWT)
 backend/.env
 website/.env.local
