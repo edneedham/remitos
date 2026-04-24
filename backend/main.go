@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -43,6 +45,12 @@ func main() {
 
 	if err := runMigrations(cfg); err != nil {
 		logger.Log.Fatal().Err(err).Msg("Failed to run migrations")
+	}
+
+	if cfg.SeedLocalDevUsers {
+		if err := seedLocalDevUsers(context.Background()); err != nil {
+			logger.Log.Fatal().Err(err).Msg("Failed to seed local dev users")
+		}
 	}
 
 	logger.Log.Info().Msg("Database setup complete!")
@@ -159,5 +167,32 @@ func runMigrations(cfg *config.Config) error {
 	}
 
 	logger.Log.Info().Msg("Migrations completed successfully")
+	return nil
+}
+
+func seedLocalDevUsers(ctx context.Context) error {
+	// Executed from the backend module directory (e.g. `cd backend && go run .`).
+	const rel = "db/seed/local_dev_users.sql"
+	path := filepath.Clean(rel)
+
+	sqlBytes, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read seed file %s: %w", path, err)
+	}
+
+	sqlText := strings.TrimSpace(string(sqlBytes))
+	if sqlText == "" {
+		return fmt.Errorf("seed file %s is empty", path)
+	}
+
+	tag, err := db.Pool.Exec(ctx, sqlText)
+	if err != nil {
+		return fmt.Errorf("execute seed file %s: %w", path, err)
+	}
+
+	logger.Log.Info().
+		Str("path", path).
+		Str("result", tag.String()).
+		Msg("Seeded local dev users")
 	return nil
 }

@@ -1,4 +1,4 @@
--- Remove deterministic dev fixtures from 024_seed_local_dev_users.up.sql
+-- Remove deterministic dev fixtures seeded via db/seed/local_dev_users.sql
 
 DELETE FROM subscriptions WHERE id IN (
   'a4000000-0000-4000-8000-000000000001',

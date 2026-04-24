@@ -22,6 +22,9 @@ type Config struct {
 	CorsAllowedOrigins []string
 	// If true, signup accepts trial without a real card token (development only).
 	SignupAllowMockPayment bool
+	// If true, inserts deterministic local dev users/companies from db/seed/local_dev_users.sql
+	// after migrations (development / local testing only; keep false in production).
+	SeedLocalDevUsers bool
 
 	// Optional: GCS bucket and object path for signed Android APK downloads (same credentials as images).
 	GCSReleasesBucket    string
@@ -50,6 +53,7 @@ func Load() *Config {
 		MercadoPagoAccessToken: getEnv("MERCADOPAGO_ACCESS_TOKEN", ""),
 		CorsAllowedOrigins:     splitCommaTrim(getEnv("CORS_ALLOWED_ORIGINS", "")),
 		SignupAllowMockPayment: getEnv("SIGNUP_ALLOW_MOCK_PAYMENT", "") == "true",
+		SeedLocalDevUsers:      getEnv("SEED_LOCAL_DEV_USERS", "") == "true",
 
 		GCSReleasesBucket:       getEnv("GCS_RELEASES_BUCKET", ""),
 		AndroidReleaseObject:    getEnv("ANDROID_RELEASE_OBJECT", ""),
