@@ -1,6 +1,6 @@
 # Local dev accounts (seeded fixtures)
 
-These accounts are created from `local_dev_users.sql` **only when** the API is started with:
+These accounts are created from `backend/db/seed/local_dev_users.sql` **only when** the API is started with:
 
 ```bash
 SEED_LOCAL_DEV_USERS=true
