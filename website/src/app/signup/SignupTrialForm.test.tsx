@@ -2,6 +2,16 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const routerPush = vi.fn();
+const routerRefresh = vi.fn();
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: routerPush,
+    refresh: routerRefresh,
+  }),
+}));
+
 vi.mock('@mercadopago/sdk-react', () => ({
   initMercadoPago: vi.fn(),
   getIdentificationTypes: vi.fn(async () => [{ id: 'DNI', name: 'DNI' }]),
@@ -40,6 +50,8 @@ describe('SignupTrialForm', () => {
     vi.resetModules();
     vi.unstubAllEnvs();
     vi.clearAllMocks();
+    routerPush.mockReset();
+    routerRefresh.mockReset();
     vi.stubEnv('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY', 'TEST-public-key');
     vi.stubEnv('NEXT_PUBLIC_API_URL', 'http://localhost:8080');
     vi.stubEnv('NEXT_PUBLIC_SIGNUP_USE_MOCK_PAYMENT', 'false');
@@ -81,7 +93,12 @@ describe('SignupTrialForm', () => {
     const sdk = await import('@mercadopago/sdk-react');
     const fetchMock = vi.fn(async () => ({
       ok: true,
-      json: async () => ({ trial_ends_at: '', company_code: 'MIESA' }),
+      json: async () => ({
+        trial_ends_at: '',
+        company_code: 'MIESA',
+        token: 'access-token',
+        refresh_token: 'refresh-token',
+      }),
     }));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -101,5 +118,6 @@ describe('SignupTrialForm', () => {
     const payload = JSON.parse(String(req.body)) as { card_token?: string };
     expect(payload.card_token).toBe('tok_test');
     expect(payload.card_token).not.toBe('mock_card_token');
+    expect(routerPush).toHaveBeenCalledWith('/account');
   });
 });

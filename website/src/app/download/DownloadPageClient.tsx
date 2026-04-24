@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import {
+  clearWebSession,
   fetchWithWebAuth,
   hasWebSession,
   refreshWebSession,
@@ -47,6 +48,7 @@ export default function DownloadPageClient() {
       if (cancelled) return;
 
       if (res.status === 401) {
+        clearWebSession();
         router.replace('/login');
         return;
       }

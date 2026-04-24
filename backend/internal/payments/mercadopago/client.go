@@ -45,6 +45,9 @@ func (c *Client) SaveCard(ctx context.Context, email, cardToken string) (custome
 		return "", "", fmt.Errorf("mercadopago: access token not configured")
 	}
 
+	// One MP customer per email (global in MP). Re-testing signup with the same email after
+	// deleting only your DB tenant requires removing that customer in Mercado Pago (or using
+	// another email); we do not auto-reuse customers here to avoid mixing cards across signups.
 	customerID, err = c.createCustomer(ctx, email)
 	if err != nil {
 		return "", "", err

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   CardNumber,
   createCardToken,
@@ -20,6 +21,7 @@ import {
   type SignupTrialAccountErrors,
   type SignupTrialAccountField,
 } from '../lib/validations/signupTrial';
+import { saveWebSession } from '../lib/webAuth';
 import MercadoPagoLogo from './MercadoPagoLogo';
 
 type IdType = { id: string; name: string };
@@ -73,6 +75,7 @@ export default function SignupTrialForm({
 }: {
   variant?: SignupTrialFormVariant;
 }) {
+  const router = useRouter();
   const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY ?? '';
   const [mpReady, setMpReady] = useState(false);
   const [idTypes, setIdTypes] = useState<IdType[]>([]);
@@ -94,11 +97,6 @@ export default function SignupTrialForm({
     cardholderName?: string;
     idNumber?: string;
   }>({});
-  const [done, setDone] = useState<{
-    trialEndsAt: string;
-    companyCode: string;
-  } | null>(null);
-
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
   const paymentSectionRef = useRef<HTMLDivElement>(null);
 
@@ -460,8 +458,8 @@ export default function SignupTrialForm({
           message?: string;
           error?: string;
           fields?: Record<string, string>;
-          trial_ends_at?: string;
-          company_code?: string;
+          token?: string;
+          refresh_token?: string;
         };
         if (!res.ok) {
           if (data.fields && typeof data.fields === 'object') {
@@ -486,10 +484,13 @@ export default function SignupTrialForm({
           );
           return;
         }
-        setDone({
-          trialEndsAt: data.trial_ends_at ?? '',
-          companyCode: data.company_code ?? companyCode.trim().toUpperCase(),
-        });
+        if (!data.token || !data.refresh_token) {
+          setError('Respuesta inválida del servidor.');
+          return;
+        }
+        saveWebSession(data.token, data.refresh_token);
+        router.push('/account');
+        router.refresh();
       } catch {
         setError('Error de red. Verificá la conexión y la URL de la API.');
       } finally {
@@ -511,6 +512,7 @@ export default function SignupTrialForm({
       paymentSectionValid,
       publicKey,
       paymentSectionOpen,
+      router,
       scrollFirstAccountErrorIntoView,
       runAccountValidation,
       useMockPayment,
@@ -524,40 +526,6 @@ export default function SignupTrialForm({
     },
     [submit],
   );
-
-  if (done) {
-    return (
-      <div className="rounded-xl bg-white border border-gray-200 p-8 text-left shadow-sm space-y-3">
-        <h2 className="text-xl font-semibold text-gray-900">
-          Cuenta lista — prueba de 7 días
-        </h2>
-        <p className="text-gray-600 text-sm">
-          Tu período de prueba incluye <strong>1 empresa</strong>,{' '}
-          <strong>1 depósito</strong> y hasta <strong>2 usuarios</strong>. No se
-          cobra hasta que termine la prueba.
-        </p>
-        {done.trialEndsAt && (
-          <p className="text-sm text-gray-700">
-            La prueba vence el{' '}
-            <strong>
-              {new Date(done.trialEndsAt).toLocaleString('es-AR', {
-                dateStyle: 'long',
-                timeStyle: 'short',
-              })}
-            </strong>
-            .
-          </p>
-        )}
-        <p className="text-sm text-gray-700">
-          Código de empresa:{' '}
-          <strong className="font-mono">{done.companyCode}</strong>
-        </p>
-        <p className="text-sm text-gray-500">
-          Podés iniciar sesión en la app con este código y tu correo o usuario.
-        </p>
-      </div>
-    );
-  }
 
   const formShell =
     variant === 'card'

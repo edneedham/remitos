@@ -5,7 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/apiUrl';
-import { hasWebSession, saveWebSession } from '../lib/webAuth';
+import {
+  clearWebSession,
+  fetchWithWebAuth,
+  hasWebSession,
+  saveWebSession,
+} from '../lib/webAuth';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -21,9 +26,26 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (hasWebSession()) {
-      router.replace('/account');
+    if (!hasWebSession()) return;
+
+    let cancelled = false;
+    async function validateSession() {
+      const api = getApiBaseUrl();
+      if (!api) return;
+      const res = await fetchWithWebAuth('/auth/me/entitlement');
+      if (cancelled) return;
+      if (res.status === 401) {
+        clearWebSession();
+        return;
+      }
+      if (res.ok) {
+        router.replace('/account');
+      }
     }
+    void validateSession();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
