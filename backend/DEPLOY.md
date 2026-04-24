@@ -28,6 +28,7 @@ gcloud services enable secretmanager.googleapis.com
 ```
 
 Example:
+
 ```bash
 ./scripts/push-image.sh remitos-backend southamerica-east1 remitos server
 ```
@@ -130,10 +131,9 @@ This application uses **Application Default Credentials** for authenticating wit
 ### How it works:
 
 1. **Local Development**: ADC looks for credentials in this order:
-   - `GOOGLE_APPLICATION_CREDENTIALS` environment variable (path to JSON key)
-   - User credentials from `gcloud auth application-default login`
-   - GCE/App Engine metadata server
-
+  - `GOOGLE_APPLICATION_CREDENTIALS` environment variable (path to JSON key)
+  - User credentials from `gcloud auth application-default login`
+  - GCE/App Engine metadata server
 2. **Cloud Run**: Automatically uses the service account attached to the service
 
 ### Local Development Setup
@@ -155,11 +155,13 @@ No configuration needed! Just ensure the service account has the right IAM roles
 ### Connection String Format
 
 Your Neon connection string will look like:
+
 ```
 postgres://user:password@host.aws.neon.tech/dbname?sslmode=require
 ```
 
 Break this down into environment variables:
+
 - `DB_HOST`: `host.aws.neon.tech`
 - `DB_PORT`: `5432`
 - `DB_USER`: `user`
@@ -169,21 +171,24 @@ Break this down into environment variables:
 ### Network Security
 
 For production, consider:
+
 1. **Neon's IP Allow List**: Restrict connections to Cloud Run's egress IPs
 2. **SSL Mode**: Neon requires SSL (`sslmode=require`)
 3. **Branch Strategy**: Use separate Neon branches for dev/staging/prod
 
 ## Environment Variables
 
-| Variable | Description | Source |
-|----------|-------------|--------|
-| `DB_HOST` | Neon hostname | Neon Dashboard |
-| `DB_PORT` | Database port | `5432` |
-| `DB_USER` | Neon username | Neon Dashboard |
-| `DB_PASSWORD` | Neon password | Secret Manager |
-| `DB_NAME` | Database name | Neon Dashboard |
-| `DB_SSLMODE` | SSL mode (must be `require` for Neon) | `require` |
-| `JWT_SECRET` | JWT signing secret | Secret Manager |
+
+| Variable      | Description                           | Source         |
+| ------------- | ------------------------------------- | -------------- |
+| `DB_HOST`     | Neon hostname                         | Neon Dashboard |
+| `DB_PORT`     | Database port                         | `5432`         |
+| `DB_USER`     | Neon username                         | Neon Dashboard |
+| `DB_PASSWORD` | Neon password                         | Secret Manager |
+| `DB_NAME`     | Database name                         | Neon Dashboard |
+| `DB_SSLMODE`  | SSL mode (must be `require` for Neon) | `require`      |
+| `JWT_SECRET`  | JWT signing secret                    | Secret Manager |
+
 
 ## Useful Commands
 
@@ -216,6 +221,7 @@ gcloud run deploy remitos-api \
 ### Connection Issues
 
 If you see connection errors:
+
 1. Verify the Neon hostname is correct
 2. Check that `sslmode=require` is being used (Neon requires SSL)
 3. Ensure the password in Secret Manager matches your Neon credentials
@@ -224,6 +230,7 @@ If you see connection errors:
 ### Migration Failures
 
 The app runs migrations on startup. If migrations fail:
+
 1. Check database user has CREATE TABLE permissions
 2. Verify `db/migrations` directory is included in the Docker image
 3. Check logs for specific migration errors
@@ -248,6 +255,8 @@ gcloud projects add-iam-policy-binding remitos-backend \
 ```
 
 Also verify the Vision API is enabled:
+
 ```bash
 gcloud services enable vision.googleapis.com
 ```
+
