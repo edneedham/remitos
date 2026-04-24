@@ -176,11 +176,11 @@ export default function SignupTrialForm({
   }, []);
 
   const paymentSectionValid = useMemo(() => {
-    if (useMockPayment) return true;
+    const hasTitular =
+      cardholderName.trim().length > 0 && idNumber.trim().length > 0;
+    if (useMockPayment) return hasTitular;
     if (!publicKey || !mpReady) return false;
-    return (
-      cardholderName.trim().length > 0 && idNumber.trim().length > 0
-    );
+    return hasTitular;
   }, [useMockPayment, publicKey, mpReady, cardholderName, idNumber]);
 
   /** Mercado Pago no listo o falta clave pública (salvo modo mock). */
@@ -284,7 +284,6 @@ export default function SignupTrialForm({
 
   const applyDebouncedPaymentFieldValidation = useCallback(
     (field: 'cardholderName' | 'idNumber') => {
-      if (useMockPayment) return;
       const v = paymentValuesRef.current;
       const err =
         field === 'cardholderName'
@@ -297,12 +296,11 @@ export default function SignupTrialForm({
         return next;
       });
     },
-    [useMockPayment],
+    [],
   );
 
   const scheduleDebouncedPaymentValidation = useCallback(
     (field: 'cardholderName' | 'idNumber') => {
-      if (useMockPayment) return;
       const prev = paymentDebounceTimersRef.current[field];
       if (prev) clearTimeout(prev);
       paymentDebounceTimersRef.current[field] = setTimeout(() => {
@@ -310,7 +308,7 @@ export default function SignupTrialForm({
         applyDebouncedPaymentFieldValidation(field);
       }, VALIDATION_DEBOUNCE_MS);
     },
-    [applyDebouncedPaymentFieldValidation, useMockPayment],
+    [applyDebouncedPaymentFieldValidation],
   );
 
   const runAccountValidation = useCallback(() => {
@@ -401,20 +399,18 @@ export default function SignupTrialForm({
       if (!paymentSectionValid) {
         const panelWasOpen = paymentSectionOpen;
         setPaymentSectionOpen(true);
-        if (!useMockPayment) {
-          const chErr = validateCardholderName(cardholderName);
-          const idErr = validateIdNumber(idNumber);
-          setPaymentFieldErrors({
-            ...(chErr ? { cardholderName: chErr } : {}),
-            ...(idErr ? { idNumber: idErr } : {}),
-          });
-          const focusId = chErr ? 'su-chname' : idErr ? 'su-idnum' : undefined;
-          if (focusId) {
-            window.setTimeout(
-              () => scrollAndFocusById(focusId),
-              panelWasOpen ? 80 : 420,
-            );
-          }
+        const chErr = validateCardholderName(cardholderName);
+        const idErr = validateIdNumber(idNumber);
+        setPaymentFieldErrors({
+          ...(chErr ? { cardholderName: chErr } : {}),
+          ...(idErr ? { idNumber: idErr } : {}),
+        });
+        const focusId = chErr ? 'su-chname' : idErr ? 'su-idnum' : undefined;
+        if (focusId) {
+          window.setTimeout(
+            () => scrollAndFocusById(focusId),
+            panelWasOpen ? 80 : 420,
+          );
         }
         setError('Completá los datos de pago.');
         return;
@@ -835,7 +831,21 @@ export default function SignupTrialForm({
             }`}
           >
           <div className="space-y-5">
-          {!useMockPayment && (
+          {useMockPayment && (
+            <div className="space-y-2 rounded-lg border border-dashed border-amber-200 bg-amber-50/50 px-4 py-5">
+              <p className="text-sm font-medium text-amber-900">
+                Modo desarrollo
+              </p>
+              <p className="text-xs text-amber-800">
+                Pago simulado (sin Mercado Pago). Activá también{' '}
+                <code className="text-xs">SIGNUP_ALLOW_MOCK_PAYMENT=true</code> en
+                el backend. Completá titular y documento como en producción (no se
+                tokeniza la tarjeta).
+              </p>
+            </div>
+          )}
+
+          {!useMockPayment && mpReady && publicKey && (
             <>
               <div className="space-y-3">
                 <MercadoPagoLogo />
@@ -845,189 +855,187 @@ export default function SignupTrialForm({
                   la prueba.
                 </p>
               </div>
-              {mpReady && publicKey ? (
-                <>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Datos de la tarjeta
-                  </h2>
-                  <div>
-                    <label
-                      htmlFor="su-chname"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Nombre del titular
-                    </label>
-                    <input
-                      id="su-chname"
-                      value={cardholderName}
-                      onChange={(e) => {
-                        setCardholderName(e.target.value);
-                        setPaymentFieldErrors((p) => {
-                          if (!p.cardholderName) return p;
-                          const next = { ...p };
-                          delete next.cardholderName;
-                          return next;
-                        });
-                        scheduleDebouncedPaymentValidation('cardholderName');
-                      }}
-                      onBlur={() => {
-                        cancelPaymentFieldDebounce('cardholderName');
-                        if (useMockPayment) return;
-                        const err = validateCardholderName(cardholderName);
-                        setPaymentFieldErrors((prev) => {
-                          const next = { ...prev };
-                          if (err) next.cardholderName = err;
-                          else delete next.cardholderName;
-                          return next;
-                        });
-                      }}
-                      autoComplete="cc-name"
-                      aria-invalid={Boolean(paymentFieldErrors.cardholderName)}
-                      aria-describedby={
-                        paymentFieldErrors.cardholderName
-                          ? 'su-chname-error'
-                          : undefined
-                      }
-                      className={paymentInputClass(
-                        Boolean(paymentFieldErrors.cardholderName),
-                      )}
-                    />
-                    {paymentFieldErrors.cardholderName && (
-                      <p
-                        id="su-chname-error"
-                        className="mt-1.5 text-sm text-red-600"
-                        role="alert"
-                      >
-                        {paymentFieldErrors.cardholderName}
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Tipo de documento
-                      </label>
-                      <select
-                        value={idType}
-                        onChange={(e) => setIdType(e.target.value)}
-                        className="w-full h-12 px-3 border border-gray-300 rounded-lg box-border focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        {idTypes.length === 0 ? (
-                          <option value="DNI">DNI</option>
-                        ) : (
-                          idTypes.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.name}
-                            </option>
-                          ))
-                        )}
-                      </select>
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="su-idnum"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        Número
-                      </label>
-                      <input
-                        id="su-idnum"
-                        value={idNumber}
-                        onChange={(e) => {
-                          setIdNumber(e.target.value);
-                          setPaymentFieldErrors((p) => {
-                            if (!p.idNumber) return p;
-                            const next = { ...p };
-                            delete next.idNumber;
-                            return next;
-                          });
-                          scheduleDebouncedPaymentValidation('idNumber');
-                        }}
-                        onBlur={() => {
-                          cancelPaymentFieldDebounce('idNumber');
-                          if (useMockPayment) return;
-                          const err = validateIdNumber(idNumber);
-                          setPaymentFieldErrors((prev) => {
-                            const next = { ...prev };
-                            if (err) next.idNumber = err;
-                            else delete next.idNumber;
-                            return next;
-                          });
-                        }}
-                        autoComplete="off"
-                        aria-invalid={Boolean(paymentFieldErrors.idNumber)}
-                        aria-describedby={
-                          paymentFieldErrors.idNumber ? 'su-idnum-error' : undefined
-                        }
-                        className={paymentInputClass(
-                          Boolean(paymentFieldErrors.idNumber),
-                        )}
-                      />
-                      {paymentFieldErrors.idNumber && (
-                        <p
-                          id="su-idnum-error"
-                          className="mt-1.5 text-sm text-red-600"
-                          role="alert"
-                        >
-                          {paymentFieldErrors.idNumber}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Número de tarjeta
-                    </label>
-                    <div className="flex h-12 items-center px-3 border border-gray-300 rounded-lg bg-white box-border">
-                      <CardNumber placeholder="1234 1234 1234 1234" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Vencimiento
-                      </label>
-                      <div className="flex h-12 items-center px-3 border border-gray-300 rounded-lg bg-white box-border">
-                        <ExpirationDate placeholder="MM/AA" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Código de seguridad
-                      </label>
-                      <div className="flex h-12 items-center px-3 border border-gray-300 rounded-lg bg-white box-border">
-                        <SecurityCode placeholder="123" />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                  Configurá{' '}
-                  <code className="text-xs">
-                    NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
-                  </code>{' '}
-                  o usá{' '}
-                  <code className="text-xs">
-                    NEXT_PUBLIC_SIGNUP_USE_MOCK_PAYMENT=true
-                  </code>{' '}
-                  con el servidor en modo mock.
-                </p>
-              )}
+              <h2 className="text-lg font-semibold text-gray-900">
+                Datos de la tarjeta
+              </h2>
             </>
           )}
 
-          {useMockPayment && (
-            <div className="space-y-2 rounded-lg border border-dashed border-amber-200 bg-amber-50/50 px-4 py-5">
-              <p className="text-sm font-medium text-amber-900">
-                Modo desarrollo
-              </p>
-              <p className="text-xs text-amber-800">
-                Pago simulado (sin Mercado Pago). Activá también{' '}
-                <code className="text-xs">SIGNUP_ALLOW_MOCK_PAYMENT=true</code> en
-                el backend.
-              </p>
-            </div>
+          {(useMockPayment || (mpReady && publicKey)) && (
+            <>
+              {useMockPayment && (
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Titular y documento
+                </h2>
+              )}
+              <div>
+                <label
+                  htmlFor="su-chname"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Nombre del titular
+                </label>
+                <input
+                  id="su-chname"
+                  value={cardholderName}
+                  onChange={(e) => {
+                    setCardholderName(e.target.value);
+                    setPaymentFieldErrors((p) => {
+                      if (!p.cardholderName) return p;
+                      const next = { ...p };
+                      delete next.cardholderName;
+                      return next;
+                    });
+                    scheduleDebouncedPaymentValidation('cardholderName');
+                  }}
+                  onBlur={() => {
+                    cancelPaymentFieldDebounce('cardholderName');
+                    const err = validateCardholderName(cardholderName);
+                    setPaymentFieldErrors((prev) => {
+                      const next = { ...prev };
+                      if (err) next.cardholderName = err;
+                      else delete next.cardholderName;
+                      return next;
+                    });
+                  }}
+                  autoComplete="cc-name"
+                  aria-invalid={Boolean(paymentFieldErrors.cardholderName)}
+                  aria-describedby={
+                    paymentFieldErrors.cardholderName
+                      ? 'su-chname-error'
+                      : undefined
+                  }
+                  className={paymentInputClass(
+                    Boolean(paymentFieldErrors.cardholderName),
+                  )}
+                />
+                {paymentFieldErrors.cardholderName && (
+                  <p
+                    id="su-chname-error"
+                    className="mt-1.5 text-sm text-red-600"
+                    role="alert"
+                  >
+                    {paymentFieldErrors.cardholderName}
+                  </p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo de documento
+                  </label>
+                  <select
+                    value={idType}
+                    onChange={(e) => setIdType(e.target.value)}
+                    className="w-full h-12 px-3 border border-gray-300 rounded-lg box-border focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {idTypes.length === 0 ? (
+                      <option value="DNI">DNI</option>
+                    ) : (
+                      idTypes.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label
+                    htmlFor="su-idnum"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Número
+                  </label>
+                  <input
+                    id="su-idnum"
+                    value={idNumber}
+                    onChange={(e) => {
+                      setIdNumber(e.target.value);
+                      setPaymentFieldErrors((p) => {
+                        if (!p.idNumber) return p;
+                        const next = { ...p };
+                        delete next.idNumber;
+                        return next;
+                      });
+                      scheduleDebouncedPaymentValidation('idNumber');
+                    }}
+                    onBlur={() => {
+                      cancelPaymentFieldDebounce('idNumber');
+                      const err = validateIdNumber(idNumber);
+                      setPaymentFieldErrors((prev) => {
+                        const next = { ...prev };
+                        if (err) next.idNumber = err;
+                        else delete next.idNumber;
+                        return next;
+                      });
+                    }}
+                    autoComplete="off"
+                    aria-invalid={Boolean(paymentFieldErrors.idNumber)}
+                    aria-describedby={
+                      paymentFieldErrors.idNumber ? 'su-idnum-error' : undefined
+                    }
+                    className={paymentInputClass(
+                      Boolean(paymentFieldErrors.idNumber),
+                    )}
+                  />
+                  {paymentFieldErrors.idNumber && (
+                    <p
+                      id="su-idnum-error"
+                      className="mt-1.5 text-sm text-red-600"
+                      role="alert"
+                    >
+                      {paymentFieldErrors.idNumber}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {!useMockPayment && mpReady && publicKey && (
+            <>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Número de tarjeta
+                </label>
+                <div className="flex h-12 items-center px-3 border border-gray-300 rounded-lg bg-white box-border">
+                  <CardNumber placeholder="1234 1234 1234 1234" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vencimiento
+                  </label>
+                  <div className="flex h-12 items-center px-3 border border-gray-300 rounded-lg bg-white box-border">
+                    <ExpirationDate placeholder="MM/AA" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Código de seguridad
+                  </label>
+                  <div className="flex h-12 items-center px-3 border border-gray-300 rounded-lg bg-white box-border">
+                    <SecurityCode placeholder="123" />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {!useMockPayment && !(mpReady && publicKey) && (
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+              Configurá{' '}
+              <code className="text-xs">
+                NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
+              </code>{' '}
+              o usá{' '}
+              <code className="text-xs">
+                NEXT_PUBLIC_SIGNUP_USE_MOCK_PAYMENT=true
+              </code>{' '}
+              con el servidor en modo mock.
+            </p>
           )}
           </div>
           </div>

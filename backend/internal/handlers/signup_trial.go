@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -10,12 +12,25 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"server/internal/logger"
 	"server/internal/models"
+	notifymail "server/internal/notifications/email"
 	"server/internal/payments/mercadopago"
 	"server/internal/repository"
 	"server/internal/validation"
 )
 
 const signupTrialDays = 7
+
+var errCardTokenRequired = errors.New("card token required")
+
+func resolveSignupCardToken(cardToken string, allowMock bool) (string, error) {
+	if cardToken != "" {
+		return cardToken, nil
+	}
+	if !allowMock {
+		return "", errCardTokenRequired
+	}
+	return "mock_card_token", nil
+}
 
 // SignupTrial creates one company (trial), one warehouse, the first user (company_owner), subscription row,
 // and stores Mercado Pago customer + saved card for charging after the trial. No payment is taken.
@@ -33,13 +48,10 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cardToken := req.CardToken
-	if cardToken == "" {
-		if !h.signupAllowMock {
-			RespondWithError(w, ErrCodeInvalidRequest, "Token de tarjeta requerido", http.StatusBadRequest)
-			return
-		}
-		cardToken = "mock_card_token"
+	cardToken, err := resolveSignupCardToken(req.CardToken, h.signupAllowMock)
+	if err != nil {
+		RespondWithError(w, ErrCodeInvalidRequest, "Token de tarjeta requerido", http.StatusBadRequest)
+		return
 	}
 
 	ctx := r.Context()
@@ -66,7 +78,6 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var customerID, cardID string
-	var err error
 	if h.signupAllowMock && (cardToken == "" || cardToken == "mock_card_token") {
 		customerID = mercadopago.StubCustomerID
 		cardID = mercadopago.StubCardID
@@ -106,16 +117,16 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 	two := 2
 
 	company := &models.Company{
-		ID:               companyID,
-		Code:             companyCode,
-		Name:             companyName,
-		TrialEndsAt:      &trialEnd,
-		MaxWarehouses:    &one,
-		MaxUsers:         &two,
-		MpCustomerID:     &customerID,
-		MpCardID:         &cardID,
-		CreatedAt:        time.Now(),
-		UpdatedAt:        time.Now(),
+		ID:            companyID,
+		Code:          companyCode,
+		Name:          companyName,
+		TrialEndsAt:   &trialEnd,
+		MaxWarehouses: &one,
+		MaxUsers:      &two,
+		MpCustomerID:  &customerID,
+		MpCardID:      &cardID,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 
 	warehouse := &repository.Warehouse{
@@ -220,6 +231,8 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		Role          string `json:"role"`
 	}
 
+	h.queueSignupWelcomeEmail(email, companyName, companyCode, trialEnd)
+
 	RespondWithJSON(w, http.StatusCreated, signupTrialResponse{
 		Message:       fmt.Sprintf("Cuenta creada. Tenés %d días de prueba.", signupTrialDays),
 		UserID:        user.ID.String(),
@@ -233,4 +246,15 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		ExpiresIn:     900,
 		Role:          user.Role,
 	})
+}
+
+func (h *AuthHandler) queueSignupWelcomeEmail(recipient, companyName, companyCode string, trialEnd time.Time) {
+	msg := notifymail.SignupTrialWelcome(recipient, companyCode, companyName, trialEnd, h.publicSiteURL)
+	go func(m notifymail.Message) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := h.mailer.Send(ctx, m); err != nil {
+			logger.Log.Error().Err(err).Str("to", recipient).Msg("signup welcome email failed")
+		}
+	}(msg)
 }
