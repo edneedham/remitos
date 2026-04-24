@@ -46,9 +46,7 @@ class RemitosApplication : Application() {
         get() = requireRepository()
 
     override fun onCreate() {
-        // Production URL - always use Google Cloud Run backend
-        val backendUrl = "https://remitos-api-865349418409.southamerica-east1.run.app"
-        FeatureFlags.configureBackendMode(backendUrl)
+        FeatureFlags.configureBackendMode(BuildConfig.BACKEND_BASE_URL)
         super.onCreate()
 
         // Initialize session manager

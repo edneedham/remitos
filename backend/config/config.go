@@ -28,6 +28,13 @@ type Config struct {
 	AndroidReleaseObject string
 	// Signed URL TTL for APK GET links (browser initiates download shortly after request).
 	ReleasesSignedURLExpiry time.Duration
+
+	// Transactional email (Resend).
+	EmailEnabled  bool
+	ResendAPIKey  string
+	EmailFrom     string
+	EmailReplyTo  string
+	PublicSiteURL string // optional; used for links in welcome emails (no trailing slash)
 }
 
 func Load() *Config {
@@ -47,6 +54,12 @@ func Load() *Config {
 		GCSReleasesBucket:       getEnv("GCS_RELEASES_BUCKET", ""),
 		AndroidReleaseObject:    getEnv("ANDROID_RELEASE_OBJECT", ""),
 		ReleasesSignedURLExpiry: time.Duration(getEnvAsInt("GCS_RELEASES_SIGNED_URL_MINUTES", 15)) * time.Minute,
+
+		EmailEnabled:  getEnv("EMAIL_ENABLED", "") == "true",
+		ResendAPIKey:  getEnv("RESEND_API_KEY", ""),
+		EmailFrom:     getEnv("EMAIL_FROM", ""),
+		EmailReplyTo:  getEnv("EMAIL_REPLY_TO", ""),
+		PublicSiteURL: strings.TrimRight(strings.TrimSpace(getEnv("PUBLIC_SITE_URL", "")), "/"),
 	}
 }
 

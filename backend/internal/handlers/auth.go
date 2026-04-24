@@ -20,6 +20,7 @@ import (
 	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/models"
+	notifymail "server/internal/notifications/email"
 	"server/internal/payments/mercadopago"
 	"server/internal/releases"
 	"server/internal/repository"
@@ -46,9 +47,11 @@ type AuthHandler struct {
 	mp               *mercadopago.Client
 	signupAllowMock  bool
 	releases         *AuthReleasesConfig
+	mailer           notifymail.Sender
+	publicSiteURL    string
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string) *AuthHandler {
 	return &AuthHandler{
 		userRepo:         userRepo,
 		companyRepo:      companyRepo,
@@ -61,6 +64,8 @@ func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository
 		mp:               mp,
 		signupAllowMock:  signupAllowMock,
 		releases:         releases,
+		mailer:           mailer,
+		publicSiteURL:    publicSiteURL,
 	}
 }
 
@@ -465,10 +470,10 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 type meEntitlementResponse struct {
-	CanDownloadApp          bool       `json:"can_download_app"`
-	SubscriptionPlan        string     `json:"subscription_plan"`
-	TrialEndsAt             *time.Time `json:"trial_ends_at,omitempty"`
-	SubscriptionExpiresAt   *time.Time `json:"subscription_expires_at,omitempty"`
+	CanDownloadApp        bool       `json:"can_download_app"`
+	SubscriptionPlan      string     `json:"subscription_plan"`
+	TrialEndsAt           *time.Time `json:"trial_ends_at,omitempty"`
+	SubscriptionExpiresAt *time.Time `json:"subscription_expires_at,omitempty"`
 }
 
 // GetMeEntitlement returns whether the user's company may download the Android app (trial or paid).

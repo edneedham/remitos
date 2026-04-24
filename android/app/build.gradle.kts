@@ -34,7 +34,16 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Emulator: host machine API. For a physical device, use your LAN IP or adb reverse + 127.0.0.1.
+            buildConfigField("String", "BACKEND_BASE_URL", "\"http://10.0.2.2:8080/\"")
+        }
         release {
+            buildConfigField(
+                "String",
+                "BACKEND_BASE_URL",
+                "\"https://remitos-api-865349418409.southamerica-east1.run.app/\"",
+            )
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

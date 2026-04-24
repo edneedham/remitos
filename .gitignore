@@ -16,6 +16,7 @@ local.properties
 
 # Local working notes (not for the repo)
 /note.md
+/backend/DEPLOY.md
 
 # Cursor IDE (local settings / generated state)
 .cursor/
