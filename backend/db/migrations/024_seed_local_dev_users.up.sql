@@ -1,9 +1,8 @@
--- Local-only seed users for manual + automated testing.
--- Safe to re-run: uses fixed UUIDs and upserts by primary key.
+-- Dev fixtures: deterministic users/companies for local manual + automated testing.
+-- Idempotent via fixed UUID primary keys.
 --
--- Default password for every seeded login: LocalSeed123!
+-- Password for every seeded login: LocalSeed123!
 -- Bcrypt hash generated with golang.org/x/crypto/bcrypt (DefaultCost).
-BEGIN;
 
 -- Roles (migrations normally insert these; keep idempotent for fresh DBs)
 INSERT INTO roles (name) VALUES
@@ -14,7 +13,7 @@ INSERT INTO roles (name) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- Shared bcrypt hash for password: LocalSeed123!
--- (Keep this as a plain literal so the file can be executed by any SQL runner.)
+-- (Plain literal so this migration is self-contained.)
 
 -- ---------------------------------------------------------------------------
 -- Company A — active trial (download allowed while trial_ends_at > now)
@@ -590,5 +589,3 @@ ON CONFLICT (id) DO UPDATE SET
   device_connected = EXCLUDED.device_connected,
   features = EXCLUDED.features,
   updated_at = NOW();
-
-COMMIT;
