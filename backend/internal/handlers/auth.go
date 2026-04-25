@@ -476,6 +476,68 @@ type meEntitlementResponse struct {
 	SubscriptionExpiresAt *time.Time `json:"subscription_expires_at,omitempty"`
 }
 
+type meProfileResponse struct {
+	Username    string `json:"username"`
+	CompanyName string `json:"company_name"`
+	CompanyCode string `json:"company_code"`
+}
+
+// GetMe returns minimal profile details for the authenticated web session.
+func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims.UserID == "" || claims.CompanyID == "" {
+		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		return
+	}
+
+	userID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondWithError(w, ErrCodeInvalidRequest, "Usuario inválido", http.StatusBadRequest)
+		return
+	}
+	companyID, err := uuid.Parse(claims.CompanyID)
+	if err != nil {
+		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.userRepo.GetByID(r.Context(), userID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetMe: user")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	if user == nil {
+		RespondWithError(w, ErrCodeNotFound, "Usuario no encontrado", http.StatusNotFound)
+		return
+	}
+
+	company, err := h.companyRepo.GetByIDForBilling(r.Context(), companyID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetMe: company")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	if company == nil {
+		RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+		return
+	}
+
+	username := ""
+	if user.Username != nil {
+		username = strings.TrimSpace(*user.Username)
+	}
+	if username == "" && user.Email != nil {
+		username = strings.TrimSpace(*user.Email)
+	}
+
+	RespondWithJSON(w, http.StatusOK, meProfileResponse{
+		Username:    username,
+		CompanyName: company.Name,
+		CompanyCode: company.Code,
+	})
+}
+
 // GetMeEntitlement returns whether the user's company may download the Android app (trial or paid).
 func (h *AuthHandler) GetMeEntitlement(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
@@ -720,6 +782,7 @@ func (h *AuthHandler) Routes() *chi.Mux {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: h.jwtSvc, DeviceRepo: h.deviceRepo}))
 		r.Post("/logout", h.Logout)
+		r.Get("/me", h.GetMe)
 		r.Get("/user/status", h.GetUserStatus)
 		r.Get("/me/entitlement", h.GetMeEntitlement)
 		r.Get("/downloads/android", h.GetAndroidDownloadURL)
