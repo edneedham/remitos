@@ -9,7 +9,6 @@ import {
   clearWebSession,
   fetchWithWebAuth,
   hasWebSession,
-  logoutWebSession,
   refreshWebSession,
 } from '../lib/webAuth';
 
@@ -18,7 +17,21 @@ type Entitlement = {
   subscription_plan?: string;
   trial_ends_at?: string;
   subscription_expires_at?: string;
+  company_status?: string;
+  archived_at?: string;
 };
+
+function isPaidPlan(plan: string): boolean {
+  switch (plan.toLowerCase().trim()) {
+    case 'premium':
+    case 'paid':
+    case 'subscriber':
+    case 'standard':
+      return true;
+    default:
+      return false;
+  }
+}
 
 export default function AccountPageClient() {
   const router = useRouter();
@@ -78,12 +91,6 @@ export default function AccountPageClient() {
     };
   }, [router]);
 
-  async function handleLogout() {
-    await logoutWebSession();
-    router.push('/');
-    router.refresh();
-  }
-
   if (!ready && !error) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center bg-gray-50">
@@ -93,18 +100,37 @@ export default function AccountPageClient() {
   }
 
   const now = Date.now();
+  const plan = (entitlement?.subscription_plan ?? '').toLowerCase().trim();
   const trialEndMs = entitlement?.trial_ends_at
     ? Date.parse(entitlement.trial_ends_at)
     : Number.NaN;
   const paymentEndMs = entitlement?.subscription_expires_at
     ? Date.parse(entitlement.subscription_expires_at)
     : Number.NaN;
-  const hasActiveTrial = Number.isFinite(trialEndMs) && trialEndMs > now;
+  const isArchived = Boolean(entitlement?.archived_at);
+  const companyStatus = (entitlement?.company_status ?? 'active')
+    .toLowerCase()
+    .trim();
+  const companyBillingInactive =
+    companyStatus !== '' && companyStatus !== 'active';
+
+  const hasActiveTrial =
+    !isArchived &&
+    !companyBillingInactive &&
+    plan === 'trial' &&
+    Number.isFinite(trialEndMs) &&
+    trialEndMs > now;
+
+  // Match backend billing.CompanyHasAppDownloadAccess: paid plans with no
+  // subscription_expires_at are treated as an open-ended active period.
   const hasActivePaymentPeriod =
-    Number.isFinite(paymentEndMs) && paymentEndMs > now;
-  const isPaid =
-    (entitlement?.subscription_plan ?? '').toLowerCase() !== 'trial' &&
-    hasActivePaymentPeriod;
+    !isArchived &&
+    !companyBillingInactive &&
+    isPaidPlan(plan) &&
+    (!entitlement?.subscription_expires_at ||
+      (Number.isFinite(paymentEndMs) && paymentEndMs > now));
+
+  const isPaid = hasActivePaymentPeriod;
   const canDownload = entitlement?.can_download_app === true;
 
   const formatDateTime = (value?: string) => {
@@ -144,6 +170,26 @@ export default function AccountPageClient() {
           </div>
         )}
 
+        {entitlement && isArchived ? (
+          <div
+            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+            role="status"
+          >
+            Esta empresa está archivada. La descarga de la app y el acceso
+            completo pueden no estar disponibles.
+          </div>
+        ) : null}
+
+        {entitlement && !isArchived && companyBillingInactive ? (
+          <div
+            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+            role="status"
+          >
+            El estado de la empresa no es &quot;activo&quot;; revisá la cuenta o
+            contactá soporte si necesitás reactivarla.
+          </div>
+        ) : null}
+
         <div className="grid gap-4 sm:grid-cols-2">
           <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900">
@@ -160,7 +206,9 @@ export default function AccountPageClient() {
                 <dt className="text-gray-600">Período pago</dt>
                 <dd className="text-right font-medium text-gray-900">
                   {hasActivePaymentPeriod
-                    ? `Hasta ${formatDateTime(entitlement?.subscription_expires_at)}`
+                    ? entitlement?.subscription_expires_at
+                      ? `Hasta ${formatDateTime(entitlement.subscription_expires_at)}`
+                      : 'Activo (sin vencimiento)'
                     : 'No activo'}
                 </dd>
               </div>
@@ -204,21 +252,6 @@ export default function AccountPageClient() {
           </section>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 border-t border-gray-200 pt-8">
-          <button
-            type="button"
-            onClick={() => void handleLogout()}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
-          >
-            Cerrar sesión en el sitio
-          </button>
-          <Link
-            href="/"
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
-          >
-            Volver al inicio
-          </Link>
-        </div>
       </div>
     </div>
   );

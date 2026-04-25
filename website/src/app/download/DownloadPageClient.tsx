@@ -15,6 +15,10 @@ import { getApiBaseUrl } from '../lib/apiUrl';
 type Entitlement = {
   can_download_app: boolean;
   subscription_plan?: string;
+  trial_ends_at?: string;
+  subscription_expires_at?: string;
+  company_status?: string;
+  archived_at?: string;
 };
 
 export default function DownloadPageClient() {

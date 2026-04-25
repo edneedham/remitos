@@ -474,6 +474,8 @@ type meEntitlementResponse struct {
 	SubscriptionPlan      string     `json:"subscription_plan"`
 	TrialEndsAt           *time.Time `json:"trial_ends_at,omitempty"`
 	SubscriptionExpiresAt *time.Time `json:"subscription_expires_at,omitempty"`
+	CompanyStatus         string     `json:"company_status"`
+	ArchivedAt            *time.Time `json:"archived_at,omitempty"`
 }
 
 type meProfileResponse struct {
@@ -566,6 +568,8 @@ func (h *AuthHandler) GetMeEntitlement(w http.ResponseWriter, r *http.Request) {
 		SubscriptionPlan:      company.SubscriptionPlan,
 		TrialEndsAt:           company.TrialEndsAt,
 		SubscriptionExpiresAt: company.SubscriptionExpiresAt,
+		CompanyStatus:         company.Status,
+		ArchivedAt:            company.ArchivedAt,
 	})
 }
 
