@@ -134,16 +134,13 @@ export default function Header() {
                   </button>
                   {accountMenuOpen ? (
                     <div
-                      className="absolute right-0 top-full z-20 mt-2 min-w-52 rounded-lg border border-gray-200 bg-white p-3 shadow-lg"
+                      className="absolute right-0 top-full z-20 mt-2 min-w-52 rounded-lg border border-gray-200 bg-white p-1 shadow-lg"
                       role="menu"
                     >
-                      <p className="text-sm font-semibold text-gray-900">
-                        {profile?.company_name || '—'}
-                      </p>
                       <button
                         type="button"
                         onClick={() => void handleLogout()}
-                        className="mt-3 flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                        className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
                       >
                         <span>Cerrar sesión</span>
                         <LogOut className="h-4 w-4" aria-hidden />

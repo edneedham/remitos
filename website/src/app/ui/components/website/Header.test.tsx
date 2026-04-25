@@ -90,7 +90,9 @@ describe('Header account menu', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Abrir menú de empresa' }));
 
     expect(screen.getByRole('menu')).toBeInTheDocument();
-    expect(screen.getAllByText('Mi Empresa SA').length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('button', { name: 'Abrir menú de empresa' }),
+    ).toHaveTextContent('Mi Empresa SA');
     expect(
       screen.getByRole('button', { name: 'Cerrar sesión' }),
     ).toBeInTheDocument();
