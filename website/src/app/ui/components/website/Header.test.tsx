@@ -145,17 +145,25 @@ describe('Header account menu', () => {
     expect(mockRefresh).toHaveBeenCalledTimes(1);
   });
 
-  it('does not fetch profile or show company dropdown outside /account routes', async () => {
+  it('fetches profile on non-account routes when session is present and shows account nav', async () => {
     mockPathname = '/download';
     mockHasWebSession.mockReturnValue(true);
+    mockFetchWebProfile.mockResolvedValue({
+      username: 'u',
+      company_name: 'Co',
+      company_code: 'X',
+    });
 
     await renderHeader();
 
-    expect(mockFetchWebProfile).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(mockFetchWebProfile).toHaveBeenCalledTimes(1),
+    );
     expect(
       screen.queryByRole('button', { name: 'Abrir menú de empresa' }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Descargar app' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Mi cuenta' })).toBeInTheDocument();
   });
 
   it('does not fetch profile and keeps public nav when session is missing', async () => {

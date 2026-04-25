@@ -25,7 +25,7 @@ export default function Header() {
   }, [pathname]);
 
   useEffect(() => {
-    if (!session || !(pathname === '/account' || pathname.startsWith('/account/'))) {
+    if (!session) {
       setProfile(null);
       setAccountMenuOpen(false);
       return;
@@ -36,6 +36,9 @@ export default function Header() {
       const nextProfile = await fetchWebProfile();
       if (cancelled) return;
       setProfile(nextProfile);
+      if (!nextProfile && !hasWebSession()) {
+        setSession(false);
+      }
     }
     void loadProfile();
 
