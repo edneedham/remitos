@@ -93,6 +93,8 @@ describe('Header account menu', () => {
     expect(
       screen.getByRole('button', { name: 'Abrir menú de empresa' }),
     ).toHaveTextContent('Mi Empresa SA');
+    expect(screen.getByRole('link', { name: 'Descargar app' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Mi cuenta' })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Cerrar sesión' }),
     ).toBeInTheDocument();
@@ -147,7 +149,7 @@ describe('Header account menu', () => {
     expect(mockRefresh).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches profile on non-account routes when session is present and shows account nav', async () => {
+  it('fetches profile on non-account routes and shows account menu trigger', async () => {
     mockPathname = '/download';
     mockHasWebSession.mockReturnValue(true);
     mockFetchWebProfile.mockResolvedValue({
@@ -162,8 +164,14 @@ describe('Header account menu', () => {
       expect(mockFetchWebProfile).toHaveBeenCalledTimes(1),
     );
     expect(
-      screen.queryByRole('button', { name: 'Abrir menú de empresa' }),
+      screen.getByRole('button', { name: 'Abrir menú de empresa' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Descargar app' }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Mi cuenta' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir menú de empresa' }));
     expect(screen.getByRole('link', { name: 'Descargar app' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Mi cuenta' })).toBeInTheDocument();
   });

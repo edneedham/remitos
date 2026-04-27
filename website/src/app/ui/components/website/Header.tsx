@@ -106,8 +106,7 @@ export default function Header() {
             aria-label="Principal"
           >
             {session ? (
-              accountActive ? (
-                <div className="relative" ref={accountMenuRef}>
+              <div className="relative" ref={accountMenuRef}>
                   <button
                     type="button"
                     onClick={() => setAccountMenuOpen((open) => !open)}
@@ -137,6 +136,28 @@ export default function Header() {
                       className="absolute right-0 top-full z-20 mt-2 min-w-52 rounded-lg border border-gray-200 bg-white p-1 shadow-lg"
                       role="menu"
                     >
+                      <Link
+                        href="/download"
+                        className={`block w-full rounded-md px-3 py-2 text-left text-sm font-semibold ${
+                          downloadActive
+                            ? 'text-blue-700'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                        onClick={() => setAccountMenuOpen(false)}
+                      >
+                        Descargar app
+                      </Link>
+                      <Link
+                        href="/account"
+                        className={`block w-full rounded-md px-3 py-2 text-left text-sm font-semibold ${
+                          accountActive
+                            ? 'text-blue-700'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                        onClick={() => setAccountMenuOpen(false)}
+                      >
+                        Mi cuenta
+                      </Link>
                       <button
                         type="button"
                         onClick={() => void handleLogout()}
@@ -148,37 +169,6 @@ export default function Header() {
                     </div>
                   ) : null}
                 </div>
-              ) : (
-                <>
-                  <Link
-                    href="/download"
-                    className={`inline-flex items-center rounded-lg px-3 py-2 text-sm font-semibold transition-colors sm:px-4 ${
-                      downloadActive
-                        ? 'text-blue-700'
-                        : 'text-gray-800 hover:text-gray-900'
-                    }`}
-                  >
-                    Descargar app
-                  </Link>
-                  <Link
-                    href="/account"
-                    className={`inline-flex items-center rounded-lg border px-3 py-2 text-sm font-semibold transition-colors sm:px-4 ${
-                      accountActive
-                        ? 'border-blue-600 text-blue-700'
-                        : 'border-gray-300 bg-white text-gray-800 hover:bg-gray-50'
-                    }`}
-                  >
-                    Mi cuenta
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => void handleLogout()}
-                    className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 transition-colors hover:text-gray-900 sm:px-4"
-                  >
-                    Salir
-                  </button>
-                </>
-              )
             ) : (
               <>
                 <Link

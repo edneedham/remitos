@@ -223,18 +223,6 @@ export default function DownloadPageClient() {
           </ol>
         </section>
 
-        <p className="text-sm">
-          <Link
-            href="/account"
-            className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
-          >
-            Mi cuenta
-          </Link>
-          {' · '}
-          <Link href="/" className="text-gray-600 hover:text-gray-900 hover:underline">
-            Inicio
-          </Link>
-        </p>
       </div>
     </div>
   );

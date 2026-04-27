@@ -60,6 +60,7 @@ func main() {
 	warehouseRepo := repository.NewWarehouseRepository(db.Pool)
 	deviceRepo := repository.NewDeviceRepository(db.Pool)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
+	transferRepo := repository.NewWebSessionTransferRepository(db.Pool)
 	subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
 	imageRepo := repository.NewImageRepository(db.Pool)
 	jwtSvc := jwt.NewService(cfg.JWTSecret)
@@ -89,7 +90,7 @@ func main() {
 	}
 
 	mailSender := notifymail.ConfigureSender(cfg.EmailEnabled, cfg.ResendAPIKey, cfg.EmailFrom, cfg.EmailReplyTo)
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, deviceRepo, refreshTokenRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL)
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo)
 	adminHandler := handlers.NewAdminHandler(userRepo, deviceRepo, jwtSvc)
 	scanHandler, err := handlers.NewScanHandler()

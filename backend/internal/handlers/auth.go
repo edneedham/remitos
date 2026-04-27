@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -41,6 +42,7 @@ type AuthHandler struct {
 	warehouseRepo    *repository.WarehouseRepository
 	deviceRepo       *repository.DeviceRepository
 	refreshTokenRepo *repository.RefreshTokenRepository
+	transferRepo     *repository.WebSessionTransferRepository
 	subscriptionRepo *repository.SubscriptionRepository
 	db               *pgxpool.Pool
 	jwtSvc           *jwt.Service
@@ -51,13 +53,14 @@ type AuthHandler struct {
 	publicSiteURL    string
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string) *AuthHandler {
 	return &AuthHandler{
 		userRepo:         userRepo,
 		companyRepo:      companyRepo,
 		warehouseRepo:    warehouseRepo,
 		deviceRepo:       deviceRepo,
 		refreshTokenRepo: refreshTokenRepo,
+		transferRepo:     transferRepo,
 		subscriptionRepo: subscriptionRepo,
 		db:               db,
 		jwtSvc:           jwtSvc,
@@ -97,6 +100,19 @@ type LoginResponse struct {
 
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+type TransferStartRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+type TransferClaimRequest struct {
+	Token string `json:"token" validate:"required"`
+}
+
+type TransferStartResponse struct {
+	Token     string `json:"token"`
+	ExpiresAt string `json:"expires_at"`
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -367,7 +383,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	refreshTokenModel, err := h.refreshTokenRepo.GetByHash(ctx, req.RefreshToken)
+	refreshTokenModel, err := h.refreshTokenRepo.GetValidByRawToken(ctx, req.RefreshToken)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("Error fetching refresh token")
 		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
@@ -376,11 +392,6 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	if refreshTokenModel == nil {
 		RespondWithError(w, ErrCodeUnauthorized, "Token de refresh inválido o expirado", http.StatusUnauthorized)
-		return
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(refreshTokenModel.TokenHash), []byte(req.RefreshToken)); err != nil {
-		RespondWithError(w, ErrCodeUnauthorized, "Token de refresh inválido", http.StatusUnauthorized)
 		return
 	}
 
@@ -438,6 +449,136 @@ func generateRefreshToken() string {
 	bytes := make([]byte, 32)
 	rand.Read(bytes)
 	return hex.EncodeToString(bytes)
+}
+
+func hashTransferToken(raw string) string {
+	sum := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(sum[:])
+}
+
+func (h *AuthHandler) StartSessionTransfer(w http.ResponseWriter, r *http.Request) {
+	var req TransferStartRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		return
+	}
+	req.RefreshToken = strings.TrimSpace(req.RefreshToken)
+	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
+		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		return
+	}
+
+	claims := middleware.GetUserClaims(r)
+	userID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		return
+	}
+
+	refreshTokenModel, err := h.refreshTokenRepo.GetValidByRawToken(r.Context(), req.RefreshToken)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("StartSessionTransfer: refresh token lookup")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	if refreshTokenModel == nil || refreshTokenModel.UserID != userID {
+		RespondWithError(w, ErrCodeUnauthorized, "Token de refresh inválido", http.StatusUnauthorized)
+		return
+	}
+
+	rawToken := generateRefreshToken()
+	now := time.Now().UTC()
+	expiresAt := now.Add(60 * time.Second)
+	transfer := &models.WebSessionTransfer{
+		ID:                    uuid.New(),
+		TokenHash:             hashTransferToken(rawToken),
+		UserID:                userID,
+		DesktopRefreshTokenID: refreshTokenModel.ID,
+		ExpiresAt:             expiresAt,
+		CreatedAt:             now,
+	}
+	if err := h.transferRepo.Create(r.Context(), transfer); err != nil {
+		logger.Log.Error().Err(err).Msg("StartSessionTransfer: create transfer")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+
+	RespondWithJSON(w, http.StatusOK, TransferStartResponse{
+		Token:     rawToken,
+		ExpiresAt: expiresAt.Format(time.RFC3339),
+	})
+}
+
+func (h *AuthHandler) ClaimSessionTransfer(w http.ResponseWriter, r *http.Request) {
+	var req TransferClaimRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		return
+	}
+	req.Token = strings.TrimSpace(req.Token)
+	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
+		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		return
+	}
+
+	transfer, err := h.transferRepo.ConsumeByTokenHash(r.Context(), hashTransferToken(req.Token))
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("ClaimSessionTransfer: consume transfer")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	if transfer == nil {
+		RespondWithError(w, ErrCodeUnauthorized, "Token de transferencia inválido o expirado", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := h.userRepo.GetByID(r.Context(), transfer.UserID)
+	if err != nil || user == nil {
+		logger.Log.Error().Err(err).Msg("ClaimSessionTransfer: user not found")
+		RespondWithError(w, ErrCodeUnauthorized, "Usuario no encontrado", http.StatusUnauthorized)
+		return
+	}
+
+	token, err := h.jwtSvc.GenerateToken(user.ID, user.CompanyID, user.Role, 15*time.Minute)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("ClaimSessionTransfer: generate access token")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+
+	refreshToken := generateRefreshToken()
+	refreshTokenHash, err := bcrypt.GenerateFromPassword([]byte(refreshToken), bcrypt.DefaultCost)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("ClaimSessionTransfer: hash refresh token")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+
+	refreshTokenModel := &models.RefreshToken{
+		ID:         uuid.New(),
+		UserID:     user.ID,
+		TokenHash:  string(refreshTokenHash),
+		DeviceName: "web_transfer_phone",
+		ExpiresAt:  time.Now().Add(30 * 24 * time.Hour),
+		CreatedAt:  time.Now(),
+	}
+	if err := h.refreshTokenRepo.Create(r.Context(), refreshTokenModel); err != nil {
+		logger.Log.Error().Err(err).Msg("ClaimSessionTransfer: create refresh token")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	if err := h.transferRepo.AttachPhoneRefreshToken(r.Context(), transfer.ID, refreshTokenModel.ID); err != nil {
+		logger.Log.Error().Err(err).Msg("ClaimSessionTransfer: link phone refresh token")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+
+	RespondWithJSON(w, http.StatusOK, LoginResponse{
+		Token:        token,
+		RefreshToken: refreshToken,
+		ExpiresIn:    900,
+		Role:         user.Role,
+	})
 }
 
 func normalizeRegisterDeviceRequest(req *RegisterDeviceRequest) {
@@ -783,9 +924,11 @@ func (h *AuthHandler) Routes() *chi.Mux {
 	r.Post("/login", h.Login)
 	r.Post("/device", h.RegisterDevice)
 	r.Post("/refresh", h.Refresh)
+	r.Post("/transfer/claim", h.ClaimSessionTransfer)
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: h.jwtSvc, DeviceRepo: h.deviceRepo}))
 		r.Post("/logout", h.Logout)
+		r.Post("/transfer/start", h.StartSessionTransfer)
 		r.Get("/me", h.GetMe)
 		r.Get("/user/status", h.GetUserStatus)
 		r.Get("/me/entitlement", h.GetMeEntitlement)
