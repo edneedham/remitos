@@ -50,7 +50,7 @@ export default function TransferPageClient({ token }: { token: string }) {
         }
 
         saveWebSession(body.token, body.refresh_token);
-        router.replace('/download');
+        router.replace('/dashboard/app');
         router.refresh();
       } catch {
         if (!cancelled) {

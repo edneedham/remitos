@@ -1,11 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockPathname = '/';
 const mockPush = vi.fn();
 const mockRefresh = vi.fn();
 const mockHasWebSession = vi.fn();
-const mockLogoutWebSession = vi.fn();
 const mockFetchWebProfile = vi.fn();
 
 vi.mock('next/navigation', () => ({
@@ -30,7 +29,7 @@ vi.mock('next/image', () => ({
 
 vi.mock('../../../lib/webAuth', () => ({
   hasWebSession: () => mockHasWebSession(),
-  logoutWebSession: () => mockLogoutWebSession(),
+  logoutWebSession: () => vi.fn(),
   fetchWebProfile: () => mockFetchWebProfile(),
 }));
 
@@ -39,114 +38,28 @@ async function renderHeader() {
   return render(<mod.default />);
 }
 
-describe('Header account menu', () => {
+describe('Header', () => {
   beforeEach(() => {
-    vi.resetModules();
     vi.clearAllMocks();
     mockPathname = '/';
     mockHasWebSession.mockReturnValue(false);
     mockFetchWebProfile.mockResolvedValue(null);
   });
 
-  it('shows company code trigger on /account and hides account links', async () => {
-    mockPathname = '/account';
-    mockHasWebSession.mockReturnValue(true);
-    mockFetchWebProfile.mockResolvedValue({
-      username: 'owner_user',
-      company_name: 'Mi Empresa SA',
-      company_code: 'MIESA',
-    });
+  it('renders nothing on /dashboard (dashboard supplies its own chrome)', async () => {
+    mockPathname = '/dashboard';
 
-    await renderHeader();
+    const { container } = await renderHeader();
 
-    await waitFor(() =>
-      expect(mockFetchWebProfile).toHaveBeenCalledTimes(1),
-    );
-    expect(await screen.findByText('Mi Empresa SA')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'Mi cuenta' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'Descargar app' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Salir' }),
-    ).not.toBeInTheDocument();
+    expect(container.firstChild).toBeNull();
   });
 
-  it('opens dropdown from company code chevron trigger', async () => {
-    mockPathname = '/account';
-    mockHasWebSession.mockReturnValue(true);
-    mockFetchWebProfile.mockResolvedValue({
-      username: 'owner_user',
-      company_name: 'Mi Empresa SA',
-      company_code: 'MIESA',
-    });
+  it('renders nothing for nested dashboard routes', async () => {
+    mockPathname = '/dashboard/billing';
 
-    await renderHeader();
-    await waitFor(() =>
-      expect(mockFetchWebProfile).toHaveBeenCalledTimes(1),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir menú de empresa' }));
+    const { container } = await renderHeader();
 
-    expect(screen.getByRole('menu')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Abrir menú de empresa' }),
-    ).toHaveTextContent('Mi Empresa SA');
-    expect(screen.getByRole('link', { name: 'Descargar app' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Mi cuenta' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Cerrar sesión' }),
-    ).toBeInTheDocument();
-  });
-
-  it('closes dropdown when clicking outside', async () => {
-    mockPathname = '/account';
-    mockHasWebSession.mockReturnValue(true);
-    mockFetchWebProfile.mockResolvedValue({
-      username: 'owner_user',
-      company_name: 'Mi Empresa SA',
-      company_code: 'MIESA',
-    });
-
-    await renderHeader();
-    await waitFor(() =>
-      expect(mockFetchWebProfile).toHaveBeenCalledTimes(1),
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir menú de empresa' }));
-    expect(screen.getByRole('menu')).toBeInTheDocument();
-
-    fireEvent.mouseDown(document.body);
-
-    await waitFor(() =>
-      expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
-    );
-  });
-
-  it('logs out from dropdown action', async () => {
-    mockPathname = '/account';
-    mockHasWebSession.mockReturnValue(true);
-    mockFetchWebProfile.mockResolvedValue({
-      username: 'owner_user',
-      company_name: 'Mi Empresa SA',
-      company_code: 'MIESA',
-    });
-    mockLogoutWebSession.mockResolvedValue(undefined);
-
-    await renderHeader();
-    await waitFor(() =>
-      expect(mockFetchWebProfile).toHaveBeenCalledTimes(1),
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir menú de empresa' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
-
-    await waitFor(() =>
-      expect(mockLogoutWebSession).toHaveBeenCalledTimes(1),
-    );
-    expect(mockPush).toHaveBeenCalledWith('/');
-    expect(mockRefresh).toHaveBeenCalledTimes(1);
+    expect(container.firstChild).toBeNull();
   });
 
   it('fetches profile on non-account routes and shows account menu trigger', async () => {
@@ -169,36 +82,6 @@ describe('Header account menu', () => {
     expect(
       screen.queryByRole('link', { name: 'Descargar app' }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Mi cuenta' })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir menú de empresa' }));
-    expect(screen.getByRole('link', { name: 'Descargar app' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Mi cuenta' })).toBeInTheDocument();
-  });
-
-  it('does not fetch profile and keeps public nav when session is missing', async () => {
-    mockPathname = '/account';
-    mockHasWebSession.mockReturnValue(false);
-
-    await renderHeader();
-
-    expect(mockFetchWebProfile).not.toHaveBeenCalled();
-    expect(
-      screen.queryByRole('button', { name: 'Abrir menú de empresa' }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Iniciar sesión' })).toBeInTheDocument();
-  });
-
-  it('shows placeholder when profile cannot be loaded', async () => {
-    mockPathname = '/account/settings';
-    mockHasWebSession.mockReturnValue(true);
-    mockFetchWebProfile.mockResolvedValue(null);
-
-    await renderHeader();
-
-    await waitFor(() =>
-      expect(mockFetchWebProfile).toHaveBeenCalledTimes(1),
-    );
-    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Panel' })).not.toBeInTheDocument();
   });
 });

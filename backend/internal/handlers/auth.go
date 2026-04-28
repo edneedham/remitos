@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"context"
-	"crypto/sha256"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
@@ -40,6 +40,8 @@ type AuthHandler struct {
 	userRepo         *repository.UserRepository
 	companyRepo      *repository.CompanyRepository
 	warehouseRepo    *repository.WarehouseRepository
+	syncRepo         *repository.SyncRepository
+	invoiceRepo      *repository.InvoiceRepository
 	deviceRepo       *repository.DeviceRepository
 	refreshTokenRepo *repository.RefreshTokenRepository
 	transferRepo     *repository.WebSessionTransferRepository
@@ -53,11 +55,13 @@ type AuthHandler struct {
 	publicSiteURL    string
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string) *AuthHandler {
 	return &AuthHandler{
 		userRepo:         userRepo,
 		companyRepo:      companyRepo,
 		warehouseRepo:    warehouseRepo,
+		syncRepo:         syncRepo,
+		invoiceRepo:      invoiceRepo,
 		deviceRepo:       deviceRepo,
 		refreshTokenRepo: refreshTokenRepo,
 		transferRepo:     transferRepo,
@@ -611,12 +615,20 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 type meEntitlementResponse struct {
-	CanDownloadApp        bool       `json:"can_download_app"`
-	SubscriptionPlan      string     `json:"subscription_plan"`
-	TrialEndsAt           *time.Time `json:"trial_ends_at,omitempty"`
-	SubscriptionExpiresAt *time.Time `json:"subscription_expires_at,omitempty"`
-	CompanyStatus         string     `json:"company_status"`
-	ArchivedAt            *time.Time `json:"archived_at,omitempty"`
+	CanDownloadApp               bool                                  `json:"can_download_app"`
+	SubscriptionPlan             string                                `json:"subscription_plan"`
+	TrialEndsAt                  *time.Time                            `json:"trial_ends_at,omitempty"`
+	SubscriptionExpiresAt        *time.Time                            `json:"subscription_expires_at,omitempty"`
+	CompanyStatus                string                                `json:"company_status"`
+	ArchivedAt                   *time.Time                            `json:"archived_at,omitempty"`
+	WarehouseCount               int64                                 `json:"warehouse_count"`
+	DeviceCount                  int64                                 `json:"device_count"`
+	RemitosProcessedLast30Days   int64                                 `json:"remitos_processed_last_30_days"`
+	WarehouseUsageLast30Days     []repository.WarehouseInboundUsageRow `json:"warehouse_usage_last_30_days"`
+	DocumentsMonthlyLimit        *int                                  `json:"documents_monthly_limit,omitempty"`
+	DocumentsUsageMTD            int64                                 `json:"documents_usage_mtd"`
+	DocumentsUsageSeries         []repository.DocumentUsageSeriesPoint `json:"documents_usage_series"`
+	DocumentsUsageByWarehouseMTD []repository.WarehouseInboundUsageRow `json:"documents_usage_by_warehouse_mtd"`
 }
 
 type meProfileResponse struct {
@@ -703,15 +715,102 @@ func (h *AuthHandler) GetMeEntitlement(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
 		return
 	}
+	warehouseCount, err := h.warehouseRepo.CountByCompanyID(r.Context(), companyID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetMeEntitlement: warehouse count")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	remitos30d, err := h.syncRepo.CountInboundNotesCreatedInLast30Days(r.Context(), companyID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetMeEntitlement: remitos last 30d count")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	warehouseUsage, err := h.syncRepo.ListInboundNotesByWarehouseLast30Days(r.Context(), companyID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetMeEntitlement: warehouse usage last 30d")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	deviceCount, err := h.deviceRepo.CountByCompanyID(r.Context(), companyID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetMeEntitlement: device count")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	mtdTotal, usageSeries, err := h.syncRepo.InboundNotesMTDCumulativeSeries(r.Context(), companyID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetMeEntitlement: documents MTD series")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	documentsByWarehouseMTD, err := h.syncRepo.ListInboundNotesByWarehouseMTD(r.Context(), companyID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetMeEntitlement: documents MTD by warehouse")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
 	now := time.Now()
 	RespondWithJSON(w, http.StatusOK, meEntitlementResponse{
-		CanDownloadApp:        billing.CompanyHasAppDownloadAccess(now, company),
-		SubscriptionPlan:      company.SubscriptionPlan,
-		TrialEndsAt:           company.TrialEndsAt,
-		SubscriptionExpiresAt: company.SubscriptionExpiresAt,
-		CompanyStatus:         company.Status,
-		ArchivedAt:            company.ArchivedAt,
+		CanDownloadApp:               billing.CompanyHasAppDownloadAccess(now, company),
+		SubscriptionPlan:             company.SubscriptionPlan,
+		TrialEndsAt:                  company.TrialEndsAt,
+		SubscriptionExpiresAt:        company.SubscriptionExpiresAt,
+		CompanyStatus:                company.Status,
+		ArchivedAt:                   company.ArchivedAt,
+		WarehouseCount:               warehouseCount,
+		DeviceCount:                  deviceCount,
+		RemitosProcessedLast30Days:   remitos30d,
+		WarehouseUsageLast30Days:     warehouseUsage,
+		DocumentsMonthlyLimit:        company.DocumentsMonthlyLimit,
+		DocumentsUsageMTD:            mtdTotal,
+		DocumentsUsageSeries:         usageSeries,
+		DocumentsUsageByWarehouseMTD: documentsByWarehouseMTD,
 	})
+}
+
+type invoiceListItem struct {
+	ID          uuid.UUID `json:"id"`
+	AmountMinor int64     `json:"amount_minor"`
+	Currency    string    `json:"currency"`
+	Status      string    `json:"status"`
+	Description string    `json:"description,omitempty"`
+	IssuedAt    time.Time `json:"issued_at"`
+	MpPaymentID *string   `json:"mp_payment_id,omitempty"`
+}
+
+// GetMeInvoices lists billing invoices for the authenticated user's company (newest first).
+func (h *AuthHandler) GetMeInvoices(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims.UserID == "" || claims.CompanyID == "" {
+		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		return
+	}
+	companyID, err := uuid.Parse(claims.CompanyID)
+	if err != nil {
+		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		return
+	}
+	rows, err := h.invoiceRepo.ListByCompanyID(r.Context(), companyID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetMeInvoices: list")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	out := make([]invoiceListItem, len(rows))
+	for i, inv := range rows {
+		out[i] = invoiceListItem{
+			ID:          inv.ID,
+			AmountMinor: inv.AmountMinor,
+			Currency:    inv.Currency,
+			Status:      inv.Status,
+			Description: inv.Description,
+			IssuedAt:    inv.IssuedAt,
+			MpPaymentID: inv.MpPaymentID,
+		}
+	}
+	RespondWithJSON(w, http.StatusOK, out)
 }
 
 type androidDownloadResponse struct {
@@ -932,6 +1031,7 @@ func (h *AuthHandler) Routes() *chi.Mux {
 		r.Get("/me", h.GetMe)
 		r.Get("/user/status", h.GetUserStatus)
 		r.Get("/me/entitlement", h.GetMeEntitlement)
+		r.Get("/me/invoices", h.GetMeInvoices)
 		r.Get("/downloads/android", h.GetAndroidDownloadURL)
 	})
 	return r

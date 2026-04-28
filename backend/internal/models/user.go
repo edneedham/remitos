@@ -20,6 +20,7 @@ type Company struct {
 	TrialEndsAt           *time.Time `json:"trial_ends_at,omitempty"`
 	MaxWarehouses         *int       `json:"max_warehouses,omitempty"`
 	MaxUsers              *int       `json:"max_users,omitempty"`
+	DocumentsMonthlyLimit *int       `json:"documents_monthly_limit,omitempty"`
 	MpCustomerID          *string    `json:"-"`
 	MpCardID              *string    `json:"-"`
 

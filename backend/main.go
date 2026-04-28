@@ -90,7 +90,9 @@ func main() {
 	}
 
 	mailSender := notifymail.ConfigureSender(cfg.EmailEnabled, cfg.ResendAPIKey, cfg.EmailFrom, cfg.EmailReplyTo)
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL)
+	syncRepo := repository.NewSyncRepository(db.Pool)
+	invoiceRepo := repository.NewInvoiceRepository(db.Pool)
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo)
 	adminHandler := handlers.NewAdminHandler(userRepo, deviceRepo, jwtSvc)
 	scanHandler, err := handlers.NewScanHandler()
@@ -105,7 +107,6 @@ func main() {
 		imageHandler = nil
 	}
 
-	syncRepo := repository.NewSyncRepository(db.Pool)
 	syncHandler := handlers.NewSyncHandler(syncRepo)
 
 	h := chi.NewRouter()

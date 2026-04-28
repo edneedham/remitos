@@ -23,7 +23,7 @@ func SignupTrialWelcome(toEmail, companyCode, companyName string, trialEndsAt ti
 		linkBlock.WriteString(fmt.Sprintf(`
 <p><strong>Enlaces útiles:</strong></p>
 <ul>
-  <li><a href="%s/account">Tu cuenta</a></li>
+  <li><a href="%s/dashboard">Tu cuenta</a></li>
   <li><a href="%s/download">Descargar la app</a></li>
 </ul>
 `, base, base))
@@ -68,7 +68,7 @@ func textLinks(publicSiteURL string) string {
 	if base == "" {
 		return ""
 	}
-	return fmt.Sprintf("Enlaces útiles:\n- Cuenta: %s/account\n- Descarga: %s/download\n", base, base)
+	return fmt.Sprintf("Enlaces útiles:\n- Cuenta: %s/dashboard\n- Descarga: %s/download\n", base, base)
 }
 
 func escapeHTML(s string) string {

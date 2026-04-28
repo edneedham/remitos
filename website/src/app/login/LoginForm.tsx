@@ -39,7 +39,7 @@ export default function LoginForm() {
         return;
       }
       if (res.ok) {
-        router.replace('/account');
+        router.replace('/dashboard');
       }
     }
     void validateSession();
@@ -110,7 +110,7 @@ export default function LoginForm() {
       }
 
       saveWebSession(data.token, data.refresh_token);
-      router.push('/account');
+      router.push('/dashboard');
       router.refresh();
     } catch {
       setError('Error de red. Verificá la conexión y la URL de la API.');

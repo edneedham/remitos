@@ -118,6 +118,6 @@ describe('SignupTrialForm', () => {
     const payload = JSON.parse(String(req.body)) as { card_token?: string };
     expect(payload.card_token).toBe('tok_test');
     expect(payload.card_token).not.toBe('mock_card_token');
-    expect(routerPush).toHaveBeenCalledWith('/account');
+    expect(routerPush).toHaveBeenCalledWith('/dashboard');
   });
 });

@@ -57,7 +57,7 @@ describe('TransferPageClient', () => {
       'access-token',
       'refresh-token',
     );
-    expect(mockReplace).toHaveBeenCalledWith('/download');
+    expect(mockReplace).toHaveBeenCalledWith('/dashboard/app');
     expect(mockRefresh).toHaveBeenCalledTimes(1);
   });
 

@@ -48,12 +48,12 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 			id, code, name, COALESCE(cuit, '') AS cuit,
 			status, is_verified, subscription_plan,
 			subscription_expires_at, trial_ends_at,
-			max_warehouses, max_users,
+			max_warehouses, max_users, documents_monthly_limit,
 			created_at, updated_at, archived_at
 		FROM companies WHERE id = $1
 	`
 	var c models.Company
-	var maxW, maxU sql.NullInt32
+	var maxW, maxU, maxDoc sql.NullInt32
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&c.ID,
 		&c.Code,
@@ -66,6 +66,7 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 		&c.TrialEndsAt,
 		&maxW,
 		&maxU,
+		&maxDoc,
 		&c.CreatedAt,
 		&c.UpdatedAt,
 		&c.ArchivedAt,
@@ -83,6 +84,10 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 	if maxU.Valid {
 		v := int(maxU.Int32)
 		c.MaxUsers = &v
+	}
+	if maxDoc.Valid {
+		v := int(maxDoc.Int32)
+		c.DocumentsMonthlyLimit = &v
 	}
 	return &c, nil
 }
@@ -134,9 +139,9 @@ func (r *CompanyRepository) CreateTrial(ctx context.Context, company *models.Com
 			id, code, name, created_at, updated_at,
 			status, is_verified, subscription_plan,
 			trial_ends_at, max_warehouses, max_users,
-			mp_customer_id, mp_card_id
+			mp_customer_id, mp_card_id, documents_monthly_limit
 		)
-		VALUES ($1, $2, $3, $4, $5, 'active', false, 'trial', $6, $7, $8, $9, $10)
+		VALUES ($1, $2, $3, $4, $5, 'active', false, 'trial', $6, $7, $8, $9, $10, $11)
 	`
 	_, err := r.pool.Exec(ctx, query,
 		company.ID,
@@ -149,6 +154,7 @@ func (r *CompanyRepository) CreateTrial(ctx context.Context, company *models.Com
 		company.MaxUsers,
 		company.MpCustomerID,
 		company.MpCardID,
+		company.DocumentsMonthlyLimit,
 	)
 	return err
 }

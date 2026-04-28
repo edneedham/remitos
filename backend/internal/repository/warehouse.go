@@ -52,6 +52,16 @@ func (r *WarehouseRepository) GetByID(ctx context.Context, id uuid.UUID) (*Wareh
 	return &w, nil
 }
 
+func (r *WarehouseRepository) CountByCompanyID(ctx context.Context, companyID uuid.UUID) (int64, error) {
+	query := `SELECT COUNT(*) FROM warehouses WHERE company_id = $1`
+	var n int64
+	err := r.pool.QueryRow(ctx, query, companyID).Scan(&n)
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
 func (r *WarehouseRepository) GetByCompanyID(ctx context.Context, companyID uuid.UUID) ([]Warehouse, error) {
 	query := `
 		SELECT id, company_id, name, address, created_at, updated_at

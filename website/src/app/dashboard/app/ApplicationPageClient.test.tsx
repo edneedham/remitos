@@ -5,9 +5,9 @@ const mockReplace = vi.fn();
 const mockFetchWithWebAuth = vi.fn();
 const mockHasWebSession = vi.fn();
 const mockRefreshWebSession = vi.fn();
+const mockGetApiBaseUrl = vi.fn();
 const mockGetWebAccessToken = vi.fn();
 const mockGetWebRefreshToken = vi.fn();
-const mockGetApiBaseUrl = vi.fn();
 const mockIsLikelyMobileDevice = vi.fn();
 const mockGetPublicSiteOrigin = vi.fn();
 
@@ -17,7 +17,7 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('../lib/webAuth', () => ({
+vi.mock('../../lib/webAuth', () => ({
   fetchWithWebAuth: (...args: unknown[]) => mockFetchWithWebAuth(...args),
   hasWebSession: () => mockHasWebSession(),
   refreshWebSession: () => mockRefreshWebSession(),
@@ -26,25 +26,54 @@ vi.mock('../lib/webAuth', () => ({
   clearWebSession: vi.fn(),
 }));
 
-vi.mock('../lib/apiUrl', () => ({
+vi.mock('../../lib/apiUrl', () => ({
   getApiBaseUrl: () => mockGetApiBaseUrl(),
 }));
 
-vi.mock('../lib/mobileDevice', () => ({
+vi.mock('../../lib/mobileDevice', () => ({
   isLikelyMobileDevice: () => mockIsLikelyMobileDevice(),
 }));
 
-vi.mock('../lib/siteUrl', () => ({
+vi.mock('../../lib/siteUrl', () => ({
   getPublicSiteOrigin: () => mockGetPublicSiteOrigin(),
 }));
 
-async function renderDownloadPageClient() {
-  const mod = await import('./DownloadPageClient');
+async function renderApplicationPageClient() {
+  const mod = await import('./ApplicationPageClient');
   return render(<mod.default />);
 }
 
-// Session-transfer UI is not on this branch yet; unskip when merged.
-describe.skip('DownloadPageClient desktop QR transfer', () => {
+describe('ApplicationPageClient', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockHasWebSession.mockReturnValue(true);
+    mockRefreshWebSession.mockResolvedValue(true);
+    mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
+    mockFetchWithWebAuth.mockImplementation(async () => {
+      return new Response(
+        JSON.stringify({
+          can_download_app: true,
+          subscription_plan: 'trial',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    });
+  });
+
+  it('shows title and APK download on mobile', async () => {
+    mockIsLikelyMobileDevice.mockReturnValue(true);
+
+    await renderApplicationPageClient();
+
+    expect(await screen.findByRole('heading', { name: 'Aplicación', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /descargar apk/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Instalación en el teléfono (Android)' }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('ApplicationPageClient desktop QR transfer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHasWebSession.mockReturnValue(true);
@@ -65,7 +94,7 @@ describe.skip('DownloadPageClient desktop QR transfer', () => {
     );
   });
 
-  it('shows transfer QR URL on desktop when entitlement allows download', async () => {
+  it('starts transfer QR on desktop when entitlement allows download', async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
       status: 200,
@@ -73,10 +102,13 @@ describe.skip('DownloadPageClient desktop QR transfer', () => {
     }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await renderDownloadPageClient();
+    await renderApplicationPageClient();
 
     expect(
-      await screen.findByText('Escaneá este QR desde tu teléfono Android'),
+      await screen.findByRole('button', { name: /generar nuevo qr/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Instalación en el teléfono (Android)' }),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
