@@ -61,8 +61,20 @@ export default function DocumentUsageSection({
 
   const formatDay = (d: string) => {
     const x = new Date(`${d}T12:00:00.000Z`);
-    return x.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+    return x.toLocaleDateString('es-AR', { day: 'numeric', timeZone: 'UTC' });
   };
+
+  const monthAxisLabel =
+    chartData.length > 0
+      ? new Date(`${chartData[0].date}T12:00:00.000Z`).toLocaleDateString(
+          'es-AR',
+          {
+            month: 'long',
+            year: 'numeric',
+            timeZone: 'UTC',
+          },
+        )
+      : '';
 
   const sortedWarehouses = [...warehouseRows].sort((a, b) => {
     if (b.count !== a.count) return b.count - a.count;
@@ -123,7 +135,7 @@ export default function DocumentUsageSection({
             <ResponsiveContainer width="100%" height={260}>
               <LineChart
                 data={chartData}
-                margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+                margin={{ top: 8, right: 12, left: 8, bottom: 18 }}
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -135,13 +147,36 @@ export default function DocumentUsageSection({
                   tickFormatter={formatDay}
                   tick={{ fontSize: 11 }}
                   stroke="#9ca3af"
+                  height={64}
+                  label={{
+                    value: monthAxisLabel,
+                    position: 'insideBottom',
+                    dy: 16,
+                    style: {
+                      textAnchor: 'middle',
+                      fill: '#6b7280',
+                      fontSize: 12,
+                      textTransform: 'capitalize',
+                    },
+                  }}
                 />
                 <YAxis
                   domain={[0, yMax]}
                   allowDecimals={false}
                   tick={{ fontSize: 11 }}
                   stroke="#9ca3af"
-                  width={44}
+                  width={56}
+                  label={{
+                    value: 'Documentos',
+                    angle: -90,
+                    position: 'insideLeft',
+                    dx: -4,
+                    style: {
+                      textAnchor: 'middle',
+                      fill: '#6b7280',
+                      fontSize: 12,
+                    },
+                  }}
                 />
                 <Tooltip
                   contentStyle={{
