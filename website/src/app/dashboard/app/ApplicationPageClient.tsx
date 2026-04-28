@@ -9,7 +9,9 @@ import { getApiBaseUrl } from '../../lib/apiUrl';
 import { isLikelyMobileDevice } from '../../lib/mobileDevice';
 import { getPublicSiteOrigin } from '../../lib/siteUrl';
 import {
+  canAccessWebManagement,
   clearWebSession,
+  fetchWebProfile,
   fetchWithWebAuth,
   getWebAccessToken,
   getWebRefreshToken,
@@ -55,6 +57,14 @@ export default function ApplicationPageClient() {
       }
 
       await refreshWebSession();
+
+      const profile = await fetchWebProfile();
+      if (cancelled) return;
+      if (!profile || !canAccessWebManagement(profile.role)) {
+        clearWebSession();
+        router.replace('/login');
+        return;
+      }
 
       const res = await fetchWithWebAuth('/auth/me/entitlement');
       if (cancelled) return;
@@ -291,7 +301,28 @@ export default function ApplicationPageClient() {
                 ) : null}
                 <div className="mx-auto flex w-fit flex-col items-start rounded-lg border border-gray-100 p-2">
                   {transferUrl ? (
-                    <QRCodeSVG value={transferUrl} size={220} level="M" includeMargin={false} />
+                    <div className="relative h-[220px] w-[220px]">
+                      <QRCodeSVG
+                        value={transferUrl}
+                        size={220}
+                        // Logo overlay needs higher resilience; H keeps scans reliable.
+                        level="H"
+                        includeMargin={false}
+                      />
+                      <div
+                        className="absolute inset-0 flex items-center justify-center"
+                        aria-hidden
+                      >
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white">
+                          <img
+                            src="/enpunto-simple.svg"
+                            alt=""
+                            className="h-7 w-7"
+                            aria-hidden
+                          />
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex h-[220px] w-[220px] items-center gap-2 text-sm text-gray-600">
                       <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden />

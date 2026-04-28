@@ -69,6 +69,7 @@ describe('Header', () => {
       username: 'u',
       company_name: 'Co',
       company_code: 'X',
+      role: 'company_owner',
     });
 
     await renderHeader();

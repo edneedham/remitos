@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import {
+  canAccessWebManagement,
   clearWebSession,
+  fetchWebProfile,
   fetchWithWebAuth,
   hasWebSession,
   refreshWebSession,
@@ -49,6 +51,14 @@ export default function BillingPageClient() {
       }
 
       await refreshWebSession();
+
+      const profile = await fetchWebProfile();
+      if (cancelled) return;
+      if (!profile || !canAccessWebManagement(profile.role)) {
+        clearWebSession();
+        router.replace('/login');
+        return;
+      }
 
       const res = await fetchWithWebAuth('/auth/me/entitlement');
       if (cancelled) return;

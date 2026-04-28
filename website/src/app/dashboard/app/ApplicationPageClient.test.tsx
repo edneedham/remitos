@@ -10,6 +10,8 @@ const mockGetWebAccessToken = vi.fn();
 const mockGetWebRefreshToken = vi.fn();
 const mockIsLikelyMobileDevice = vi.fn();
 const mockGetPublicSiteOrigin = vi.fn();
+const mockFetchWebProfile = vi.fn();
+const mockCanAccessWebManagement = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -23,6 +25,9 @@ vi.mock('../../lib/webAuth', () => ({
   refreshWebSession: () => mockRefreshWebSession(),
   getWebAccessToken: () => mockGetWebAccessToken(),
   getWebRefreshToken: () => mockGetWebRefreshToken(),
+  fetchWebProfile: () => mockFetchWebProfile(),
+  canAccessWebManagement: (...args: unknown[]) =>
+    mockCanAccessWebManagement(...args),
   clearWebSession: vi.fn(),
 }));
 
@@ -49,6 +54,8 @@ describe('ApplicationPageClient', () => {
     mockHasWebSession.mockReturnValue(true);
     mockRefreshWebSession.mockResolvedValue(true);
     mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
+    mockFetchWebProfile.mockResolvedValue({ role: 'admin' });
+    mockCanAccessWebManagement.mockReturnValue(true);
     mockFetchWithWebAuth.mockImplementation(async () => {
       return new Response(
         JSON.stringify({
@@ -83,6 +90,8 @@ describe('ApplicationPageClient desktop QR transfer', () => {
     mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
     mockIsLikelyMobileDevice.mockReturnValue(false);
     mockGetPublicSiteOrigin.mockReturnValue('https://enpunto.com.ar');
+    mockFetchWebProfile.mockResolvedValue({ role: 'admin' });
+    mockCanAccessWebManagement.mockReturnValue(true);
     mockFetchWithWebAuth.mockImplementation(async () =>
       new Response(
         JSON.stringify({

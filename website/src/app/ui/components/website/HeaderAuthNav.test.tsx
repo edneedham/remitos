@@ -42,6 +42,7 @@ describe('HeaderAuthNav', () => {
       username: 'owner_user',
       company_name: 'Mi Empresa SA',
       company_code: 'MIESA',
+      role: 'company_owner',
     });
 
     const { container } = await renderNav();
@@ -59,6 +60,7 @@ describe('HeaderAuthNav', () => {
       username: 'owner_user',
       company_name: 'Mi Empresa SA',
       company_code: 'MIESA',
+      role: 'company_owner',
     });
 
     await renderNav();
@@ -81,6 +83,7 @@ describe('HeaderAuthNav', () => {
       username: 'u',
       company_name: 'Mi Empresa SA',
       company_code: 'X',
+      role: 'company_owner',
     });
 
     await renderNav();
@@ -102,6 +105,7 @@ describe('HeaderAuthNav', () => {
       username: 'u',
       company_name: 'Mi Empresa SA',
       company_code: 'X',
+      role: 'company_owner',
     });
     mockLogoutWebSession.mockResolvedValue(undefined);
 

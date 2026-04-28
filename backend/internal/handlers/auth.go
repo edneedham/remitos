@@ -635,6 +635,16 @@ type meProfileResponse struct {
 	Username    string `json:"username"`
 	CompanyName string `json:"company_name"`
 	CompanyCode string `json:"company_code"`
+	Role        string `json:"role"`
+}
+
+func canAccessWebManagement(role string) bool {
+	switch role {
+	case models.RoleCompanyOwner, models.RoleWarehouseAdmin, models.RoleReadOnly, "admin":
+		return true
+	default:
+		return false
+	}
 }
 
 // GetMe returns minimal profile details for the authenticated web session.
@@ -642,6 +652,10 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" || claims.CompanyID == "" {
 		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		return
+	}
+	if !canAccessWebManagement(claims.Role) {
+		RespondWithError(w, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
 		return
 	}
 
@@ -690,6 +704,7 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		Username:    username,
 		CompanyName: company.Name,
 		CompanyCode: company.Code,
+		Role:        claims.Role,
 	})
 }
 
@@ -698,6 +713,10 @@ func (h *AuthHandler) GetMeEntitlement(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" || claims.CompanyID == "" {
 		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		return
+	}
+	if !canAccessWebManagement(claims.Role) {
+		RespondWithError(w, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
 		return
 	}
 	companyID, err := uuid.Parse(claims.CompanyID)
@@ -785,6 +804,10 @@ func (h *AuthHandler) GetMeInvoices(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" || claims.CompanyID == "" {
 		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		return
+	}
+	if !canAccessWebManagement(claims.Role) {
+		RespondWithError(w, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
 		return
 	}
 	companyID, err := uuid.Parse(claims.CompanyID)

@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import {
+  canAccessWebManagement,
   clearWebSession,
+  fetchWebProfile,
   fetchWithWebAuth,
   hasWebSession,
   saveWebSession,
@@ -36,6 +38,13 @@ export default function LoginForm() {
       if (cancelled) return;
       if (res.status === 401) {
         clearWebSession();
+        return;
+      }
+      if (res.status === 403) {
+        clearWebSession();
+        setError(
+          'Tu rol no tiene acceso al panel web. Iniciá sesión desde la app móvil.',
+        );
         return;
       }
       if (res.ok) {
@@ -110,6 +119,16 @@ export default function LoginForm() {
       }
 
       saveWebSession(data.token, data.refresh_token);
+
+      const profile = await fetchWebProfile();
+      if (!profile || !canAccessWebManagement(profile.role)) {
+        clearWebSession();
+        setError(
+          'Tu rol no tiene acceso al panel web. Iniciá sesión desde la app móvil.',
+        );
+        return;
+      }
+
       router.push('/dashboard');
       router.refresh();
     } catch {
