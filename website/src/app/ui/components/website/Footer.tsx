@@ -16,6 +16,7 @@ export default function Footer() {
         <p className="text-sm text-gray-400">
           © {new Date().getFullYear()} En Punto. Todos los derechos reservados.
         </p>
+        <p className="text-xs text-gray-400">Disponible para Android.</p>
 
         <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 text-sm">
           <Link
