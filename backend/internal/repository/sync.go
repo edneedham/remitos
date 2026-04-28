@@ -340,6 +340,186 @@ func (r *SyncRepository) GetInboundNotesCountSince(ctx context.Context, companyI
 	return count, err
 }
 
+// CountInboundNotesCreatedInLast30Days returns how many inbound remitos were first recorded
+// (created_at) within the trailing 30-day window. Uses the database clock (UTC).
+func (r *SyncRepository) CountInboundNotesCreatedInLast30Days(ctx context.Context, companyID uuid.UUID) (int64, error) {
+	var count int64
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM inbound_notes
+		WHERE company_id = $1
+		  AND created_at >= NOW() - INTERVAL '30 days'
+	`, companyID).Scan(&count)
+	return count, err
+}
+
+// DocumentUsageSeriesPoint is one calendar day in the month-to-date cumulative series (UTC).
+type DocumentUsageSeriesPoint struct {
+	Date       string `json:"date"`
+	Cumulative int64  `json:"cumulative"`
+}
+
+// InboundNotesMTDCumulativeSeries returns cumulative inbound document counts from the first day of the
+// current UTC calendar month through today, one point per day (missing days carry the previous cumulative).
+func (r *SyncRepository) InboundNotesMTDCumulativeSeries(ctx context.Context, companyID uuid.UUID) (mtdTotal int64, points []DocumentUsageSeriesPoint, err error) {
+	now := time.Now().UTC()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	nextMonthStart := monthStart.AddDate(0, 1, 0)
+
+	rows, err := r.pool.Query(ctx, `
+		SELECT (created_at AT TIME ZONE 'UTC')::date::text AS day, COUNT(*)::bigint
+		FROM inbound_notes
+		WHERE company_id = $1
+		  AND created_at >= $2
+		  AND created_at < $3
+		GROUP BY 1
+		ORDER BY 1
+	`, companyID, monthStart, nextMonthStart)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer rows.Close()
+
+	counts := make(map[string]int64)
+	for rows.Next() {
+		var day string
+		var n int64
+		if err := rows.Scan(&day, &n); err != nil {
+			return 0, nil, err
+		}
+		counts[day] = n
+	}
+	if err := rows.Err(); err != nil {
+		return 0, nil, err
+	}
+
+	points = make([]DocumentUsageSeriesPoint, 0)
+	var cum int64
+	for d := monthStart; !d.After(today); d = d.AddDate(0, 0, 1) {
+		key := d.Format("2006-01-02")
+		cum += counts[key]
+		points = append(points, DocumentUsageSeriesPoint{Date: key, Cumulative: cum})
+	}
+	return cum, points, nil
+}
+
+// WarehouseInboundUsageRow is inbound remito counts per warehouse for the trailing 30-day window.
+type WarehouseInboundUsageRow struct {
+	WarehouseID uuid.UUID `json:"warehouse_id"`
+	Name        string    `json:"name"`
+	Count       int64     `json:"count"`
+}
+
+// ListInboundNotesByWarehouseLast30Days returns each warehouse's share of inbound remitos
+// created in the last 30 days. Rows with zero count are included. When some remitos have no
+// warehouse_id, they are summed under uuid.Nil with name "Sin depósito asignado".
+func (r *SyncRepository) ListInboundNotesByWarehouseLast30Days(ctx context.Context, companyID uuid.UUID) ([]WarehouseInboundUsageRow, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT w.id, w.name, COUNT(inb.id)::bigint
+		FROM warehouses w
+		LEFT JOIN inbound_notes inb
+			ON inb.warehouse_id = w.id
+			AND inb.created_at >= NOW() - INTERVAL '30 days'
+		WHERE w.company_id = $1
+		GROUP BY w.id, w.name
+		ORDER BY w.name ASC
+	`, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make([]WarehouseInboundUsageRow, 0)
+	for rows.Next() {
+		var row WarehouseInboundUsageRow
+		if err := rows.Scan(&row.WarehouseID, &row.Name, &row.Count); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	var orphan int64
+	err = r.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM inbound_notes
+		WHERE company_id = $1
+		  AND warehouse_id IS NULL
+		  AND created_at >= NOW() - INTERVAL '30 days'
+	`, companyID).Scan(&orphan)
+	if err != nil {
+		return nil, err
+	}
+	if orphan > 0 {
+		out = append(out, WarehouseInboundUsageRow{
+			WarehouseID: uuid.Nil,
+			Name:        "Sin depósito asignado",
+			Count:       orphan,
+		})
+	}
+
+	return out, nil
+}
+
+// ListInboundNotesByWarehouseMTD returns inbound note counts per warehouse for the current UTC calendar month
+// (same window as InboundNotesMTDCumulativeSeries). Rows with zero count are included for configured warehouses.
+func (r *SyncRepository) ListInboundNotesByWarehouseMTD(ctx context.Context, companyID uuid.UUID) ([]WarehouseInboundUsageRow, error) {
+	now := time.Now().UTC()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	nextMonthStart := monthStart.AddDate(0, 1, 0)
+
+	rows, err := r.pool.Query(ctx, `
+		SELECT w.id, w.name, COUNT(inb.id)::bigint
+		FROM warehouses w
+		LEFT JOIN inbound_notes inb
+			ON inb.warehouse_id = w.id
+			AND inb.company_id = $1
+			AND inb.created_at >= $2
+			AND inb.created_at < $3
+		WHERE w.company_id = $1
+		GROUP BY w.id, w.name
+		ORDER BY w.name ASC
+	`, companyID, monthStart, nextMonthStart)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make([]WarehouseInboundUsageRow, 0)
+	for rows.Next() {
+		var row WarehouseInboundUsageRow
+		if err := rows.Scan(&row.WarehouseID, &row.Name, &row.Count); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	var orphan int64
+	err = r.pool.QueryRow(ctx, `
+		SELECT COUNT(*)::bigint FROM inbound_notes
+		WHERE company_id = $1
+		  AND warehouse_id IS NULL
+		  AND created_at >= $2
+		  AND created_at < $3
+	`, companyID, monthStart, nextMonthStart).Scan(&orphan)
+	if err != nil {
+		return nil, err
+	}
+	if orphan > 0 {
+		out = append(out, WarehouseInboundUsageRow{
+			WarehouseID: uuid.Nil,
+			Name:        "Sin depósito asignado",
+			Count:       orphan,
+		})
+	}
+
+	return out, nil
+}
+
 func (r *SyncRepository) GetOutboundListsCountSince(ctx context.Context, companyID string, since time.Time) (int, error) {
 	var count int
 	err := r.pool.QueryRow(ctx, `

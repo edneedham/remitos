@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/crypto/bcrypt"
 	"server/internal/models"
 )
 
@@ -60,6 +61,44 @@ func (r *RefreshTokenRepository) GetByHash(ctx context.Context, tokenHash string
 	}
 	token.RevokedAt = revokedAt
 	return &token, nil
+}
+
+func (r *RefreshTokenRepository) GetValidByRawToken(ctx context.Context, rawToken string) (*models.RefreshToken, error) {
+	query := `
+		SELECT id, user_id, token_hash, device_name, expires_at, revoked_at, created_at
+		FROM refresh_tokens
+		WHERE revoked_at IS NULL AND expires_at > NOW()
+	`
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var token models.RefreshToken
+		var revokedAt *time.Time
+		if err := rows.Scan(
+			&token.ID,
+			&token.UserID,
+			&token.TokenHash,
+			&token.DeviceName,
+			&token.ExpiresAt,
+			&revokedAt,
+			&token.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		if bcrypt.CompareHashAndPassword([]byte(token.TokenHash), []byte(rawToken)) == nil {
+			token.RevokedAt = revokedAt
+			return &token, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 func (r *RefreshTokenRepository) Revoke(ctx context.Context, tokenID uuid.UUID) error {

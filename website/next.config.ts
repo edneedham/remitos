@@ -8,6 +8,21 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: websiteRoot,
   },
+  async redirects() {
+    return [
+      { source: '/account', destination: '/dashboard', permanent: true },
+      {
+        source: '/account/:path*',
+        destination: '/dashboard/:path*',
+        permanent: true,
+      },
+      {
+        source: '/download',
+        destination: '/dashboard/app',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     const apiUrl = process.env.API_URL || 'http://localhost:8080';
     return [

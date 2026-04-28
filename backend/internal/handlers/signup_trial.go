@@ -115,18 +115,20 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 	trialEnd := time.Now().UTC().Add(signupTrialDays * 24 * time.Hour)
 	one := 1
 	two := 2
+	docLimit := 3000
 
 	company := &models.Company{
-		ID:            companyID,
-		Code:          companyCode,
-		Name:          companyName,
-		TrialEndsAt:   &trialEnd,
-		MaxWarehouses: &one,
-		MaxUsers:      &two,
-		MpCustomerID:  &customerID,
-		MpCardID:      &cardID,
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
+		ID:                    companyID,
+		Code:                  companyCode,
+		Name:                  companyName,
+		TrialEndsAt:           &trialEnd,
+		MaxWarehouses:         &one,
+		MaxUsers:              &two,
+		DocumentsMonthlyLimit: &docLimit,
+		MpCustomerID:          &customerID,
+		MpCardID:              &cardID,
+		CreatedAt:             time.Now(),
+		UpdatedAt:             time.Now(),
 	}
 
 	warehouse := &repository.Warehouse{

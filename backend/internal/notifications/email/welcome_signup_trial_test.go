@@ -16,7 +16,7 @@ func TestSignupTrialWelcome_HTMLContainsCompanyCodeAndLinks(t *testing.T) {
 	if !strings.Contains(m.HTMLBody, "ACME") {
 		t.Fatal("missing company code in HTML")
 	}
-	if !strings.Contains(m.HTMLBody, `href="https://site.example/account"`) {
+	if !strings.Contains(m.HTMLBody, `href="https://site.example/dashboard"`) {
 		t.Fatal("missing account link")
 	}
 	if !strings.Contains(m.TextBody, "https://site.example/download") {

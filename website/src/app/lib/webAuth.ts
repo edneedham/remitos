@@ -3,6 +3,24 @@ import { getApiBaseUrl } from './apiUrl';
 const ACCESS_KEY = 'enpunto_web_access_token';
 const REFRESH_KEY = 'enpunto_web_refresh_token';
 
+export type WebProfile = {
+  username: string;
+  company_name: string;
+  company_code: string;
+  role: string;
+};
+
+export const WEB_ALLOWED_ROLES = [
+  'company_owner',
+  'warehouse_admin',
+  'read_only',
+  'admin',
+] as const;
+
+export function canAccessWebManagement(role: string): boolean {
+  return (WEB_ALLOWED_ROLES as readonly string[]).includes(role);
+}
+
 export function saveWebSession(accessToken: string, refreshToken: string): void {
   if (typeof window === 'undefined') return;
   sessionStorage.setItem(ACCESS_KEY, accessToken);
@@ -97,4 +115,30 @@ export async function fetchWithWebAuth(path: string): Promise<Response> {
   }
 
   return res;
+}
+
+/** Returns null when session is invalid or profile cannot be loaded. */
+export async function fetchWebProfile(): Promise<WebProfile | null> {
+  const res = await fetchWithWebAuth('/auth/me');
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearWebSession();
+    }
+    return null;
+  }
+  const body = (await res.json().catch(() => ({}))) as Partial<WebProfile>;
+  if (
+    typeof body.username !== 'string' ||
+    typeof body.company_name !== 'string' ||
+    typeof body.company_code !== 'string' ||
+    typeof body.role !== 'string'
+  ) {
+    return null;
+  }
+  return {
+    username: body.username,
+    company_name: body.company_name,
+    company_code: body.company_code,
+    role: body.role,
+  };
 }

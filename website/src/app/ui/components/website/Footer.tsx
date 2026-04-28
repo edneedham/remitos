@@ -1,7 +1,15 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 
 export default function Footer() {
+  const pathname = usePathname();
+  if (pathname.startsWith('/dashboard')) {
+    return null;
+  }
+
   return (
     <footer className="bg-gray-800 text-white p-6">
       <div className="mx-auto flex w-full max-w-site-chrome flex-col items-center justify-between space-y-4 px-4 sm:px-6 md:flex-row md:space-y-0 lg:px-8">
