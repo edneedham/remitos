@@ -35,7 +35,22 @@ describe('DashboardPageClient', () => {
     mockHasWebSession.mockReturnValue(true);
     mockRefreshWebSession.mockResolvedValue(true);
     mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
-    mockFetchWithWebAuth.mockImplementation(async () => {
+    mockFetchWithWebAuth.mockImplementation(async (path: unknown) => {
+      if (path === '/auth/me/invoices') {
+        return new Response(
+          JSON.stringify([
+            {
+              id: '33333333-3333-3333-3333-333333333333',
+              amount_minor: 10050,
+              currency: 'ARS',
+              status: 'paid',
+              description: 'Suscripción mensual',
+              issued_at: '2025-06-01T14:30:00.000Z',
+            },
+          ]),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
       return new Response(
         JSON.stringify({
           can_download_app: true,
@@ -70,7 +85,7 @@ describe('DashboardPageClient', () => {
     });
   });
 
-  it('shows KPIs and document usage after entitlement loads; billing lives elsewhere', async () => {
+  it('shows KPIs, charts, and invoices after entitlement loads', async () => {
     await renderDashboardPageClient();
 
     expect(screen.queryByRole('heading', { name: 'Facturación' })).not.toBeInTheDocument();
@@ -96,6 +111,9 @@ describe('DashboardPageClient', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Central')).toBeInTheDocument();
     expect(screen.getByText('Norte')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Facturas' })).toBeInTheDocument();
+    expect(screen.getByText('Suscripción mensual')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Descargar factura/i })).toBeInTheDocument();
 
     expect(
       screen.queryByRole('heading', { name: 'Administración de cuenta' }),
@@ -112,10 +130,10 @@ describe('DashboardPageClient', () => {
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/login'));
   });
 
-  it('does not fetch invoices', async () => {
+  it('fetches invoices for the dashboard invoice section', async () => {
     await renderDashboardPageClient();
     await screen.findByRole('heading', { name: 'Depósitos' });
     expect(mockFetchWithWebAuth).toHaveBeenCalledWith('/auth/me/entitlement');
-    expect(mockFetchWithWebAuth).not.toHaveBeenCalledWith('/auth/me/invoices');
+    expect(mockFetchWithWebAuth).toHaveBeenCalledWith('/auth/me/invoices');
   });
 });

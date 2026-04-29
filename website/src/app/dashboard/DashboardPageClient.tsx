@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BadgeCheck, Loader2, ScanLine, Smartphone, Warehouse } from 'lucide-react';
+import {
+  BadgeCheck,
+  Download,
+  Loader2,
+  ScanLine,
+  Smartphone,
+  Warehouse,
+} from 'lucide-react';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import {
   canAccessWebManagement,
@@ -17,13 +24,20 @@ import {
   deriveBillingPresentation,
   formatPlanLabel,
 } from './lib/billingPresentation';
-import type { Entitlement } from './lib/entitlementTypes';
+import type { BillingInvoiceRow, Entitlement } from './lib/entitlementTypes';
+import {
+  formatInvoiceDate,
+  formatInvoiceMoney,
+  invoiceStatusLabel,
+} from './lib/invoiceFormat';
 
 export default function DashboardPageClient() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [invoices, setInvoices] = useState<BillingInvoiceRow[]>([]);
+  const [invoicesError, setInvoicesError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!hasWebSession()) {
@@ -76,6 +90,24 @@ export default function DashboardPageClient() {
 
       const data = (await res.json()) as Entitlement;
       setEntitlement(data);
+
+      const invRes = await fetchWithWebAuth('/auth/me/invoices');
+      if (cancelled) return;
+      if (invRes.status === 401) {
+        clearWebSession();
+        router.replace('/login');
+        return;
+      }
+      if (!invRes.ok) {
+        setInvoicesError(
+          'No se pudieron cargar las facturas. Probá de nuevo más tarde.',
+        );
+        setInvoices([]);
+      } else {
+        const raw = (await invRes.json()) as unknown;
+        setInvoicesError(null);
+        setInvoices(Array.isArray(raw) ? (raw as BillingInvoiceRow[]) : []);
+      }
       setReady(true);
     }
 
@@ -95,6 +127,26 @@ export default function DashboardPageClient() {
 
   const now = Date.now();
   const billing = deriveBillingPresentation(entitlement, now);
+  const handleDownloadInvoice = (invoice: BillingInvoiceRow) => {
+    const lines = [
+      `Factura: ${invoice.id}`,
+      `Fecha: ${formatInvoiceDate(invoice.issued_at)}`,
+      `Importe: ${formatInvoiceMoney(invoice.amount_minor, invoice.currency)}`,
+      `Estado: ${invoiceStatusLabel(invoice.status)}`,
+      `Concepto: ${invoice.description?.trim() ? invoice.description : '—'}`,
+    ];
+    const blob = new Blob([`${lines.join('\n')}\n`], {
+      type: 'text/plain;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `factura-${invoice.id}.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6">
@@ -242,6 +294,92 @@ export default function DashboardPageClient() {
               }),
             )}
           />
+        ) : null}
+
+        {entitlement ? (
+          <section
+            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            aria-labelledby="invoices-heading"
+          >
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+              <h2 id="invoices-heading" className="text-base font-semibold text-gray-900">
+                Facturas
+              </h2>
+              <p className="text-xs text-gray-500 sm:text-sm">
+                Descargá el detalle de cada comprobante.
+              </p>
+            </div>
+
+            {invoicesError ? (
+              <p
+                className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                role="alert"
+              >
+                {invoicesError}
+              </p>
+            ) : null}
+
+            {!invoicesError && invoices.length === 0 ? (
+              <p className="mt-4 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-600">
+                Todavía no hay facturas para mostrar.
+              </p>
+            ) : null}
+
+            {!invoicesError && invoices.length > 0 ? (
+              <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200">
+                <table className="w-full min-w-[52rem] text-left text-sm">
+                  <thead className="border-b border-gray-200 bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-4 py-3 font-semibold text-gray-700">
+                        Fecha
+                      </th>
+                      <th scope="col" className="px-4 py-3 font-semibold text-gray-700">
+                        Importe
+                      </th>
+                      <th scope="col" className="px-4 py-3 font-semibold text-gray-700">
+                        Estado
+                      </th>
+                      <th scope="col" className="px-4 py-3 font-semibold text-gray-700">
+                        Concepto
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-right font-semibold text-gray-700">
+                        Descargar
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                    {invoices.map((inv) => (
+                      <tr key={inv.id}>
+                        <td className="whitespace-nowrap px-4 py-3 text-gray-900">
+                          {formatInvoiceDate(inv.issued_at)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 tabular-nums text-gray-900">
+                          {formatInvoiceMoney(inv.amount_minor, inv.currency)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-gray-900">
+                          {invoiceStatusLabel(inv.status)}
+                        </td>
+                        <td className="max-w-[20rem] px-4 py-3 text-gray-700">
+                          {inv.description?.trim() ? inv.description : '—'}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadInvoice(inv)}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50"
+                            aria-label={`Descargar factura ${inv.id}`}
+                          >
+                            <Download className="h-4 w-4" aria-hidden />
+                            Descargar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+          </section>
         ) : null}
 
         {error && (

@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: websiteRoot,
   },
+  devIndicators: false,
   async redirects() {
     return [
       { source: '/account', destination: '/dashboard', permanent: true },
