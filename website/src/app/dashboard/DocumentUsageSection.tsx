@@ -37,6 +37,75 @@ const WAREHOUSE_ROW_BAR_FILLS = [
   'bg-cyan-600',
 ] as const;
 
+function utcYmd(d: Date): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function daysInUtcMonth(year: number, monthIndex0: number): number {
+  return new Date(Date.UTC(year, monthIndex0 + 1, 0)).getUTCDate();
+}
+
+/** One row per calendar day in the month; cumulative forward-filled through today, null on future days. */
+function buildMonthChartData(
+  series: DocumentUsageSeriesPoint[],
+  limitValue: number | null,
+): Array<{
+  date: string;
+  cumulative: number | null;
+  limitLine: number | undefined;
+}> {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const monthIndex = now.getUTCMonth();
+  const monthPrefix = `${year}-${String(monthIndex + 1).padStart(2, '0')}-`;
+  const inMonth = series.filter((p) => p.date.startsWith(monthPrefix));
+  const sorted = [...inMonth].sort((a, b) => a.date.localeCompare(b.date));
+  const lastDay = daysInUtcMonth(year, monthIndex);
+  const todayStr = utcYmd(now);
+
+  const byDate = new Map(
+    sorted.map((p) => [p.date, Number(p.cumulative)]),
+  );
+
+  const out: Array<{
+    date: string;
+    cumulative: number | null;
+    limitLine: number | undefined;
+  }> = [];
+
+  let lastCumulative = 0;
+  for (let day = 1; day <= lastDay; day++) {
+    const mm = String(monthIndex + 1).padStart(2, '0');
+    const dd = String(day).padStart(2, '0');
+    const dateStr = `${year}-${mm}-${dd}`;
+    const isFuture = dateStr > todayStr;
+
+    if (isFuture) {
+      out.push({
+        date: dateStr,
+        cumulative: null,
+        limitLine: limitValue != null ? limitValue : undefined,
+      });
+      continue;
+    }
+
+    if (byDate.has(dateStr)) {
+      lastCumulative = byDate.get(dateStr)!;
+    }
+
+    out.push({
+      date: dateStr,
+      cumulative: lastCumulative,
+      limitLine: limitValue != null ? limitValue : undefined,
+    });
+  }
+
+  return out;
+}
+
 export default function DocumentUsageSection({
   mtd,
   limit,
@@ -46,22 +115,30 @@ export default function DocumentUsageSection({
   const limitValue = limit != null && Number.isFinite(limit) ? limit : null;
   const limitDisplay = limitValue != null ? limitValue : '—';
 
-  const chartData = series.map((p) => ({
-    date: p.date,
-    cumulative: Number(p.cumulative),
-    limitLine: limitValue != null ? limitValue : undefined,
-  }));
+  const chartData = buildMonthChartData(series, limitValue);
 
-  const maxY = Math.max(
-    ...chartData.map((d) => d.cumulative),
-    limitValue ?? 0,
+  const yTickCount = 6;
+  const seriesMax = Math.max(
+    ...chartData.map((d) => (d.cumulative != null ? d.cumulative : 0)),
+    0,
     1,
   );
-  const yMax = Math.ceil(maxY * 1.05);
+  const maxSeriesValue = seriesMax;
+  const yMax = limitValue != null && limitValue > 0 ? limitValue : maxSeriesValue;
+  const yStep =
+    limitValue != null && limitValue > 0
+      ? limitValue / (yTickCount - 1)
+      : Math.max(1, Math.ceil(maxSeriesValue / (yTickCount - 1)));
+  const yTicks = Array.from({ length: yTickCount }, (_, index) => {
+    const tickValue = index * yStep;
+    return limitValue != null && limitValue > 0
+      ? Number(tickValue.toFixed(2))
+      : tickValue;
+  });
 
   const formatDay = (d: string) => {
     const x = new Date(`${d}T12:00:00.000Z`);
-    return x.toLocaleDateString('es-AR', { day: 'numeric', timeZone: 'UTC' });
+    return x.toLocaleDateString('es-AR', { day: '2-digit', timeZone: 'UTC' });
   };
 
   const monthAxisLabel =
@@ -127,12 +204,7 @@ export default function DocumentUsageSection({
         </div>
 
         <div className="mt-4 min-h-[260px] flex-1 w-full min-w-0">
-          {chartData.length === 0 ? (
-            <p className="flex h-full min-h-[260px] items-center justify-center text-sm text-gray-500">
-              No hay datos de uso para este mes.
-            </p>
-          ) : (
-            <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={260}>
               <LineChart
                 data={chartData}
                 margin={{ top: 8, right: 12, left: 8, bottom: 18 }}
@@ -145,9 +217,15 @@ export default function DocumentUsageSection({
                 <XAxis
                   dataKey="date"
                   tickFormatter={formatDay}
-                  tick={{ fontSize: 11 }}
+                  tick={{
+                    fontSize: 11,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                  interval="equidistantPreserveStart"
+                  minTickGap={14}
                   stroke="#9ca3af"
                   height={64}
+                  tickMargin={10}
                   label={{
                     value: monthAxisLabel,
                     position: 'insideBottom',
@@ -162,10 +240,20 @@ export default function DocumentUsageSection({
                 />
                 <YAxis
                   domain={[0, yMax]}
+                  ticks={yTicks}
                   allowDecimals={false}
-                  tick={{ fontSize: 11 }}
+                  tick={{
+                    fontSize: 11,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                  tickFormatter={(value) =>
+                    typeof value === 'number'
+                      ? value.toLocaleString('es-AR')
+                      : String(value)
+                  }
                   stroke="#9ca3af"
                   width={56}
+                  tickMargin={10}
                   label={{
                     value: 'Documentos',
                     angle: -90,
@@ -187,11 +275,15 @@ export default function DocumentUsageSection({
                     typeof label === 'string' ? formatDay(label) : String(label)
                   }
                   formatter={(value, name) => {
-                    const v = typeof value === 'number' ? value : Number(value);
                     if (name === 'limitLine') {
+                      const v = typeof value === 'number' ? value : Number(value);
                       return [v, 'Límite del plan'];
                     }
-                    return [v, 'Documentos'];
+                    if (value == null || value === '') {
+                      return ['—', 'Documentos'];
+                    }
+                    const v = typeof value === 'number' ? value : Number(value);
+                    return [Number.isFinite(v) ? v : '—', 'Documentos'];
                   }}
                 />
                 <Line
@@ -202,6 +294,7 @@ export default function DocumentUsageSection({
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 4 }}
+                  connectNulls={false}
                   isAnimationActive={false}
                 />
                 {limitValue != null ? (
@@ -218,7 +311,6 @@ export default function DocumentUsageSection({
                 ) : null}
               </LineChart>
             </ResponsiveContainer>
-          )}
         </div>
       </div>
 

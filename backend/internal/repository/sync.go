@@ -358,8 +358,10 @@ type DocumentUsageSeriesPoint struct {
 	Cumulative int64  `json:"cumulative"`
 }
 
-// InboundNotesMTDCumulativeSeries returns cumulative inbound document counts from the first day of the
-// current UTC calendar month through today, one point per day (missing days carry the previous cumulative).
+// InboundNotesMTDCumulativeSeries returns cumulative inbound document totals at the start of each UTC
+// calendar day from the first day of the month through today. Day 1 is always 0; day 2 includes all
+// counts from day 1, and so on. The returned mtdTotal is still the full month-to-date sum through today
+// (same as the cumulative value after processing today's counts).
 func (r *SyncRepository) InboundNotesMTDCumulativeSeries(ctx context.Context, companyID uuid.UUID) (mtdTotal int64, points []DocumentUsageSeriesPoint, err error) {
 	now := time.Now().UTC()
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
@@ -397,8 +399,8 @@ func (r *SyncRepository) InboundNotesMTDCumulativeSeries(ctx context.Context, co
 	var cum int64
 	for d := monthStart; !d.After(today); d = d.AddDate(0, 0, 1) {
 		key := d.Format("2006-01-02")
-		cum += counts[key]
 		points = append(points, DocumentUsageSeriesPoint{Date: key, Cumulative: cum})
+		cum += counts[key]
 	}
 	return cum, points, nil
 }

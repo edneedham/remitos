@@ -18,7 +18,7 @@ export default function Header() {
           <div className="flex shrink-0 items-center">
             <Link
               href="/"
-              className="flex items-center text-xl font-bold text-blue-600"
+              className="flex items-center rounded-md text-xl font-bold text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-2"
               prefetch={false}
             >
               <Image
