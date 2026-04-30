@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import {
   canAccessWebManagement,
@@ -18,6 +19,7 @@ import {
   formatPlanLabel,
 } from './lib/billingPresentation';
 import type { BillingInvoiceRow, Entitlement } from './lib/entitlementTypes';
+import { getPlanById } from '../lib/planCatalog';
 import {
   formatInvoiceDate,
   formatInvoiceMoney,
@@ -121,6 +123,32 @@ export default function BillingPageClient() {
 
   const now = Date.now();
   const billing = deriveBillingPresentation(entitlement, now);
+  const planCatalogEntry = getPlanById(entitlement?.subscription_plan);
+  const currentPlanName = planCatalogEntry?.name ?? formatPlanLabel(entitlement?.subscription_plan);
+  const currentPlanPrice = planCatalogEntry?.monthlyPriceLabel ?? 'A definir';
+  const currentPlanIncludes = planCatalogEntry?.perks ?? ['Sin detalle disponible'];
+  const currentPlanOverage = planCatalogEntry?.overageLabel ?? 'A confirmar';
+  const docsUsed = entitlement?.documents_usage_mtd ?? 0;
+  const docsLimit = entitlement?.documents_monthly_limit;
+  const docsRemaining =
+    typeof docsLimit === 'number' ? Math.max(docsLimit - docsUsed, 0) : null;
+  const utilizationPct =
+    typeof docsLimit === 'number' && docsLimit > 0
+      ? Math.min((docsUsed / docsLimit) * 100, 100)
+      : null;
+  const nowDate = new Date();
+  const dayOfMonth = nowDate.getDate();
+  const daysInMonth = new Date(
+    nowDate.getFullYear(),
+    nowDate.getMonth() + 1,
+    0,
+  ).getDate();
+  const projectedMonthEndDocs =
+    dayOfMonth > 0 ? Math.round((docsUsed / dayOfMonth) * daysInMonth) : docsUsed;
+  const projectedOverage =
+    typeof docsLimit === 'number'
+      ? Math.max(projectedMonthEndDocs - docsLimit, 0)
+      : null;
 
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6">
@@ -229,6 +257,91 @@ export default function BillingPageClient() {
                 </dd>
               </div>
             </dl>
+
+            <div className="mt-8 border-t border-gray-100 pt-6">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Tu plan actual
+              </h3>
+              <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                <article className="rounded-lg border border-gray-200 bg-gray-50 p-4 lg:col-span-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Plan
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-gray-900">
+                    {currentPlanName}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    {currentPlanPrice} / mes + IVA
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Facturado en pesos argentinos.
+                  </p>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Excedentes: {currentPlanOverage}
+                  </p>
+                  <Link
+                    href="/pricing"
+                    className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                  >
+                    Mejorar plan
+                  </Link>
+                </article>
+
+                <article className="rounded-lg border border-gray-200 bg-white p-4 lg:col-span-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Uso actual
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-gray-900">
+                    {docsUsed.toLocaleString('es-AR')}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    documentos en el mes
+                  </p>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {typeof docsLimit === 'number'
+                      ? `${docsRemaining?.toLocaleString('es-AR')} restantes de ${docsLimit.toLocaleString('es-AR')}`
+                      : 'Sin límite mensual configurado'}
+                  </p>
+                  {typeof utilizationPct === 'number' && (
+                    <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                      <div
+                        className="h-full bg-blue-600"
+                        style={{ width: `${utilizationPct}%` }}
+                      />
+                    </div>
+                  )}
+                </article>
+
+                <article className="rounded-lg border border-gray-200 bg-white p-4 lg:col-span-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Proyección
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-gray-900">
+                    {projectedMonthEndDocs.toLocaleString('es-AR')}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    documentos estimados al cierre
+                  </p>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {projectedOverage && projectedOverage > 0
+                      ? `Excedente estimado: ${projectedOverage.toLocaleString('es-AR')} documentos`
+                      : 'Sin excedente estimado al ritmo actual'}
+                  </p>
+                </article>
+              </div>
+              <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Incluye
+                </p>
+                <ul className="mt-2 grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
+                  {currentPlanIncludes.map((item) => (
+                    <li key={item} className="rounded bg-white px-3 py-2">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
 
             <div className="mt-8 border-t border-gray-100 pt-6">
               <h3 className="text-sm font-semibold text-gray-900">

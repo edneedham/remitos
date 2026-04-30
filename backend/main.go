@@ -107,7 +107,7 @@ func main() {
 		imageHandler = nil
 	}
 
-	syncHandler := handlers.NewSyncHandler(syncRepo)
+	syncHandler := handlers.NewSyncHandler(syncRepo, companyRepo)
 
 	h := chi.NewRouter()
 

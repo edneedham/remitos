@@ -15,7 +15,7 @@ export default function Header() {
     <header className="relative z-10 bg-white shadow-sm">
       <div className="mx-auto w-full max-w-[80vw] px-4 sm:px-6 lg:px-8">
         <div className="flex h-24 items-center justify-between gap-3">
-          <div className="flex shrink-0 items-center">
+          <div className="flex shrink-0 items-center gap-10">
             <Link
               href="/"
               className="flex items-center rounded-md text-xl font-bold text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-2"
@@ -30,6 +30,12 @@ export default function Header() {
                 priority
                 unoptimized
               />
+            </Link>
+            <Link
+              href="/pricing"
+              className="text-sm font-semibold text-gray-700 transition-colors hover:text-gray-900"
+            >
+              Precios
             </Link>
           </div>
           <HeaderAuthNav />

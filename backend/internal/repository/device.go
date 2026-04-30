@@ -148,6 +148,14 @@ func (r *DeviceRepository) CountByCompanyID(ctx context.Context, companyID uuid.
 	return n, err
 }
 
+func (r *DeviceRepository) CountByWarehouseID(ctx context.Context, warehouseID uuid.UUID) (int64, error) {
+	var n int64
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM devices WHERE warehouse_id = $1
+	`, warehouseID).Scan(&n)
+	return n, err
+}
+
 func (r *DeviceRepository) ListByCompany(ctx context.Context, companyID uuid.UUID) ([]models.Device, error) {
 	query := `
 		SELECT id, company_id, warehouse_id, device_uuid, platform, model, 

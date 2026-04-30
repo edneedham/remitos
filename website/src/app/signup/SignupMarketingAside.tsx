@@ -25,11 +25,11 @@ export default function SignupMarketingAside() {
           </h2>
           <p className="text-base leading-relaxed text-white/90">
             Probá En Punto con{' '}
-            <strong className="font-semibold text-white">1 empresa</strong>,{' '}
-            <strong className="font-semibold text-white">1 depósito</strong> y hasta{' '}
-            <strong className="font-semibold text-white">2 usuarios</strong>. Podés
-            cargar una tarjeta para el cobro después de la prueba —{' '}
-            <span className="font-medium text-white">no se cobra durante los 7 días</span>.
+            <strong className="font-semibold text-white">1 empresa</strong>, hasta{' '}
+            <strong className="font-semibold text-white">2 depósitos</strong>,{' '}
+            <strong className="font-semibold text-white">1 dispositivo por depósito</strong>{' '}
+            y hasta <strong className="font-semibold text-white">500 documentos</strong>{' '}
+            durante 7 días gratis.
           </p>
         </header>
 

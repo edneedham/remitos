@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -13,27 +12,18 @@ import (
 	"server/internal/logger"
 	"server/internal/models"
 	notifymail "server/internal/notifications/email"
-	"server/internal/payments/mercadopago"
 	"server/internal/repository"
 	"server/internal/validation"
 )
 
-const signupTrialDays = 7
+const (
+	signupTrialDays          = 7
+	signupTrialMaxWarehouses = 2
+	signupTrialMaxUsers      = 2
+	signupTrialDocsLimit     = 500
+)
 
-var errCardTokenRequired = errors.New("card token required")
-
-func resolveSignupCardToken(cardToken string, allowMock bool) (string, error) {
-	if cardToken != "" {
-		return cardToken, nil
-	}
-	if !allowMock {
-		return "", errCardTokenRequired
-	}
-	return "mock_card_token", nil
-}
-
-// SignupTrial creates one company (trial), one warehouse, the first user (company_owner), subscription row,
-// and stores Mercado Pago customer + saved card for charging after the trial. No payment is taken.
+// SignupTrial creates one company (trial), one warehouse, the first user (company_owner), and subscription row.
 func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 	var req models.SignupTrialRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -45,12 +35,6 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
 		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
-		return
-	}
-
-	cardToken, err := resolveSignupCardToken(req.CardToken, h.signupAllowMock)
-	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Token de tarjeta requerido", http.StatusBadRequest)
 		return
 	}
 
@@ -77,19 +61,6 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var customerID, cardID string
-	if h.signupAllowMock && (cardToken == "" || cardToken == "mock_card_token") {
-		customerID = mercadopago.StubCustomerID
-		cardID = mercadopago.StubCardID
-	} else {
-		customerID, cardID, err = h.mp.SaveCard(ctx, email, cardToken)
-		if err != nil {
-			logger.Log.Error().Err(err).Msg("signup trial: mercado pago")
-			RespondWithError(w, ErrCodeInvalidRequest, "No pudimos validar la tarjeta. Revisá los datos o probá otra tarjeta.", http.StatusBadRequest)
-			return
-		}
-	}
-
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("signup trial: hash password")
@@ -113,20 +84,18 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 	warehouseID := uuid.New()
 	userID := uuid.New()
 	trialEnd := time.Now().UTC().Add(signupTrialDays * 24 * time.Hour)
-	one := 1
-	two := 2
-	docLimit := 3000
+	maxWarehouses := signupTrialMaxWarehouses
+	maxUsers := signupTrialMaxUsers
+	docLimit := signupTrialDocsLimit
 
 	company := &models.Company{
 		ID:                    companyID,
 		Code:                  companyCode,
 		Name:                  companyName,
 		TrialEndsAt:           &trialEnd,
-		MaxWarehouses:         &one,
-		MaxUsers:              &two,
+		MaxWarehouses:         &maxWarehouses,
+		MaxUsers:              &maxUsers,
 		DocumentsMonthlyLimit: &docLimit,
-		MpCustomerID:          &customerID,
-		MpCardID:              &cardID,
 		CreatedAt:             time.Now(),
 		UpdatedAt:             time.Now(),
 	}
@@ -241,8 +210,8 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		CompanyID:     companyID.String(),
 		CompanyCode:   companyCode,
 		TrialEndsAt:   trialEnd.Format(time.RFC3339),
-		MaxWarehouses: one,
-		MaxUsers:      two,
+		MaxWarehouses: maxWarehouses,
+		MaxUsers:      maxUsers,
 		Token:         token,
 		RefreshToken:  refreshToken,
 		ExpiresIn:     900,

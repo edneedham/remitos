@@ -158,3 +158,33 @@ func (r *CompanyRepository) CreateTrial(ctx context.Context, company *models.Com
 	)
 	return err
 }
+
+func (r *CompanyRepository) UpdateSignupPlan(
+	ctx context.Context,
+	companyID uuid.UUID,
+	plan string,
+	maxWarehouses *int,
+	maxUsers *int,
+	documentsMonthlyLimit *int,
+) error {
+	query := `
+		UPDATE companies
+		SET
+			subscription_plan = $2,
+			max_warehouses = $3,
+			max_users = $4,
+			documents_monthly_limit = $5,
+			updated_at = NOW()
+		WHERE id = $1
+	`
+	_, err := r.pool.Exec(
+		ctx,
+		query,
+		companyID,
+		plan,
+		maxWarehouses,
+		maxUsers,
+		documentsMonthlyLimit,
+	)
+	return err
+}

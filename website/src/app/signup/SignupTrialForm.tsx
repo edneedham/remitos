@@ -2,19 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  CardNumber,
-  createCardToken,
-  ExpirationDate,
-  getIdentificationTypes,
-  initMercadoPago,
-  SecurityCode,
-} from '@mercadopago/sdk-react';
-import { ArrowRight, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import {
-  validateCardholderName,
-  validateIdNumber,
   SIGNUP_TRIAL_API_FIELD_MAP,
   validateSignupTrialAccount,
   validateSignupTrialAccountField,
@@ -22,12 +12,6 @@ import {
   type SignupTrialAccountField,
 } from '../lib/validations/signupTrial';
 import { saveWebSession } from '../lib/webAuth';
-import MercadoPagoLogo from './MercadoPagoLogo';
-
-type IdType = { id: string; name: string };
-
-const useMockPayment =
-  process.env.NEXT_PUBLIC_SIGNUP_USE_MOCK_PAYMENT === 'true';
 
 export type SignupTrialFormVariant = 'card' | 'embedded';
 
@@ -63,42 +47,25 @@ function scrollAndFocusById(elementId: string) {
   });
 }
 
-function scrollErrorAlertIntoView() {
-  document.getElementById('signup-form-alert')?.scrollIntoView({
-    behavior: 'smooth',
-    block: 'center',
-  });
-}
-
 export default function SignupTrialForm({
   variant = 'card',
+  onSignupSuccess,
 }: {
   variant?: SignupTrialFormVariant;
+  onSignupSuccess?: () => void;
 }) {
   const router = useRouter();
-  const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY ?? '';
-  const [mpReady, setMpReady] = useState(false);
-  const [idTypes, setIdTypes] = useState<IdType[]>([]);
 
   const [companyName, setCompanyName] = useState('');
   const [companyCode, setCompanyCode] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [cardholderName, setCardholderName] = useState('');
-  const [idType, setIdType] = useState('DNI');
-  const [idNumber, setIdNumber] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accountFieldErrors, setAccountFieldErrors] =
     useState<SignupTrialAccountErrors>({});
-  const [paymentFieldErrors, setPaymentFieldErrors] = useState<{
-    cardholderName?: string;
-    idNumber?: string;
-  }>({});
-  const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
-  const paymentSectionRef = useRef<HTMLDivElement>(null);
 
   const accountValuesRef = useRef({
     companyName,
@@ -119,77 +86,18 @@ export default function SignupTrialForm({
     Partial<Record<SignupTrialAccountField, ReturnType<typeof setTimeout>>>
   >({});
 
-  const paymentValuesRef = useRef({ cardholderName, idNumber });
-  paymentValuesRef.current = { cardholderName, idNumber };
-
-  const paymentDebounceTimersRef = useRef<
-    Partial<
-      Record<'cardholderName' | 'idNumber', ReturnType<typeof setTimeout>>
-    >
-  >({});
-
-  useEffect(() => {
-    if (useMockPayment || !publicKey) {
-      setMpReady(true);
-      return;
-    }
-    initMercadoPago(publicKey);
-    setMpReady(true);
-    getIdentificationTypes()
-      .then((types) => {
-        if (Array.isArray(types) && types.length > 0) {
-          setIdTypes(types as IdType[]);
-          const first = types[0] as IdType;
-          if (first?.id) {
-            setIdType(String(first.id));
-          }
-        }
-      })
-      .catch(() => {
-        setIdTypes([{ id: 'DNI', name: 'DNI' }]);
-      });
-  }, [publicKey]);
-
-  useEffect(() => {
-    if (!paymentSectionOpen) return;
-    const el = paymentSectionRef.current;
-    if (!el) return;
-    const id = window.setTimeout(() => {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 80);
-    return () => window.clearTimeout(id);
-  }, [paymentSectionOpen]);
-
   useEffect(() => {
     const accountTimers = accountDebounceTimersRef.current;
-    const paymentTimers = paymentDebounceTimersRef.current;
     return () => {
       Object.values(accountTimers).forEach((t) => {
-        if (t) clearTimeout(t);
-      });
-      Object.values(paymentTimers).forEach((t) => {
         if (t) clearTimeout(t);
       });
     };
   }, []);
 
-  const paymentSectionValid = useMemo(() => {
-    const hasTitular =
-      cardholderName.trim().length > 0 && idNumber.trim().length > 0;
-    if (useMockPayment) return hasTitular;
-    if (!publicKey || !mpReady) return false;
-    return hasTitular;
-  }, [useMockPayment, publicKey, mpReady, cardholderName, idNumber]);
-
-  /** Mercado Pago no listo o falta clave pública (salvo modo mock). */
-  const mpBlocksSubmit = useMemo(
-    () => !useMockPayment && (!Boolean(publicKey) || !mpReady),
-    [mpReady, publicKey, useMockPayment],
-  );
-
   const canSubmit = useMemo(
-    () => !loading && !mpBlocksSubmit,
-    [loading, mpBlocksSubmit],
+    () => !loading,
+    [loading],
   );
 
   const scrollFirstAccountErrorIntoView = useCallback(
@@ -226,17 +134,6 @@ export default function SignupTrialForm({
     }
   }, []);
 
-  const cancelAllPaymentDebounces = useCallback(() => {
-    const timers = paymentDebounceTimersRef.current;
-    for (const key of ['cardholderName', 'idNumber'] as const) {
-      const t = timers[key];
-      if (t) {
-        clearTimeout(t);
-        delete timers[key];
-      }
-    }
-  }, []);
-
   const applyDebouncedAccountFieldValidation = useCallback(
     (field: SignupTrialAccountField) => {
       const values = accountValuesRef.current;
@@ -267,46 +164,6 @@ export default function SignupTrialForm({
       }, VALIDATION_DEBOUNCE_MS);
     },
     [applyDebouncedAccountFieldValidation],
-  );
-
-  const cancelPaymentFieldDebounce = useCallback(
-    (field: 'cardholderName' | 'idNumber') => {
-      const t = paymentDebounceTimersRef.current[field];
-      if (t) {
-        clearTimeout(t);
-        delete paymentDebounceTimersRef.current[field];
-      }
-    },
-    [],
-  );
-
-  const applyDebouncedPaymentFieldValidation = useCallback(
-    (field: 'cardholderName' | 'idNumber') => {
-      const v = paymentValuesRef.current;
-      const err =
-        field === 'cardholderName'
-          ? validateCardholderName(v.cardholderName)
-          : validateIdNumber(v.idNumber);
-      setPaymentFieldErrors((prev) => {
-        const next = { ...prev };
-        if (err) next[field] = err;
-        else delete next[field];
-        return next;
-      });
-    },
-    [],
-  );
-
-  const scheduleDebouncedPaymentValidation = useCallback(
-    (field: 'cardholderName' | 'idNumber') => {
-      const prev = paymentDebounceTimersRef.current[field];
-      if (prev) clearTimeout(prev);
-      paymentDebounceTimersRef.current[field] = setTimeout(() => {
-        delete paymentDebounceTimersRef.current[field];
-        applyDebouncedPaymentFieldValidation(field);
-      }, VALIDATION_DEBOUNCE_MS);
-    },
-    [applyDebouncedPaymentFieldValidation],
   );
 
   const runAccountValidation = useCallback(() => {
@@ -365,26 +222,11 @@ export default function SignupTrialForm({
     [cancelAccountFieldDebounce],
   );
 
-  const togglePaymentSection = useCallback(() => {
-    setPaymentSectionOpen((open) => !open);
-  }, []);
-
   const submit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
       cancelAllAccountDebounces();
-      cancelAllPaymentDebounces();
-      setPaymentFieldErrors({});
-      if (mpBlocksSubmit) {
-        setError(
-          'Esperá a que cargue el formulario de pago o revisá la configuración.',
-        );
-        window.requestAnimationFrame(() => {
-          scrollErrorAlertIntoView();
-        });
-        return;
-      }
 
       const accountErrs = runAccountValidation();
       if (Object.keys(accountErrs).length > 0) {
@@ -394,25 +236,6 @@ export default function SignupTrialForm({
         return;
       }
 
-      if (!paymentSectionValid) {
-        const panelWasOpen = paymentSectionOpen;
-        setPaymentSectionOpen(true);
-        const chErr = validateCardholderName(cardholderName);
-        const idErr = validateIdNumber(idNumber);
-        setPaymentFieldErrors({
-          ...(chErr ? { cardholderName: chErr } : {}),
-          ...(idErr ? { idNumber: idErr } : {}),
-        });
-        const focusId = chErr ? 'su-chname' : idErr ? 'su-idnum' : undefined;
-        if (focusId) {
-          window.setTimeout(
-            () => scrollAndFocusById(focusId),
-            panelWasOpen ? 80 : 420,
-          );
-        }
-        setError('Completá los datos de pago.');
-        return;
-      }
       const api = getApiBaseUrl();
       if (!api) {
         setError(
@@ -421,29 +244,9 @@ export default function SignupTrialForm({
         return;
       }
 
-      let cardToken = 'mock_card_token';
-      if (!useMockPayment) {
-        if (!publicKey) {
-          setError(
-            'Falta NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY para tokenizar la tarjeta.',
-          );
-          return;
-        }
-        const tok = await createCardToken({
-          cardholderName: cardholderName.trim(),
-          identificationType: idType,
-          identificationNumber: idNumber.trim(),
-        });
-        if (!tok?.id) {
-          setError('No se pudo tokenizar la tarjeta. Revisá los datos.');
-          return;
-        }
-        cardToken = tok.id;
-      }
-
       setLoading(true);
       try {
-        const res = await fetch(`${api}/auth/signup/trial`, {
+        const res = await fetch(`${api}/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -451,7 +254,6 @@ export default function SignupTrialForm({
             password,
             company_name: companyName.trim(),
             company_code: companyCode.trim().toUpperCase(),
-            card_token: cardToken,
           }),
         });
         const data = (await res.json().catch(() => ({}))) as {
@@ -489,6 +291,10 @@ export default function SignupTrialForm({
           return;
         }
         saveWebSession(data.token, data.refresh_token);
+        if (onSignupSuccess) {
+          onSignupSuccess();
+          return;
+        }
         router.push('/dashboard');
         router.refresh();
       } catch {
@@ -498,24 +304,16 @@ export default function SignupTrialForm({
       }
     },
     [
-      cardholderName,
       companyCode,
       companyName,
       email,
-      idNumber,
-      idType,
       cancelAllAccountDebounces,
-      cancelAllPaymentDebounces,
-      mpBlocksSubmit,
       password,
       passwordConfirm,
-      paymentSectionValid,
-      publicKey,
-      paymentSectionOpen,
+      onSignupSuccess,
       router,
       scrollFirstAccountErrorIntoView,
       runAccountValidation,
-      useMockPayment,
     ],
   );
 
@@ -541,13 +339,6 @@ export default function SignupTrialForm({
         : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
     }`;
 
-  const paymentInputClass = (hasError: boolean) =>
-    `w-full h-12 px-4 border rounded-lg box-border ${
-      hasError
-        ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-red-500'
-        : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-    }`;
-
   return (
     <form
       onSubmit={handleFormSubmit}
@@ -560,7 +351,7 @@ export default function SignupTrialForm({
             Empresa y cuenta
           </h2>
           <p className="text-sm leading-snug text-gray-500 break-words sm:leading-relaxed">
-            Probá gratis 7 días con 1 depósito y hasta 2 usuarios.
+            Probá gratis 7 días con hasta 2 depósitos, 1 dispositivo por depósito y hasta 500 documentos.
           </p>
         </div>
 
@@ -760,254 +551,6 @@ export default function SignupTrialForm({
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col items-center border-t border-gray-100 pt-5">
-          <button
-            type="button"
-            id="signup-payment-toggle"
-            aria-expanded={paymentSectionOpen}
-            aria-controls="signup-payment-panel"
-            onClick={togglePaymentSection}
-            className="flex w-full max-w-xs flex-col items-center justify-center gap-1 rounded-xl py-2 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-          >
-            <span className="sr-only">
-              {paymentSectionOpen
-                ? 'Ocultar datos de pago'
-                : 'Mostrar datos de pago'}
-            </span>
-            {paymentSectionOpen ? (
-              <ChevronUp className="h-8 w-8" aria-hidden strokeWidth={2} />
-            ) : (
-              <ChevronDown className="h-8 w-8" aria-hidden strokeWidth={2} />
-            )}
-          </button>
-        </div>
-      </div>
-
-      <div
-        id="signup-payment-panel"
-        ref={paymentSectionRef}
-        role="region"
-        aria-label="Datos de pago"
-        className={`grid overflow-hidden transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none motion-reduce:duration-0 ${
-          paymentSectionOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
-        }`}
-      >
-        <div className="min-h-0 overflow-hidden">
-          <div
-            className={`space-y-6 border-t border-gray-100 pt-6 ${
-              paymentSectionOpen ? 'signup-payment-reveal' : ''
-            }`}
-          >
-          <div className="space-y-5">
-          {useMockPayment && (
-            <div className="space-y-2 rounded-lg border border-dashed border-amber-200 bg-amber-50/50 px-4 py-5">
-              <p className="text-sm font-medium text-amber-900">
-                Modo desarrollo
-              </p>
-              <p className="text-xs text-amber-800">
-                Pago simulado (sin Mercado Pago). Activá también{' '}
-                <code className="text-xs">SIGNUP_ALLOW_MOCK_PAYMENT=true</code> en
-                el backend. Completá titular y documento como en producción (no se
-                tokeniza la tarjeta).
-              </p>
-            </div>
-          )}
-
-          {!useMockPayment && mpReady && publicKey && (
-            <>
-              <div className="space-y-3">
-                <MercadoPagoLogo />
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Los pagos se procesan de forma segura con Mercado Pago; En
-                  Punto no almacena el número de tu tarjeta. No se cobra durante
-                  la prueba.
-                </p>
-              </div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Datos de la tarjeta
-              </h2>
-            </>
-          )}
-
-          {(useMockPayment || (mpReady && publicKey)) && (
-            <>
-              {useMockPayment && (
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Titular y documento
-                </h2>
-              )}
-              <div>
-                <label
-                  htmlFor="su-chname"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Nombre del titular
-                </label>
-                <input
-                  id="su-chname"
-                  value={cardholderName}
-                  onChange={(e) => {
-                    setCardholderName(e.target.value);
-                    setPaymentFieldErrors((p) => {
-                      if (!p.cardholderName) return p;
-                      const next = { ...p };
-                      delete next.cardholderName;
-                      return next;
-                    });
-                    scheduleDebouncedPaymentValidation('cardholderName');
-                  }}
-                  onBlur={() => {
-                    cancelPaymentFieldDebounce('cardholderName');
-                    const err = validateCardholderName(cardholderName);
-                    setPaymentFieldErrors((prev) => {
-                      const next = { ...prev };
-                      if (err) next.cardholderName = err;
-                      else delete next.cardholderName;
-                      return next;
-                    });
-                  }}
-                  autoComplete="cc-name"
-                  aria-invalid={Boolean(paymentFieldErrors.cardholderName)}
-                  aria-describedby={
-                    paymentFieldErrors.cardholderName
-                      ? 'su-chname-error'
-                      : undefined
-                  }
-                  className={paymentInputClass(
-                    Boolean(paymentFieldErrors.cardholderName),
-                  )}
-                />
-                {paymentFieldErrors.cardholderName && (
-                  <p
-                    id="su-chname-error"
-                    className="mt-1.5 text-sm text-red-600"
-                    role="alert"
-                  >
-                    {paymentFieldErrors.cardholderName}
-                  </p>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tipo de documento
-                  </label>
-                  <select
-                    value={idType}
-                    onChange={(e) => setIdType(e.target.value)}
-                    className="w-full h-12 px-3 border border-gray-300 rounded-lg box-border focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {idTypes.length === 0 ? (
-                      <option value="DNI">DNI</option>
-                    ) : (
-                      idTypes.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-                <div>
-                  <label
-                    htmlFor="su-idnum"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Número
-                  </label>
-                  <input
-                    id="su-idnum"
-                    value={idNumber}
-                    onChange={(e) => {
-                      setIdNumber(e.target.value);
-                      setPaymentFieldErrors((p) => {
-                        if (!p.idNumber) return p;
-                        const next = { ...p };
-                        delete next.idNumber;
-                        return next;
-                      });
-                      scheduleDebouncedPaymentValidation('idNumber');
-                    }}
-                    onBlur={() => {
-                      cancelPaymentFieldDebounce('idNumber');
-                      const err = validateIdNumber(idNumber);
-                      setPaymentFieldErrors((prev) => {
-                        const next = { ...prev };
-                        if (err) next.idNumber = err;
-                        else delete next.idNumber;
-                        return next;
-                      });
-                    }}
-                    autoComplete="off"
-                    aria-invalid={Boolean(paymentFieldErrors.idNumber)}
-                    aria-describedby={
-                      paymentFieldErrors.idNumber ? 'su-idnum-error' : undefined
-                    }
-                    className={paymentInputClass(
-                      Boolean(paymentFieldErrors.idNumber),
-                    )}
-                  />
-                  {paymentFieldErrors.idNumber && (
-                    <p
-                      id="su-idnum-error"
-                      className="mt-1.5 text-sm text-red-600"
-                      role="alert"
-                    >
-                      {paymentFieldErrors.idNumber}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
-          {!useMockPayment && mpReady && publicKey && (
-            <>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Número de tarjeta
-                </label>
-                <div className="flex h-12 items-center px-3 border border-gray-300 rounded-lg bg-white box-border">
-                  <CardNumber placeholder="1234 1234 1234 1234" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Vencimiento
-                  </label>
-                  <div className="flex h-12 items-center px-3 border border-gray-300 rounded-lg bg-white box-border">
-                    <ExpirationDate placeholder="MM/AA" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Código de seguridad
-                  </label>
-                  <div className="flex h-12 items-center px-3 border border-gray-300 rounded-lg bg-white box-border">
-                    <SecurityCode placeholder="123" />
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {!useMockPayment && !(mpReady && publicKey) && (
-            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-              Configurá{' '}
-              <code className="text-xs">
-                NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
-              </code>{' '}
-              o usá{' '}
-              <code className="text-xs">
-                NEXT_PUBLIC_SIGNUP_USE_MOCK_PAYMENT=true
-              </code>{' '}
-              con el servidor en modo mock.
-            </p>
-          )}
-          </div>
-          </div>
-        </div>
       </div>
 
       <div className="mt-8 space-y-5 border-t border-gray-100 pt-8">

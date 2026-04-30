@@ -12,7 +12,6 @@ func TestNormalizeSignupTrialRequest(t *testing.T) {
 		Email:       "  User@Example.COM ",
 		CompanyName: "  Mi Empresa ",
 		CompanyCode: "ab_cd-1",
-		CardToken:   "  tok123  ",
 		Password:    "  secret  ",
 	}
 	NormalizeSignupTrialRequest(&req)
@@ -25,9 +24,6 @@ func TestNormalizeSignupTrialRequest(t *testing.T) {
 	if req.CompanyCode != "AB_CD-1" {
 		t.Errorf("company code: got %q", req.CompanyCode)
 	}
-	if req.CardToken != "tok123" {
-		t.Errorf("card token: got %q", req.CardToken)
-	}
 	if req.Password != "  secret  " {
 		t.Errorf("password must not be trimmed, got %q", req.Password)
 	}
@@ -39,7 +35,6 @@ func TestSignupTrial_StructValidAfterNormalize(t *testing.T) {
 		Password:    "password123",
 		CompanyName: " Empresa SA ",
 		CompanyCode: " emp_01 ",
-		CardToken:   "",
 	}
 	NormalizeSignupTrialRequest(&req)
 	errs := Struct(req)
@@ -54,7 +49,6 @@ func TestSignupTrial_WhitespaceOnlyCompanyNameFails(t *testing.T) {
 		Password:    "password123",
 		CompanyName: "     ",
 		CompanyCode: "EMP01",
-		CardToken:   "",
 	}
 	NormalizeSignupTrialRequest(&req)
 	errs := Struct(req)
@@ -79,7 +73,6 @@ func TestSignupTrial_CompanyCodeInvalidCharacters(t *testing.T) {
 		Password:    "password123",
 		CompanyName: "Empresa",
 		CompanyCode: "BAD*CODE",
-		CardToken:   "",
 	}
 	NormalizeSignupTrialRequest(&req)
 	errs := Struct(req)
@@ -104,7 +97,6 @@ func TestSignupTrial_CompanyCodeAllowsLettersDigitsUnderscoreHyphen(t *testing.T
 		Password:    "password123",
 		CompanyName: "Empresa",
 		CompanyCode: "Ab_9-zZ",
-		CardToken:   "",
 	}
 	NormalizeSignupTrialRequest(&req)
 	errs := Struct(req)

@@ -930,6 +930,38 @@ func (h *AuthHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 	}
 	companyID := warehouse.CompanyID
 
+	company, err := h.companyRepo.GetByIDForBilling(ctx, companyID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("RegisterDevice: company")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	if company == nil {
+		RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+		return
+	}
+
+	if strings.EqualFold(strings.TrimSpace(company.SubscriptionPlan), "trial") {
+		existingDevice, err := h.deviceRepo.GetByUUID(ctx, companyID, req.DeviceUUID)
+		if err != nil {
+			logger.Log.Error().Err(err).Msg("RegisterDevice: existing device lookup")
+			RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+		if existingDevice == nil {
+			deviceCountInWarehouse, err := h.deviceRepo.CountByWarehouseID(ctx, warehouseID)
+			if err != nil {
+				logger.Log.Error().Err(err).Msg("RegisterDevice: count devices by warehouse")
+				RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+				return
+			}
+			if shouldBlockTrialDeviceRegistration(false, deviceCountInWarehouse) {
+				RespondWithError(w, ErrCodeForbidden, "La prueba permite 1 dispositivo por depósito.", http.StatusForbidden)
+				return
+			}
+		}
+	}
+
 	device := &models.Device{
 		ID:           uuid.New(),
 		CompanyID:    companyID,
@@ -994,6 +1026,10 @@ type UserStatusResponse struct {
 	Message      string `json:"message,omitempty"`
 }
 
+func shouldBlockTrialDeviceRegistration(existingDevice bool, deviceCountInWarehouse int64) bool {
+	return !existingDevice && deviceCountInWarehouse >= 1
+}
+
 func (h *AuthHandler) GetUserStatus(w http.ResponseWriter, r *http.Request) {
 	userID, err := uuid.Parse(r.Context().Value("user_id").(string))
 	if err != nil {
@@ -1048,6 +1084,7 @@ func (h *AuthHandler) GetUserStatus(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Routes() *chi.Mux {
 	r := chi.NewRouter()
 	r.Post("/registrarse", h.Register)
+	r.Post("/signup", h.SignupTrial)
 	r.Post("/signup/trial", h.SignupTrial)
 	r.Post("/login", h.Login)
 	r.Post("/device", h.RegisterDevice)
@@ -1056,6 +1093,7 @@ func (h *AuthHandler) Routes() *chi.Mux {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: h.jwtSvc, DeviceRepo: h.deviceRepo}))
 		r.Post("/logout", h.Logout)
+		r.Post("/me/plan", h.SelectMyPlan)
 		r.Post("/transfer/start", h.StartSessionTransfer)
 		r.Get("/me", h.GetMe)
 		r.Get("/user/status", h.GetUserStatus)
