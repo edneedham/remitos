@@ -8,6 +8,7 @@ import HeroSignupRow from './ui/components/website/HeroSignupRow';
 import HeroQrOverlay from './ui/components/website/HeroQrOverlay';
 import BenefitsSection from './ui/components/website/BenefitsSection';
 import HowItWorksSection from './ui/components/website/HowItWorksSection';
+import PricingPlansSection from './ui/components/website/PricingPlansSection';
 
 export default function Home() {
   return (
@@ -52,6 +53,8 @@ export default function Home() {
           <BenefitsSection />
 
           <HowItWorksSection />
+
+          <PricingPlansSection />
 
           <section
             className="border-b border-gray-200 bg-gray-50 py-20 px-4 sm:px-6 lg:px-8"

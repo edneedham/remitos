@@ -135,14 +135,3 @@ export function validateSignupTrialAccount(
   return errors;
 }
 
-export function validateCardholderName(value: string): string | null {
-  const s = value.trim();
-  if (!s) return 'Ingresá el nombre del titular de la tarjeta.';
-  return null;
-}
-
-export function validateIdNumber(value: string): string | null {
-  const s = value.trim();
-  if (!s) return 'Ingresá el número de documento.';
-  return null;
-}

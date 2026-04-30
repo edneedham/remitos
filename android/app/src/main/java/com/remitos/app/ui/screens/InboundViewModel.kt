@@ -45,6 +45,8 @@ data class InboundUiState(
     val showManualEntryPrompt: Boolean = false,
     val showOfflineModeMessage: Boolean = false,
     val detectedFields: List<com.remitos.app.ocr.FieldPair> = emptyList(),
+    /** Coachmarks for first inbound scan (trial onboarding). */
+    val showFirstRunTips: Boolean = false,
 )
 
 @HiltViewModel
@@ -60,6 +62,13 @@ class InboundViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(InboundUiState())
     val uiState: StateFlow<InboundUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            val done = settingsStore.isFirstInboundOnboardingDone()
+            _uiState.update { it.copy(showFirstRunTips = !done) }
+        }
+    }
 
     fun updateDraft(value: InboundDraftState) {
         _uiState.update { it.copy(draft = value) }
@@ -252,9 +261,13 @@ class InboundViewModel @Inject constructor(
 
                 val noteId: Long
                 val cantBultosParsed = stateSnapshot.draft.cantBultosTotal.trim().toIntOrNull() ?: 0
+                val wasFirstInboundDone = settingsStore.isFirstInboundOnboardingDone()
 
                 withContext(ioDispatcher) {
                     noteId = repository.createInboundNote(note)
+                    if (!wasFirstInboundDone) {
+                        settingsStore.setFirstInboundOnboardingDone()
+                    }
                     if (manualCorrection) {
                         settingsStore.recordManualCorrection()
                     }
@@ -271,9 +284,14 @@ class InboundViewModel @Inject constructor(
                     selectedImageUri = null,
                     ocrTextBlob = null,
                     ocrConfidenceJson = null,
-                    saveState = SaveState.Success(noteId, cantBultosParsed),
+                    saveState = SaveState.Success(
+                        noteId = noteId,
+                        packageCount = cantBultosParsed,
+                        isFirstCompleted = !wasFirstInboundDone,
+                    ),
                     showMissingErrors = false,
-                    showManualEntryPrompt = false
+                    showManualEntryPrompt = false,
+                    showFirstRunTips = false,
                 ) }
             } catch (error: CancellationException) {
                 throw error
@@ -344,7 +362,11 @@ class InboundViewModel @Inject constructor(
 }
 
 sealed interface SaveState {
-    data class Success(val noteId: Long, val packageCount: Int) : SaveState
+    data class Success(
+        val noteId: Long,
+        val packageCount: Int,
+        val isFirstCompleted: Boolean = false,
+    ) : SaveState
     data class Error(val message: String) : SaveState
 }
 

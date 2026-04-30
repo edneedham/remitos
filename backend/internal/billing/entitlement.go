@@ -7,8 +7,10 @@ import (
 	"server/internal/models"
 )
 
-// CompanyHasAppDownloadAccess returns true if the company may download the Android APK
-// (active company in trial or on a paid plan with a non-expired subscription).
+// CompanyHasAppDownloadAccess returns true if the company may download the Android APK.
+// Access is granted during an active trial window (trial_ends_at in the future), regardless
+// of whether subscription_plan is stored as "trial", "pyme", or "empresa"; or when on an
+// active paid/commercial plan with a valid subscription period.
 func CompanyHasAppDownloadAccess(now time.Time, c *models.Company) bool {
 	if c == nil {
 		return false
@@ -20,14 +22,12 @@ func CompanyHasAppDownloadAccess(now time.Time, c *models.Company) bool {
 		return false
 	}
 
-	plan := strings.ToLower(strings.TrimSpace(c.SubscriptionPlan))
-
-	if plan == "trial" {
-		if c.TrialEndsAt == nil {
-			return false
-		}
-		return now.Before(*c.TrialEndsAt)
+	// Any catalog label during the published trial window (signup keeps trial_ends_at).
+	if c.TrialEndsAt != nil && now.Before(*c.TrialEndsAt) {
+		return true
 	}
+
+	plan := strings.ToLower(strings.TrimSpace(c.SubscriptionPlan))
 
 	if isPaidPlan(plan) {
 		if c.SubscriptionExpiresAt == nil {
@@ -41,7 +41,7 @@ func CompanyHasAppDownloadAccess(now time.Time, c *models.Company) bool {
 
 func isPaidPlan(plan string) bool {
 	switch plan {
-	case "premium", "paid", "subscriber", "standard":
+	case "premium", "paid", "subscriber", "standard", "pyme", "empresa":
 		return true
 	default:
 		return false

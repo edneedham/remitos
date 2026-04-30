@@ -217,10 +217,7 @@ export default function DocumentUsageSection({
                 <XAxis
                   dataKey="date"
                   tickFormatter={formatDay}
-                  tick={{
-                    fontSize: 11,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
+                  tick={{ fontSize: 11 }}
                   interval="equidistantPreserveStart"
                   minTickGap={14}
                   stroke="#9ca3af"
@@ -242,10 +239,7 @@ export default function DocumentUsageSection({
                   domain={[0, yMax]}
                   ticks={yTicks}
                   allowDecimals={false}
-                  tick={{
-                    fontSize: 11,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
+                  tick={{ fontSize: 11 }}
                   tickFormatter={(value) =>
                     typeof value === 'number'
                       ? value.toLocaleString('es-AR')

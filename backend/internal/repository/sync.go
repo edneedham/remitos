@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -338,6 +339,36 @@ func (r *SyncRepository) GetInboundNotesCountSince(ctx context.Context, companyI
 		WHERE company_id = $1 AND updated_at > $2
 	`, companyID, since).Scan(&count)
 	return count, err
+}
+
+func (r *SyncRepository) CountInboundNotesByCloudIDs(
+	ctx context.Context,
+	companyID uuid.UUID,
+	cloudIDs []string,
+) (int64, error) {
+	if len(cloudIDs) == 0 {
+		return 0, nil
+	}
+	filtered := make([]string, 0, len(cloudIDs))
+	for _, id := range cloudIDs {
+		v := strings.TrimSpace(id)
+		if v == "" {
+			continue
+		}
+		filtered = append(filtered, v)
+	}
+	if len(filtered) == 0 {
+		return 0, nil
+	}
+
+	var n int64
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*)::bigint
+		FROM inbound_notes
+		WHERE company_id = $1
+		  AND cloud_id = ANY($2::text[])
+	`, companyID, filtered).Scan(&n)
+	return n, err
 }
 
 // CountInboundNotesCreatedInLast30Days returns how many inbound remitos were first recorded

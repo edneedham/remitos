@@ -18,6 +18,9 @@ interface InboundDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPackages(packages: List<InboundPackageEntity>)
 
+    @Query("SELECT COUNT(*) FROM inbound_notes")
+    suspend fun countInboundNotes(): Int
+
     @Query("SELECT * FROM inbound_notes ORDER BY created_at DESC")
     fun observeInboundNotes(): Flow<List<InboundNoteEntity>>
 

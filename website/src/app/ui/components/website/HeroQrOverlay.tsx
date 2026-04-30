@@ -14,7 +14,7 @@ export default function HeroQrOverlay() {
       setVisible(false);
       return;
     }
-    setQrUrl(`${getPublicSiteOrigin()}/signup/m`);
+    setQrUrl(`${getPublicSiteOrigin()}/signup`);
     setVisible(true);
   }, []);
 

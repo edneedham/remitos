@@ -86,6 +86,12 @@ describe('BillingPageClient', () => {
     expect(
       screen.getByRole('heading', { name: 'Resumen de facturación' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Tu plan actual')).toBeInTheDocument();
+    expect(screen.getByText('Uso actual')).toBeInTheDocument();
+    expect(screen.getByText('Proyección')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Mejorar plan' }),
+    ).toHaveAttribute('href', '/pricing');
     expect(
       screen.getByRole('heading', { name: 'Comprobantes de pago' }),
     ).toBeInTheDocument();

@@ -29,13 +29,13 @@ type Company struct {
 	ArchivedAt *time.Time `json:"archived_at,omitempty"`
 }
 
-// SignupTrialRequest is the public web signup with a 7-day trial and card tokenization (Mercado Pago).
+// SignupTrialRequest is the public web signup request.
 type SignupTrialRequest struct {
 	Email       string `json:"email" validate:"required,email"`
 	Password    string `json:"password" validate:"required,min=8,max=72"`
 	CompanyName string `json:"company_name" validate:"required,min=2,max=200"`
 	CompanyCode string `json:"company_code" validate:"required,min=2,max=32,company_code_chars"`
-	CardToken   string `json:"card_token"` // validated in handler (required unless dev mock)
+	CardToken   string `json:"card_token,omitempty"`
 }
 
 type Warehouse struct {

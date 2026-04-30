@@ -1,7 +1,6 @@
 package com.remitos.app.ui
 
 import android.net.Uri
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -12,6 +11,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -24,6 +24,9 @@ import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.remitos.app.RemitosApplication
 import com.remitos.app.data.DatabaseManager
+import com.remitos.app.data.RemitosRepository
+import com.remitos.app.di.SettingsStoreEntryPoint
+import dagger.hilt.android.EntryPointAccessors
 import com.remitos.app.ui.screens.DashboardScreen
 import com.remitos.app.ui.screens.DebugScreen
 import com.remitos.app.ui.screens.DeviceSetupScreen
@@ -42,8 +45,7 @@ import com.remitos.app.ui.screens.SplashScreen
 import com.remitos.app.ui.screens.TemplateConfigScreen
 import com.remitos.app.ui.screens.UserManagementScreen
 import com.remitos.app.ui.theme.RemitosTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -79,6 +81,7 @@ private object Routes {
 }
 
 private const val NAV_ANIM_DURATION = 300
+private const val SPLASH_NAV_DELAY_MS = 1700L
 
 @Composable
 private fun AppNavHost(navController: NavHostController) {
@@ -88,30 +91,10 @@ private fun AppNavHost(navController: NavHostController) {
     NavHost(
         navController = navController,
         startDestination = Routes.Splash,
-        enterTransition = {
-            slideIntoContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                animationSpec = tween(NAV_ANIM_DURATION),
-            ) + fadeIn(animationSpec = tween(NAV_ANIM_DURATION))
-        },
-        exitTransition = {
-            slideOutOfContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                animationSpec = tween(NAV_ANIM_DURATION),
-            ) + fadeOut(animationSpec = tween(NAV_ANIM_DURATION))
-        },
-        popEnterTransition = {
-            slideIntoContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = tween(NAV_ANIM_DURATION),
-            ) + fadeIn(animationSpec = tween(NAV_ANIM_DURATION))
-        },
-        popExitTransition = {
-            slideOutOfContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = tween(NAV_ANIM_DURATION),
-            ) + fadeOut(animationSpec = tween(NAV_ANIM_DURATION))
-        },
+        enterTransition = { fadeIn(animationSpec = tween(NAV_ANIM_DURATION)) },
+        exitTransition = { fadeOut(animationSpec = tween(NAV_ANIM_DURATION)) },
+        popEnterTransition = { fadeIn(animationSpec = tween(NAV_ANIM_DURATION)) },
+        popExitTransition = { fadeOut(animationSpec = tween(NAV_ANIM_DURATION)) },
     ) {
         composable(
             route = Routes.Splash,
@@ -120,7 +103,8 @@ private fun AppNavHost(navController: NavHostController) {
         ) {
             var isDeviceRegistered by remember { mutableStateOf<Boolean?>(null) }
             var isAuthenticated by remember { mutableStateOf<Boolean?>(null) }
-            
+            val navigationHandled = remember { mutableStateOf(false) }
+
             LaunchedEffect(Unit) {
                 try {
                     val db = DatabaseManager.getOfflineDatabase(context)
@@ -129,13 +113,11 @@ private fun AppNavHost(navController: NavHostController) {
                 } catch (e: Exception) {
                     isDeviceRegistered = false
                 }
-                
+
                 // Check if device was revoked (refresh token expired)
                 if (app.authManager.isDeviceRevoked()) {
-                    // Device revoked - go to device setup
                     isDeviceRegistered = false
                     isAuthenticated = false
-                    // Clear local users since device is revoked
                     try {
                         val db = DatabaseManager.getOfflineDatabase(context)
                         db.localUserDao().deleteAll()
@@ -144,42 +126,71 @@ private fun AppNavHost(navController: NavHostController) {
                 } else if (isDeviceRegistered == true) {
                     val currentUser = app.authManager.getCurrentUser()
                     isAuthenticated = currentUser != null
-                    
+
                     if (isAuthenticated == true) {
                         app.initializeCurrentUserContext()
                     }
                 }
+
+                try {
+                    val db = DatabaseManager.getOfflineDatabase(context)
+                    val repo = RemitosRepository(db)
+                    val settingsStore = EntryPointAccessors.fromApplication(
+                        app,
+                        SettingsStoreEntryPoint::class.java,
+                    ).settingsStore()
+                    if (repo.countInboundNotes() > 0) {
+                        settingsStore.setFirstInboundOnboardingDone()
+                    }
+                } catch (_: Exception) { }
             }
-            
-            SplashScreen(
-                onFinished = {
-                    when (isDeviceRegistered) {
-                        false -> {
-                            navController.navigate(Routes.DeviceSetup) {
-                                popUpTo(Routes.Splash) { inclusive = true }
-                            }
-                        }
-                        true -> {
-                            when (isAuthenticated) {
-                                true -> {
-                                    navController.navigate(Routes.Dashboard) {
-                                        popUpTo(Routes.Splash) { inclusive = true }
-                                    }
-                                }
-                                false -> {
-                                    navController.navigate(Routes.Login) {
-                                        popUpTo(Routes.Splash) { inclusive = true }
-                                    }
-                                }
-                                null -> {
-                                }
-                            }
-                        }
-                        null -> {
+
+            SplashScreen()
+
+            LaunchedEffect(isDeviceRegistered, isAuthenticated) {
+                if (navigationHandled.value) return@LaunchedEffect
+                if (isDeviceRegistered == null) return@LaunchedEffect
+                if (isDeviceRegistered == true && isAuthenticated == null) return@LaunchedEffect
+
+                delay(SPLASH_NAV_DELAY_MS)
+                if (navigationHandled.value) return@LaunchedEffect
+                navigationHandled.value = true
+
+                val settingsStore = EntryPointAccessors.fromApplication(
+                    app,
+                    SettingsStoreEntryPoint::class.java,
+                ).settingsStore()
+
+                when (isDeviceRegistered) {
+                    false -> {
+                        navController.navigate(Routes.DeviceSetup) {
+                            popUpTo(Routes.Splash) { inclusive = true }
                         }
                     }
-                },
-            )
+                    true -> {
+                        when (isAuthenticated) {
+                            false -> {
+                                navController.navigate(Routes.Login) {
+                                    popUpTo(Routes.Splash) { inclusive = true }
+                                }
+                            }
+                            true -> {
+                                val route =
+                                    if (!settingsStore.isFirstInboundOnboardingDone()) {
+                                        Routes.InboundScan
+                                    } else {
+                                        Routes.Dashboard
+                                    }
+                                navController.navigate(route) {
+                                    popUpTo(Routes.Splash) { inclusive = true }
+                                }
+                            }
+                            null -> {}
+                        }
+                    }
+                    null -> {}
+                }
+            }
         }
         
         composable(
@@ -187,21 +198,21 @@ private fun AppNavHost(navController: NavHostController) {
             enterTransition = { fadeIn(animationSpec = tween(NAV_ANIM_DURATION)) },
             exitTransition = { fadeOut(animationSpec = tween(NAV_ANIM_DURATION)) },
         ) {
+            val scope = rememberCoroutineScope()
+            val navigateAfterAuth: suspend () -> Unit = {
+                val store = EntryPointAccessors.fromApplication(
+                    app,
+                    SettingsStoreEntryPoint::class.java,
+                ).settingsStore()
+                val route =
+                    if (!store.isFirstInboundOnboardingDone()) Routes.InboundScan else Routes.Dashboard
+                navController.navigate(route) {
+                    popUpTo(Routes.Login) { inclusive = true }
+                }
+            }
             LoginScreen(
-                onLoginSuccess = {
-                    // Navigate based on role
-                    val role = app.authManager.getCurrentUserRole()
-                    // For now, all roles go to Dashboard - Dashboard will show different options based on role
-                    navController.navigate(Routes.Dashboard) {
-                        popUpTo(Routes.Login) { inclusive = true }
-                    }
-                },
-                onContinueOffline = {
-                    // Navigate to dashboard in offline mode
-                    navController.navigate(Routes.Dashboard) {
-                        popUpTo(Routes.Login) { inclusive = true }
-                    }
-                },
+                onLoginSuccess = { scope.launch { navigateAfterAuth() } },
+                onContinueOffline = { scope.launch { navigateAfterAuth() } },
             )
         }
         

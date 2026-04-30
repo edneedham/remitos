@@ -24,12 +24,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.remitos.app.BuildConfig
 import com.remitos.app.R
-import kotlinx.coroutines.delay
 
+/**
+ * Splash branding only; navigation timing is handled by [AppNavHost].
+ */
 @Composable
-fun SplashScreen(
-    onFinished: () -> Unit,
-) {
+fun SplashScreen() {
     val alpha = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
@@ -37,8 +37,6 @@ fun SplashScreen(
             targetValue = 1f,
             animationSpec = tween(durationMillis = 600),
         )
-        delay(1000)
-        onFinished()
     }
 
     Box(

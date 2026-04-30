@@ -74,11 +74,10 @@ body {
   }
 }
 
-/* Opens from beneath the empresa/cuenta block: slides down into view */
-@keyframes signup-payment-reveal {
+@keyframes signup-step-enter {
   from {
     opacity: 0;
-    transform: translateY(-1.25rem);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -86,14 +85,7 @@ body {
   }
 }
 
-.signup-payment-reveal {
-  animation: signup-payment-reveal 500ms cubic-bezier(0.4, 0, 0.2, 1) both;
-  transform-origin: top center;
+.signup-step-enter {
+  animation: signup-step-enter 280ms ease-out both;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .signup-payment-reveal {
-    animation-duration: 1ms;
-    animation-timing-function: linear;
-  }
-}

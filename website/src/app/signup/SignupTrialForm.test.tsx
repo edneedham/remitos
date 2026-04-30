@@ -12,15 +12,6 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@mercadopago/sdk-react', () => ({
-  initMercadoPago: vi.fn(),
-  getIdentificationTypes: vi.fn(async () => [{ id: 'DNI', name: 'DNI' }]),
-  createCardToken: vi.fn(async () => ({ id: 'tok_test' })),
-  CardNumber: () => <div data-testid="card-number-field" />,
-  ExpirationDate: () => <div data-testid="expiration-date-field" />,
-  SecurityCode: () => <div data-testid="security-code-field" />,
-}));
-
 async function renderSignupTrialForm() {
   const mod = await import('./SignupTrialForm');
   return render(<mod.default />);
@@ -52,9 +43,7 @@ describe('SignupTrialForm', () => {
     vi.clearAllMocks();
     routerPush.mockReset();
     routerRefresh.mockReset();
-    vi.stubEnv('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY', 'TEST-public-key');
     vi.stubEnv('NEXT_PUBLIC_API_URL', 'http://localhost:8080');
-    vi.stubEnv('NEXT_PUBLIC_SIGNUP_USE_MOCK_PAYMENT', 'false');
     vi.stubGlobal('fetch', vi.fn());
     Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
       value: vi.fn(),
@@ -62,35 +51,8 @@ describe('SignupTrialForm', () => {
     });
   });
 
-  it('blocks submit and shows payment error when billing details are missing (real mode)', async () => {
+  it('submits signup with account fields only', async () => {
     const user = userEvent.setup();
-    await renderSignupTrialForm();
-    await fillAccountSection(user);
-
-    await user.click(screen.getByRole('button', { name: /mostrar datos de pago/i }));
-    await user.click(screen.getByRole('button', { name: /crear cuenta/i }));
-
-    expect(
-      await screen.findByText('Completá los datos de pago.'),
-    ).toBeInTheDocument();
-  });
-
-  it('blocks submit in mock mode until cardholder and document are filled', async () => {
-    vi.stubEnv('NEXT_PUBLIC_SIGNUP_USE_MOCK_PAYMENT', 'true');
-    const user = userEvent.setup();
-    await renderSignupTrialForm();
-    await fillAccountSection(user);
-
-    await user.click(screen.getByRole('button', { name: /mostrar datos de pago/i }));
-    await user.click(screen.getByRole('button', { name: /crear cuenta/i }));
-    expect(
-      await screen.findByText('Completá los datos de pago.'),
-    ).toBeInTheDocument();
-  });
-
-  it('submits tokenized card in real mode (not mock token)', async () => {
-    const user = userEvent.setup();
-    const sdk = await import('@mercadopago/sdk-react');
     const fetchMock = vi.fn(async () => ({
       ok: true,
       json: async () => ({
@@ -105,19 +67,24 @@ describe('SignupTrialForm', () => {
     await renderSignupTrialForm();
     await fillAccountSection(user);
 
-    await user.click(screen.getByRole('button', { name: /mostrar datos de pago/i }));
-    await user.type(screen.getByLabelText('Nombre del titular'), 'Owner Example');
-    await user.type(screen.getByLabelText('Número'), '12345678');
-
     await user.click(screen.getByRole('button', { name: /crear cuenta/i }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(sdk.createCardToken).toHaveBeenCalledTimes(1);
-
     const [, req] = fetchMock.mock.calls[0] as [string, RequestInit];
     const payload = JSON.parse(String(req.body)) as { card_token?: string };
-    expect(payload.card_token).toBe('tok_test');
-    expect(payload.card_token).not.toBe('mock_card_token');
-    expect(routerPush).toHaveBeenCalledWith('/dashboard');
+    expect(payload.card_token).toBeUndefined();
+    expect(routerPush).toHaveBeenCalledWith('/trial-started');
+  });
+
+  it('shows validation errors when required account fields are missing', async () => {
+    const user = userEvent.setup();
+    await renderSignupTrialForm();
+    await user.click(screen.getByRole('button', { name: /crear cuenta/i }));
+
+    expect(
+      await screen.findByText('Ingresá el nombre de la empresa.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Ingresá el código de empresa.')).toBeInTheDocument();
+    expect(screen.getByText('Ingresá tu correo electrónico.')).toBeInTheDocument();
   });
 });

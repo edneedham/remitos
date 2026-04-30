@@ -42,6 +42,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -53,7 +54,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,7 +75,6 @@ import com.remitos.app.ocr.OcrFieldKeys
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.Color
 import com.remitos.app.ui.components.RemitosTextFieldVariant
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,9 +89,10 @@ fun InboundScanScreen(
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val draft = uiState.draft
+    val ingresoGuardadoMsg = stringResource(R.string.ingreso_guardado_correctamente)
+    val primerRemitoMsg = stringResource(R.string.snackbar_first_remito_saved)
     var showMissingDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     val imagePicker = rememberLauncherForActivityResult(
@@ -143,6 +143,28 @@ fun InboundScanScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.SectionSpacing),
         ) {
             Spacer(modifier = Modifier.height(4.dp))
+
+            if (uiState.showFirstRunTips) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = BrandBlue.copy(alpha = 0.08f),
+                    shape = MaterialTheme.shapes.small,
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = stringResource(R.string.first_run_scan_banner_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = BrandBlue,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.first_run_scan_banner_body),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            }
 
             // Scan actions section
             SectionCard(
@@ -458,10 +480,15 @@ fun InboundScanScreen(
 
     when (val state = uiState.saveState) {
         is SaveState.Success -> {
-            LaunchedEffect(state) {
-                scope.launch {
-                    snackbarHostState.showSnackbar("Ingreso guardado correctamente")
-                }
+            LaunchedEffect(state, ingresoGuardadoMsg, primerRemitoMsg) {
+                snackbarHostState.showSnackbar(
+                    message = if (state.isFirstCompleted) primerRemitoMsg else ingresoGuardadoMsg,
+                    duration = if (state.isFirstCompleted) {
+                        SnackbarDuration.Long
+                    } else {
+                        SnackbarDuration.Short
+                    },
+                )
                 viewModel.clearSaveState()
             }
         }
