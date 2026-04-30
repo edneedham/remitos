@@ -19,7 +19,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('../../../lib/webAuth', () => ({
   hasWebSession: () => mockHasWebSession(),
   logoutWebSession: () => mockLogoutWebSession(),
-  fetchWebProfile: () => mockFetchWebProfile(),
+  fetchProfile: () => mockFetchWebProfile(),
 }));
 
 async function renderNav() {

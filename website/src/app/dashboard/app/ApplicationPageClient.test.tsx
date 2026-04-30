@@ -25,7 +25,7 @@ vi.mock('../../lib/webAuth', () => ({
   refreshWebSession: () => mockRefreshWebSession(),
   getWebAccessToken: () => mockGetWebAccessToken(),
   getWebRefreshToken: () => mockGetWebRefreshToken(),
-  fetchWebProfile: () => mockFetchWebProfile(),
+  fetchProfile: () => mockFetchWebProfile(),
   canAccessWebManagement: (...args: unknown[]) =>
     mockCanAccessWebManagement(...args),
   clearWebSession: vi.fn(),

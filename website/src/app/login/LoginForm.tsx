@@ -8,7 +8,7 @@ import { getApiBaseUrl } from '../lib/apiUrl';
 import {
   canAccessWebManagement,
   clearWebSession,
-  fetchWebProfile,
+  fetchProfile,
   fetchWithWebAuth,
   hasWebSession,
   saveWebSession,
@@ -120,7 +120,7 @@ export default function LoginForm() {
 
       saveWebSession(data.token, data.refresh_token);
 
-      const profile = await fetchWebProfile();
+      const profile = await fetchProfile();
       if (!profile || !canAccessWebManagement(profile.role)) {
         clearWebSession();
         setError(

@@ -30,7 +30,7 @@ vi.mock('next/image', () => ({
 vi.mock('../../../lib/webAuth', () => ({
   hasWebSession: () => mockHasWebSession(),
   logoutWebSession: () => vi.fn(),
-  fetchWebProfile: () => mockFetchWebProfile(),
+  fetchProfile: () => mockFetchWebProfile(),
 }));
 
 async function renderHeader() {

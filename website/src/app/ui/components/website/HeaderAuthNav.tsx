@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { LogOut } from 'lucide-react';
 import {
-  fetchWebProfile,
+  fetchProfile,
   hasWebSession,
   logoutWebSession,
   type WebProfile,
@@ -35,7 +35,7 @@ export default function HeaderAuthNav() {
 
     let cancelled = false;
     async function loadProfile() {
-      const nextProfile = await fetchWebProfile();
+      const nextProfile = await fetchProfile();
       if (cancelled) return;
       setProfile(nextProfile);
       if (!nextProfile && !hasWebSession()) {

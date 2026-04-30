@@ -6,6 +6,8 @@ const mockFetchWithWebAuth = vi.fn();
 const mockHasWebSession = vi.fn();
 const mockRefreshWebSession = vi.fn();
 const mockGetApiBaseUrl = vi.fn();
+const mockFetchProfile = vi.fn();
+const mockCanAccessWebManagement = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -17,6 +19,9 @@ vi.mock('../lib/webAuth', () => ({
   fetchWithWebAuth: (...args: unknown[]) => mockFetchWithWebAuth(...args),
   hasWebSession: () => mockHasWebSession(),
   refreshWebSession: () => mockRefreshWebSession(),
+  fetchProfile: () => mockFetchProfile(),
+  canAccessWebManagement: (...args: unknown[]) =>
+    mockCanAccessWebManagement(...args),
   clearWebSession: vi.fn(),
 }));
 
@@ -34,6 +39,15 @@ describe('DashboardPageClient', () => {
     vi.clearAllMocks();
     mockHasWebSession.mockReturnValue(true);
     mockRefreshWebSession.mockResolvedValue(true);
+    mockFetchProfile.mockResolvedValue({
+      id: '11111111-1111-1111-1111-111111111111',
+      username: 'owner',
+      company_id: '22222222-2222-2222-2222-222222222222',
+      company_name: 'Acme',
+      company_code: 'ACME',
+      role: 'admin',
+    });
+    mockCanAccessWebManagement.mockReturnValue(true);
     mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
     mockFetchWithWebAuth.mockImplementation(async (path: unknown) => {
       if (path === '/auth/me/invoices') {

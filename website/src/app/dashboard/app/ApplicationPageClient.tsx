@@ -11,7 +11,7 @@ import { getPublicSiteOrigin } from '../../lib/siteUrl';
 import {
   canAccessWebManagement,
   clearWebSession,
-  fetchWebProfile,
+  fetchProfile,
   fetchWithWebAuth,
   getWebAccessToken,
   getWebRefreshToken,
@@ -58,7 +58,7 @@ export default function ApplicationPageClient() {
 
       await refreshWebSession();
 
-      const profile = await fetchWebProfile();
+      const profile = await fetchProfile();
       if (cancelled) return;
       if (!profile || !canAccessWebManagement(profile.role)) {
         clearWebSession();

@@ -121,7 +121,7 @@ export async function fetchWithWebAuth(path: string): Promise<Response> {
 }
 
 /** Returns null when session is invalid or profile cannot be loaded. */
-export async function fetchWebProfile(): Promise<WebProfile | null> {
+export async function fetchProfile(): Promise<WebProfile | null> {
   const res = await fetchWithWebAuth('/auth/me');
   if (!res.ok) {
     if (res.status === 401) {

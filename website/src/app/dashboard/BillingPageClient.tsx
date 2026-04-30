@@ -7,7 +7,7 @@ import { getApiBaseUrl } from '../lib/apiUrl';
 import {
   canAccessWebManagement,
   clearWebSession,
-  fetchWebProfile,
+  fetchProfile,
   fetchWithWebAuth,
   hasWebSession,
   refreshWebSession,
@@ -52,7 +52,7 @@ export default function BillingPageClient() {
 
       await refreshWebSession();
 
-      const profile = await fetchWebProfile();
+      const profile = await fetchProfile();
       if (cancelled) return;
       if (!profile || !canAccessWebManagement(profile.role)) {
         clearWebSession();
