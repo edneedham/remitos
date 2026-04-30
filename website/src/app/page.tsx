@@ -6,6 +6,7 @@ import Link from 'next/link';
 import HomeGate from './HomeGate';
 import HeroSignupRow from './ui/components/website/HeroSignupRow';
 import HeroQrOverlay from './ui/components/website/HeroQrOverlay';
+import BenefitsSection from './ui/components/website/BenefitsSection';
 import HowItWorksSection from './ui/components/website/HowItWorksSection';
 
 export default function Home() {
@@ -48,55 +49,7 @@ export default function Home() {
             </section>
           </div>
 
-          <section
-            className="border-b border-gray-200 bg-white py-20 px-4 sm:px-6 lg:px-8"
-            aria-labelledby="benefits-heading"
-          >
-            <div className="mx-auto w-full max-w-[80vw]">
-              <div className="mx-auto mb-12 max-w-content-prose text-center">
-                <h2
-                  id="benefits-heading"
-                  className="mb-4 text-3xl font-bold text-gray-900 sm:text-4xl"
-                >
-                  Menos carga manual, más control operativo
-                </h2>
-                <p className="text-lg text-gray-600">
-                  Diseñado para que depósito, administración y choferes trabajen con
-                  la misma información sin volver a cargar datos.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                <article className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-                  <h3 className="mb-2 text-lg font-semibold text-gray-900">
-                    Antes
-                  </h3>
-                  <p className="text-sm leading-relaxed text-gray-600">
-                    Datos repetidos entre WhatsApp, planillas y papel, con errores
-                    que aparecen al final del día.
-                  </p>
-                </article>
-                <article className="rounded-2xl border border-blue-100 bg-blue-50 p-6">
-                  <h3 className="mb-2 text-lg font-semibold text-blue-900">
-                    Con En Punto
-                  </h3>
-                  <p className="text-sm leading-relaxed text-blue-900/80">
-                    Un flujo único: remito, reparto, PDF y exportación en un mismo
-                    proceso.
-                  </p>
-                </article>
-                <article className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-                  <h3 className="mb-2 text-lg font-semibold text-gray-900">
-                    Resultado
-                  </h3>
-                  <p className="text-sm leading-relaxed text-gray-600">
-                    Cierre más rápido, menos retrabajo administrativo y mejor
-                    trazabilidad por salida.
-                  </p>
-                </article>
-              </div>
-            </div>
-          </section>
+          <BenefitsSection />
 
           <HowItWorksSection />
 
@@ -210,14 +163,18 @@ export default function Home() {
                   href="/signup"
                   className="inline-flex items-center px-8 py-4 bg-white text-gray-900 font-semibold rounded-lg hover:bg-gray-100 transition-colors duration-200 text-lg"
                 >
-                  Probar en Android
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-                <Link
-                  href="/contact"
-                  className="inline-flex items-center rounded-lg border border-white/60 px-8 py-4 text-lg font-semibold text-white hover:bg-white/10 transition-colors duration-200"
-                >
-                  Agendar demo
+                  Probar en{' '}
+                  <Image
+                    src="/brands/android-head_flat.svg"
+                    alt=""
+                    width={152}
+                    height={89}
+                    className="mx-1 inline-block h-[1.15em] w-auto shrink-0 align-[-0.12em]"
+                    unoptimized
+                    aria-hidden
+                  />
+                  Android
+                  <ArrowRight className="ml-2 h-5 w-5 shrink-0" />
                 </Link>
               </div>
             </div>
