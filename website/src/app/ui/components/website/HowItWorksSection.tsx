@@ -55,8 +55,14 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
   const textRef = useRef<HTMLDivElement | null>(null);
   const isPdfStep = step.id === '3';
   const visualOnRight = index % 2 === 1;
-  const visualOrderClass = visualOnRight ? 'md:order-2' : 'md:order-1';
-  const textOrderClass = visualOnRight ? 'md:order-1' : 'md:order-2';
+  /** Match step-1 proportions: phone always in a 320px track, copy always in 1fr (swap column *order* when image is on the right). */
+  const stepGridCols = isPdfStep
+    ? 'md:grid-cols-1'
+    : visualOnRight
+      ? 'md:grid-cols-[minmax(0,1fr)_320px]'
+      : 'md:grid-cols-[320px_minmax(0,1fr)]';
+  const visualGridPlacement = !isPdfStep && visualOnRight ? 'md:col-start-2 md:row-start-1' : '';
+  const textGridPlacement = !isPdfStep && visualOnRight ? 'md:col-start-1 md:row-start-1' : '';
   const visualAlignClass = visualOnRight ? 'md:ml-auto md:mr-0' : 'md:mr-auto md:ml-0';
   const textAlignClass = visualOnRight ? 'md:mr-0 md:ml-auto' : 'md:ml-0 md:mr-auto';
 
@@ -112,21 +118,32 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
       <header
         ref={headerRef}
         className={`mb-8 ${
-          visualOnRight ? 'text-right md:ml-auto md:w-[58%]' : 'text-left md:w-[58%]'
+          isPdfStep
+            ? 'w-full text-left'
+            : visualOnRight
+              ? 'text-right md:ml-auto md:w-[58%]'
+              : 'text-left md:w-[58%]'
         }`}
       >
-        <p className="mb-2 text-xl font-semibold tracking-wide text-blue-600">
+        <p className="mb-3 text-2xl font-semibold tracking-wide text-blue-600 sm:text-3xl">
           {step.id}
         </p>
-        <h3 className="text-4xl font-bold text-gray-900">{step.title}</h3>
+        <h3
+          className={`text-5xl font-bold leading-tight text-gray-900 sm:text-6xl lg:text-7xl ${
+            isPdfStep ? 'whitespace-nowrap' : ''
+          }`}
+        >
+          {step.title}
+        </h3>
       </header>
 
       <div
-        className={`grid grid-cols-1 items-center gap-8 md:gap-14 ${
-          isPdfStep ? 'md:grid-cols-1' : 'md:grid-cols-[320px_minmax(0,1fr)]'
-        }`}
+        className={`grid grid-cols-1 items-center gap-8 md:gap-14 ${stepGridCols}`}
       >
-        <div ref={visualRef} className={visualOrderClass}>
+        <div
+          ref={visualRef}
+          className={`min-w-0 ${visualGridPlacement} ${isPdfStep ? 'order-2' : ''}`}
+        >
           {isPdfStep ? (
             <div className="relative ml-0 mr-auto w-full">
               <div className="w-[76.8%]">
@@ -157,8 +174,13 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
           )}
         </div>
 
-        <div ref={textRef} className={textOrderClass}>
-          <p className={`max-w-2xl text-2xl leading-relaxed text-gray-600 ${textAlignClass}`}>
+        <div
+          ref={textRef}
+          className={`min-w-0 ${textGridPlacement} ${isPdfStep ? 'order-1' : ''}`}
+        >
+          <p
+            className={`w-full max-w-none text-3xl leading-relaxed text-gray-600 sm:text-4xl lg:text-5xl lg:leading-snug ${textAlignClass}`}
+          >
             {step.description}
           </p>
         </div>
@@ -177,11 +199,11 @@ export default function HowItWorksSection() {
         <div className="mx-auto mb-14 max-w-content-prose text-center">
           <h2
             id="how-it-works-heading"
-            className="mb-4 text-3xl font-bold text-gray-900 sm:text-4xl"
+            className="mb-6 text-4xl font-bold text-gray-900 sm:text-5xl lg:text-6xl"
           >
             Cómo funciona, paso a paso
           </h2>
-          <p className="text-lg text-gray-600">
+          <p className="text-xl leading-relaxed text-gray-600 sm:text-2xl lg:text-3xl">
             Un flujo de trabajo simple para pasar del remito a una operación lista
             para ruta y cierre administrativo.
           </p>

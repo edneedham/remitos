@@ -371,11 +371,11 @@ export default function BenefitsSection() {
         <div className="mx-auto mb-12 max-w-content-prose text-center">
           <h2
             id="benefits-heading"
-            className="mb-4 text-3xl font-bold text-gray-900 sm:text-4xl"
+            className="mb-4 text-4xl font-bold text-gray-900 sm:text-5xl lg:text-6xl"
           >
             Menos carga manual, más control operativo
           </h2>
-          <p className="text-lg text-gray-600">
+          <p className="text-xl leading-snug text-gray-600 sm:text-2xl lg:text-3xl">
             Pasá menos tiempo cargando datos y más en lo que importa.
           </p>
         </div>
@@ -387,13 +387,13 @@ export default function BenefitsSection() {
             <div className="flex max-w-md flex-col gap-5 justify-self-start md:col-start-1 md:self-center">
               <p
                 ref={benefitTextRef}
-                className="text-left text-[calc(1.125rem*1.3)] leading-relaxed text-gray-800 [visibility:hidden]"
+                className="text-left text-xl leading-relaxed text-gray-800 [visibility:hidden] sm:text-2xl lg:text-3xl"
               >
                 {FIRST_BENEFIT_LINE}
               </p>
               <p
                 ref={benefitText2Ref}
-                className="text-left text-[calc(1.125rem*1.3)] leading-relaxed text-gray-800 [visibility:hidden]"
+                className="text-left text-xl leading-relaxed text-gray-800 [visibility:hidden] sm:text-2xl lg:text-3xl"
               >
                 {SECOND_BENEFIT_LINE}
               </p>
@@ -416,7 +416,7 @@ export default function BenefitsSection() {
             <div className="max-w-md md:col-start-3 md:row-start-1 md:self-center">
               <p
                 ref={benefitText3Ref}
-                className="justify-self-end text-right text-[calc(1.125rem*1.3)] leading-relaxed text-gray-800 [visibility:hidden] md:justify-self-end"
+                className="justify-self-end text-right text-xl leading-relaxed text-gray-800 [visibility:hidden] sm:text-2xl lg:text-3xl md:justify-self-end"
               >
                 {THIRD_BENEFIT_LINE}
               </p>
@@ -438,7 +438,7 @@ export default function BenefitsSection() {
           </div>
           <p
             ref={panelCaptionRef}
-            className="mx-auto mt-8 max-w-content-prose px-4 text-center text-[calc(1.125rem*1.3)] font-medium leading-relaxed text-gray-800"
+            className="mx-auto mt-8 max-w-content-prose px-4 text-center text-xl font-medium leading-relaxed text-gray-800 sm:text-2xl lg:text-3xl"
           >
             {PANEL_CAPTION_LINE}
           </p>

@@ -95,12 +95,12 @@ export default function HeaderAuthNav() {
           <button
             type="button"
             onClick={() => setAccountMenuOpen((open) => !open)}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 sm:px-4"
+            className="inline-flex max-w-[15rem] items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 sm:max-w-[17rem]"
             aria-haspopup="menu"
             aria-expanded={accountMenuOpen}
             aria-label="Abrir menú de empresa"
           >
-            <span className="max-w-[12rem] truncate sm:max-w-none">
+            <span className="max-w-[11rem] truncate sm:max-w-[13rem]">
               {profile?.company_name || '—'}
             </span>
             <svg

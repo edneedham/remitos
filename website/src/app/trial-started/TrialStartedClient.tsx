@@ -8,6 +8,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { getPublicSiteOrigin } from '../lib/siteUrl';
 import { isLikelyMobileDevice } from '../lib/mobileDevice';
 import { hasWebSession, refreshWebSession } from '../lib/webAuth';
+import LoadingSpinner from '../ui/components/shared/LoadingSpinner';
 import {
   markTrialSuccessScreenViewed,
   trackTrialOnboardingEvent,
@@ -103,7 +104,7 @@ export default function TrialStartedClient() {
   if (!ready) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center bg-gray-50 px-4">
-        <p className="text-sm text-gray-600">Cargando…</p>
+        <LoadingSpinner size="lg" />
       </div>
     );
   }

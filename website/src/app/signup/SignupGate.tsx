@@ -8,6 +8,7 @@ import { getApiBaseUrl } from '../lib/apiUrl';
 import { getPublicSiteOrigin } from '../lib/siteUrl';
 import { getWebAccessToken } from '../lib/webAuth';
 import { trackTrialOnboardingEvent } from '../lib/trialOnboardingAnalytics';
+import LoadingSpinner from '../ui/components/shared/LoadingSpinner';
 import SignupMarketingAside from './SignupMarketingAside';
 import SignupPlanSelector from './SignupPlanSelector';
 import SignupTrialForm from './SignupTrialForm';
@@ -32,8 +33,8 @@ export default function SignupGate() {
 
   if (!ready) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-gray-50 px-4">
-        <p className="text-gray-600">Cargando…</p>
+      <div className="flex min-h-[60vh] items-center justify-center bg-gray-50 px-4">
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
@@ -119,7 +120,27 @@ export default function SignupGate() {
                   <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
                     ¿Preferís el celular?
                   </p>
-                  <QRCodeSVG value={mobileUrl} size={140} level="M" includeMargin />
+                  <div className="relative h-[140px] w-[140px]">
+                    <QRCodeSVG
+                      value={mobileUrl}
+                      size={140}
+                      level="H"
+                      includeMargin={false}
+                    />
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                      aria-hidden
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
+                        <img
+                          src="/enpunto-simple.svg"
+                          alt=""
+                          className="h-5 w-5"
+                          aria-hidden
+                        />
+                      </div>
+                    </div>
+                  </div>
                   <p className="mt-3 max-w-[11rem] text-center text-xs text-gray-500">
                     Escaneá para el mismo registro en tu teléfono.
                   </p>

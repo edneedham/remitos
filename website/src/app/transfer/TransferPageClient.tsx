@@ -74,9 +74,9 @@ export default function TransferPageClient({ token }: { token: string }) {
             {error}
           </p>
         ) : (
-          <div className="mt-4 flex items-center gap-3 text-sm text-gray-600">
+          <div className="mt-4 flex min-h-[7rem] flex-col items-center justify-center gap-3 text-center text-sm text-gray-600">
             <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden />
-            Validando enlace y preparando la sesión en este dispositivo...
+            <span>Validando enlace y preparando la sesión en este dispositivo...</span>
           </div>
         )}
       </div>

@@ -72,21 +72,25 @@ export default function DashboardShell({
       </aside>
 
       <div className="flex min-h-screen w-full min-w-0 flex-1 flex-col md:pl-64">
-        <header className="sticky top-0 z-30 flex h-24 shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 shadow-sm sm:px-8">
-          <div className="flex min-w-0 flex-1 items-center md:hidden">
-            <Link href="/" className="flex shrink-0 items-center" prefetch={false}>
-              <Image
-                src="/enpunto-new.svg"
-                alt="En Punto"
-                width={140}
-                height={25}
-                className="h-9 w-auto max-w-[140px]"
-                unoptimized
-              />
-            </Link>
-          </div>
-          <div className="flex shrink-0 items-center justify-end md:ml-auto md:flex-1">
-            <HeaderAuthNav />
+        <header className="sticky top-0 z-30 h-24 shrink-0 border-b border-gray-200 bg-white shadow-sm">
+          <div className="mx-auto h-full w-full max-w-[80vw] px-4 sm:px-6 md:max-w-[calc(80vw-16rem)] lg:px-8">
+            <div className="flex h-full items-center justify-between gap-3">
+              <div className="flex min-w-0 flex-1 items-center md:hidden">
+                <Link href="/" className="flex shrink-0 items-center" prefetch={false}>
+                  <Image
+                    src="/enpunto-new.svg"
+                    alt="En Punto"
+                    width={140}
+                    height={25}
+                    className="h-9 w-auto max-w-[140px]"
+                    unoptimized
+                  />
+                </Link>
+              </div>
+              <div className="flex shrink-0 items-center justify-end md:ml-auto md:flex-1">
+                <HeaderAuthNav />
+              </div>
+            </div>
           </div>
         </header>
         <div className="flex-1">{children}</div>

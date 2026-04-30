@@ -279,9 +279,9 @@ export default function ApplicationPageClient() {
                 </Link>
               </div>
             ) : isMobile === null ? (
-              <div className="flex items-center gap-2 py-10 text-sm text-gray-600">
+              <div className="flex min-h-[8rem] flex-col items-center justify-center gap-2 py-10 text-sm text-gray-600">
                 <Loader2 className="h-5 w-5 animate-spin text-blue-600" aria-hidden />
-                Preparando…
+                <span className="text-center">Preparando…</span>
               </div>
             ) : isMobile ? (
               <button
