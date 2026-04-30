@@ -29,7 +29,7 @@ func CompanyHasAppDownloadAccess(now time.Time, c *models.Company) bool {
 
 	plan := strings.ToLower(strings.TrimSpace(c.SubscriptionPlan))
 
-	if isPaidPlan(plan) {
+	if IsPaidPlan(plan) {
 		if c.SubscriptionExpiresAt == nil {
 			return true
 		}
@@ -39,9 +39,10 @@ func CompanyHasAppDownloadAccess(now time.Time, c *models.Company) bool {
 	return false
 }
 
-func isPaidPlan(plan string) bool {
-	switch plan {
-	case "premium", "paid", "subscriber", "standard", "pyme", "empresa":
+// IsPaidPlan reports catalog plans that bill as a paid/commercial subscription (not trial/free).
+func IsPaidPlan(plan string) bool {
+	switch strings.ToLower(strings.TrimSpace(plan)) {
+	case "premium", "paid", "subscriber", "standard", "pyme", "empresa", "corporativo":
 		return true
 	default:
 		return false

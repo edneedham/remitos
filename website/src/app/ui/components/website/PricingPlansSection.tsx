@@ -9,6 +9,7 @@ import {
   Warehouse,
 } from 'lucide-react';
 import Link from 'next/link';
+import { BILLING_LEGAL_NOTICE_AR } from '../../../lib/billingLegalNotice';
 import { PLAN_CATALOG } from '../../../lib/planCatalog';
 
 type WebsitePlan = {
@@ -142,8 +143,8 @@ export default function PricingPlansSection({
           <ShieldCheck className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" aria-hidden />
           <span>Sin permanencia. Cancela cuando quieras.</span>
         </div>
-        <p className="mx-auto mt-3 max-w-6xl text-center text-xs text-gray-500 sm:text-sm">
-          Facturado en pesos argentinos.
+        <p className="mx-auto mt-3 max-w-3xl text-center text-xs leading-relaxed text-gray-500 sm:text-sm">
+          {BILLING_LEGAL_NOTICE_AR}
         </p>
       </div>
     </section>

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -62,4 +63,32 @@ func (r *InvoiceRepository) ListByCompanyID(ctx context.Context, companyID uuid.
 		return nil, err
 	}
 	return out, nil
+}
+
+// InsertPending creates a billing invoice in pending status (issued, awaiting payment confirmation).
+func (r *InvoiceRepository) InsertPending(ctx context.Context, conn DBConn, companyID uuid.UUID, amountMinor int64, currency, description string) (uuid.UUID, error) {
+	query := `
+		INSERT INTO billing_invoices (company_id, amount_minor, currency, status, description, issued_at)
+		VALUES ($1, $2, $3, 'pending', $4, NOW())
+		RETURNING id
+	`
+	var id uuid.UUID
+	err := conn.QueryRow(ctx, query, companyID, amountMinor, currency, description).Scan(&id)
+	return id, err
+}
+
+// MarkPaid sets status=paid and stores the Mercado Pago payment id for a pending invoice row.
+func (r *InvoiceRepository) MarkPaid(ctx context.Context, conn DBConn, invoiceID, companyID uuid.UUID, mpPaymentID string) error {
+	tag, err := conn.Exec(ctx, `
+		UPDATE billing_invoices
+		SET status = 'paid', mp_payment_id = $3
+		WHERE id = $1 AND company_id = $2 AND status = 'pending'
+	`, invoiceID, companyID, mpPaymentID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("invoice %s not pending or not found for company", invoiceID)
+	}
+	return nil
 }

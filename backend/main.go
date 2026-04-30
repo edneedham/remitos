@@ -17,6 +17,7 @@ import (
 	"github.com/joho/godotenv"
 	"server/config"
 	"server/db"
+	"server/internal/billing"
 	"server/internal/handlers"
 	"server/internal/jobs"
 	"server/internal/jwt"
@@ -100,7 +101,14 @@ func main() {
 	}
 	syncRepo := repository.NewSyncRepository(db.Pool)
 	invoiceRepo := repository.NewInvoiceRepository(db.Pool)
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL)
+	billingFx := &billing.MEPWithFallback{
+		HTTP: &http.Client{
+			Timeout: 20 * time.Second,
+		},
+		BolsaURL:          cfg.BillingMEPBolsaURL,
+		FallbackARSPerUSD: cfg.BillingUSDToARSRate,
+	}
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo)
 	adminHandler := handlers.NewAdminHandler(userRepo, deviceRepo, jwtSvc)
 	scanHandler, err := handlers.NewScanHandler()
@@ -125,6 +133,23 @@ func main() {
 	})
 
 	h.Mount("/auth", authHandler.Routes())
+	if cfg.BillingRenewalSecret != "" {
+		renewalSvc := billing.NewRenewalService(
+			db.Pool,
+			companyRepo,
+			invoiceRepo,
+			userRepo,
+			mpClient,
+			cfg.BillingStubAutoCharge,
+			billingFx,
+		)
+		billingRenewalHandler := handlers.NewBillingRenewalHandler(renewalSvc)
+		h.Route("/internal/billing", func(r chi.Router) {
+			r.Use(middleware.BillingRenewalSecret(cfg.BillingRenewalSecret))
+			r.Post("/trigger-renewal", billingRenewalHandler.PostTriggerRenewal)
+		})
+		logger.Log.Info().Msg("Billing renewal endpoint enabled at POST /internal/billing/trigger-renewal")
+	}
 	h.Mount("/warehouses", warehouseHandler.Routes())
 	if scanHandler != nil {
 		h.Group(func(r chi.Router) {

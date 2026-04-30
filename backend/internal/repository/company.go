@@ -50,11 +50,13 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 			status, is_verified, subscription_plan,
 			subscription_expires_at, trial_ends_at,
 			max_warehouses, max_users, documents_monthly_limit,
+			mp_customer_id, mp_card_id,
 			created_at, updated_at, archived_at
 		FROM companies WHERE id = $1
 	`
 	var c models.Company
 	var maxW, maxU, maxDoc sql.NullInt32
+	var mpCust, mpCard sql.NullString
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&c.ID,
 		&c.Code,
@@ -68,6 +70,8 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 		&maxW,
 		&maxU,
 		&maxDoc,
+		&mpCust,
+		&mpCard,
 		&c.CreatedAt,
 		&c.UpdatedAt,
 		&c.ArchivedAt,
@@ -90,7 +94,39 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 		v := int(maxDoc.Int32)
 		c.DocumentsMonthlyLimit = &v
 	}
+	if mpCust.Valid {
+		s := mpCust.String
+		c.MpCustomerID = &s
+	}
+	if mpCard.Valid {
+		s := mpCard.String
+		c.MpCardID = &s
+	}
 	return &c, nil
+}
+
+// ExtendPaidSubscriptionPeriod advances subscription_expires_at by extendMonths from the later of now or current expiry.
+func (r *CompanyRepository) ExtendPaidSubscriptionPeriod(ctx context.Context, conn DBConn, companyID uuid.UUID, extendMonths int) (time.Time, error) {
+	if extendMonths <= 0 {
+		return time.Time{}, errors.New("extend months must be positive")
+	}
+	query := `
+		UPDATE companies
+		SET subscription_expires_at =
+				GREATEST(COALESCE(subscription_expires_at, NOW()), NOW())
+				+ ($2::integer * INTERVAL '1 month'),
+			updated_at = NOW()
+		WHERE id = $1
+			AND archived_at IS NULL
+			AND status = 'active'
+		RETURNING subscription_expires_at
+	`
+	var endsAt time.Time
+	err := conn.QueryRow(ctx, query, companyID, extendMonths).Scan(&endsAt)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return endsAt, nil
 }
 
 func (r *CompanyRepository) GetByID(ctx context.Context, id string) (*models.Company, error) {
@@ -158,6 +194,49 @@ func (r *CompanyRepository) CreateTrial(ctx context.Context, company *models.Com
 		company.DocumentsMonthlyLimit,
 	)
 	return err
+}
+
+// ActivateSubscription persists Mercado Pago customer/card ids, plan limits, and the first paid period end.
+func (r *CompanyRepository) ActivateSubscription(
+	ctx context.Context,
+	companyID uuid.UUID,
+	mpCustomerID, mpCardID string,
+	plan string,
+	maxWarehouses, maxUsers, documentsMonthlyLimit *int,
+	paidUntil time.Time,
+) error {
+	query := `
+		UPDATE companies SET
+			mp_customer_id = $2,
+			mp_card_id = $3,
+			subscription_plan = $4,
+			max_warehouses = $5,
+			max_users = $6,
+			documents_monthly_limit = $7,
+			subscription_expires_at = $8,
+			updated_at = NOW(),
+			trial_activation_at = COALESCE(trial_activation_at, NOW())
+		WHERE id = $1
+			AND archived_at IS NULL
+			AND (status = '' OR status = 'active')
+	`
+	tag, err := r.pool.Exec(ctx, query,
+		companyID,
+		mpCustomerID,
+		mpCardID,
+		plan,
+		maxWarehouses,
+		maxUsers,
+		documentsMonthlyLimit,
+		paidUntil,
+	)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return errors.New("company not found or not eligible for activation")
+	}
+	return nil
 }
 
 func (r *CompanyRepository) UpdateSignupPlan(

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import HeaderAuthNav from '../ui/components/website/HeaderAuthNav';
+import ActivateSubscriptionGate from './ActivateSubscriptionGate';
 
 function SidebarNavLink({
   href,
@@ -93,7 +94,9 @@ export default function DashboardShell({
             </div>
           </div>
         </header>
-        <div className="flex-1">{children}</div>
+        <div className="flex-1">
+          <ActivateSubscriptionGate>{children}</ActivateSubscriptionGate>
+        </div>
       </div>
     </div>
   );

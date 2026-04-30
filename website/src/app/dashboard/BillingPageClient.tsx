@@ -13,12 +13,14 @@ import {
   hasWebSession,
   refreshWebSession,
 } from '../lib/webAuth';
+import { needsActivateSubscription } from './lib/activateSubscriptionGate';
 import {
   deriveBillingPresentation,
   formatDateTime,
   formatPlanLabel,
 } from './lib/billingPresentation';
 import type { BillingInvoiceRow, Entitlement } from './lib/entitlementTypes';
+import { BILLING_LEGAL_NOTICE_AR } from '../lib/billingLegalNotice';
 import { getPlanById } from '../lib/planCatalog';
 import {
   formatInvoiceDate,
@@ -160,6 +162,9 @@ export default function BillingPageClient() {
           <p className="text-base leading-relaxed text-gray-600">
             Plan, estado de suscripción y comprobantes de pago de tu empresa.
           </p>
+          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+            {BILLING_LEGAL_NOTICE_AR}
+          </p>
         </header>
 
         {error && (
@@ -188,6 +193,28 @@ export default function BillingPageClient() {
           >
             El estado de la empresa no es &quot;activo&quot;; revisá la cuenta o
             contactá soporte si necesitás reactivarla.
+          </div>
+        ) : null}
+
+        {entitlement &&
+        !billing.isArchived &&
+        !billing.companyBillingInactive &&
+        needsActivateSubscription(entitlement) ? (
+          <div
+            className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900"
+            role="status"
+          >
+            <p className="font-medium">Activá tu suscripción para seguir usando la app</p>
+            <p className="mt-1 text-blue-800">
+              La prueba terminó o el período pago venció. Cargá un medio de pago y
+              elegí un plan.
+            </p>
+            <Link
+              href="/dashboard/activate-subscription"
+              className="mt-2 inline-block font-semibold text-blue-800 underline"
+            >
+              Ir a activar suscripción
+            </Link>
           </div>
         ) : null}
 
@@ -272,9 +299,6 @@ export default function BillingPageClient() {
                   </p>
                   <p className="mt-1 text-sm text-gray-600">
                     {currentPlanPrice} / mes + IVA
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Facturado en pesos argentinos.
                   </p>
                   <p className="mt-2 text-xs text-gray-500">
                     Excedentes: {currentPlanOverage}

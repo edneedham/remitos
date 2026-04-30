@@ -6,6 +6,9 @@ export function isPaidPlan(plan: string): boolean {
     case 'paid':
     case 'subscriber':
     case 'standard':
+    case 'pyme':
+    case 'empresa':
+    case 'corporativo':
       return true;
     default:
       return false;

@@ -37,42 +37,44 @@ type AuthReleasesConfig struct {
 }
 
 type AuthHandler struct {
-	userRepo         *repository.UserRepository
-	companyRepo      *repository.CompanyRepository
-	warehouseRepo    *repository.WarehouseRepository
-	syncRepo         *repository.SyncRepository
-	invoiceRepo      *repository.InvoiceRepository
-	deviceRepo       *repository.DeviceRepository
-	refreshTokenRepo *repository.RefreshTokenRepository
-	transferRepo     *repository.WebSessionTransferRepository
-	subscriptionRepo *repository.SubscriptionRepository
-	db               *pgxpool.Pool
-	jwtSvc           *jwt.Service
-	mp               *mercadopago.Client
-	signupAllowMock  bool
-	releases         *AuthReleasesConfig
-	mailer           notifymail.Sender
-	publicSiteURL    string
+	userRepo          *repository.UserRepository
+	companyRepo       *repository.CompanyRepository
+	warehouseRepo     *repository.WarehouseRepository
+	syncRepo          *repository.SyncRepository
+	invoiceRepo       *repository.InvoiceRepository
+	deviceRepo        *repository.DeviceRepository
+	refreshTokenRepo  *repository.RefreshTokenRepository
+	transferRepo      *repository.WebSessionTransferRepository
+	subscriptionRepo  *repository.SubscriptionRepository
+	db                *pgxpool.Pool
+	jwtSvc            *jwt.Service
+	mp                *mercadopago.Client
+	signupAllowMock   bool
+	releases          *AuthReleasesConfig
+	mailer            notifymail.Sender
+	publicSiteURL     string
+	billingRateQuoter billing.USDARSQuoter
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter) *AuthHandler {
 	return &AuthHandler{
-		userRepo:         userRepo,
-		companyRepo:      companyRepo,
-		warehouseRepo:    warehouseRepo,
-		syncRepo:         syncRepo,
-		invoiceRepo:      invoiceRepo,
-		deviceRepo:       deviceRepo,
-		refreshTokenRepo: refreshTokenRepo,
-		transferRepo:     transferRepo,
-		subscriptionRepo: subscriptionRepo,
-		db:               db,
-		jwtSvc:           jwtSvc,
-		mp:               mp,
-		signupAllowMock:  signupAllowMock,
-		releases:         releases,
-		mailer:           mailer,
-		publicSiteURL:    publicSiteURL,
+		userRepo:          userRepo,
+		companyRepo:       companyRepo,
+		warehouseRepo:     warehouseRepo,
+		syncRepo:          syncRepo,
+		invoiceRepo:       invoiceRepo,
+		deviceRepo:        deviceRepo,
+		refreshTokenRepo:  refreshTokenRepo,
+		transferRepo:      transferRepo,
+		subscriptionRepo:  subscriptionRepo,
+		db:                db,
+		jwtSvc:            jwtSvc,
+		mp:                mp,
+		signupAllowMock:   signupAllowMock,
+		releases:          releases,
+		mailer:            mailer,
+		publicSiteURL:     publicSiteURL,
+		billingRateQuoter: billingRateQuoter,
 	}
 }
 
@@ -1094,11 +1096,13 @@ func (h *AuthHandler) Routes() *chi.Mux {
 		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: h.jwtSvc, DeviceRepo: h.deviceRepo}))
 		r.Post("/logout", h.Logout)
 		r.Post("/me/plan", h.SelectMyPlan)
+		r.Post("/me/activate-subscription", h.PostMeActivateSubscription)
 		r.Post("/transfer/start", h.StartSessionTransfer)
 		r.Get("/me", h.GetMe)
 		r.Get("/user/status", h.GetUserStatus)
 		r.Get("/me/entitlement", h.GetMeEntitlement)
 		r.Get("/me/invoices", h.GetMeInvoices)
+		r.Get("/me/plan-pricing", h.GetMePlanPricing)
 		r.Get("/downloads/android", h.GetAndroidDownloadURL)
 	})
 	return r
