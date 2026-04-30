@@ -18,6 +18,7 @@ import (
 	"server/config"
 	"server/db"
 	"server/internal/handlers"
+	"server/internal/jobs"
 	"server/internal/jwt"
 	"server/internal/logger"
 	"server/internal/middleware"
@@ -90,6 +91,13 @@ func main() {
 	}
 
 	mailSender := notifymail.ConfigureSender(cfg.EmailEnabled, cfg.ResendAPIKey, cfg.EmailFrom, cfg.EmailReplyTo)
+
+	if cfg.EmailEnabled && strings.TrimSpace(cfg.ResendAPIKey) != "" && strings.TrimSpace(cfg.EmailFrom) != "" {
+		go func() {
+			jobs.StartTrialOnboardingNudgeLoop(context.Background(), companyRepo, mailSender, cfg.PublicSiteURL)
+		}()
+		logger.Log.Info().Msg("Trial onboarding email nudges enabled (5m ticker)")
+	}
 	syncRepo := repository.NewSyncRepository(db.Pool)
 	invoiceRepo := repository.NewInvoiceRepository(db.Pool)
 	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL)

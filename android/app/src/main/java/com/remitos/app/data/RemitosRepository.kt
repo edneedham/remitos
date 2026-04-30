@@ -25,6 +25,7 @@ class RemitosRepository(internal val db: AppDatabase) {
     private val auditRepository = AuditRepository(db)
 
     // Inbound
+    suspend fun countInboundNotes(): Int = inboundRepository.countInboundNotes()
     suspend fun createInboundNote(note: InboundNoteEntity): Long = inboundRepository.createInboundNote(note)
     suspend fun createTestInboundNote(): Long = inboundRepository.createTestInboundNote()
     suspend fun updateInboundNote(note: InboundNoteEntity) = inboundRepository.updateInboundNote(note)

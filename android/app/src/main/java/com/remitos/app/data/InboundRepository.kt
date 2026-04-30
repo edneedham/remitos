@@ -13,6 +13,8 @@ class InboundRepository(private val db: AppDatabase) {
         private const val InboundRemitoSequenceName = "inbound_remito_interno"
     }
 
+    suspend fun countInboundNotes(): Int = db.inboundDao().countInboundNotes()
+
     suspend fun createInboundNote(note: InboundNoteEntity): Long {
         return db.withTransaction {
             val remitoInterno = nextInboundRemitoInternoLocked()

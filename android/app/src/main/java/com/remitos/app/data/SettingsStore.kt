@@ -36,6 +36,9 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
     // Image Upload Settings
     private val imageUploadTimingKey = stringPreferencesKey("image_upload_timing")
 
+    /** True after the user has saved at least one inbound remito (first-run onboarding complete). */
+    private val firstInboundOnboardingDoneKey = booleanPreferencesKey("first_inbound_onboarding_done")
+
     val perspectiveCorrectionEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[perspectiveCorrectionKey] ?: true
     }
@@ -123,6 +126,19 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
     suspend fun setUploadTiming(timing: UploadTiming) {
         context.dataStore.edit { prefs ->
             prefs[imageUploadTimingKey] = timing.name
+        }
+    }
+
+    val firstInboundOnboardingDone: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[firstInboundOnboardingDoneKey] ?: false
+    }
+
+    suspend fun isFirstInboundOnboardingDone(): Boolean =
+        firstInboundOnboardingDone.first()
+
+    suspend fun setFirstInboundOnboardingDone() {
+        context.dataStore.edit { prefs ->
+            prefs[firstInboundOnboardingDoneKey] = true
         }
     }
 }

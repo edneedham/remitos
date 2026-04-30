@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -174,7 +175,11 @@ func (r *CompanyRepository) UpdateSignupPlan(
 			max_warehouses = $3,
 			max_users = $4,
 			documents_monthly_limit = $5,
-			updated_at = NOW()
+			updated_at = NOW(),
+			trial_activation_at = CASE
+				WHEN ($2::text IN ('pyme', 'empresa')) AND trial_activation_at IS NULL THEN NOW()
+				ELSE trial_activation_at
+			END
 		WHERE id = $1
 	`
 	_, err := r.pool.Exec(
@@ -186,5 +191,103 @@ func (r *CompanyRepository) UpdateSignupPlan(
 		maxUsers,
 		documentsMonthlyLimit,
 	)
+	return err
+}
+
+// TrialOnboardingNudgeRow is one company eligible for onboarding reminder processing.
+type TrialOnboardingNudgeRow struct {
+	CompanyID         uuid.UUID
+	CompanyName       string
+	CompanyCode       string
+	TrialActivationAt time.Time
+	SetupSent         sql.NullTime
+	Day1Sent          sql.NullTime
+	Day3Sent          sql.NullTime
+	OwnerEmail        string
+}
+
+// ListCompaniesForTrialOnboardingNudges returns active trial companies with no inbound notes yet,
+// joined to the company_owner email for outbound mail.
+func (r *CompanyRepository) ListCompaniesForTrialOnboardingNudges(ctx context.Context) ([]TrialOnboardingNudgeRow, error) {
+	query := `
+		SELECT DISTINCT ON (c.id)
+			c.id,
+			c.name,
+			c.code,
+			c.trial_activation_at,
+			c.onboarding_nudge_setup_sent_at,
+			c.onboarding_nudge_day1_sent_at,
+			c.onboarding_nudge_day3_sent_at,
+			COALESCE(NULLIF(TRIM(u.email), ''), NULLIF(TRIM(u.username), ''), '') AS owner_email
+		FROM companies c
+		INNER JOIN users u ON u.company_id = c.id AND u.role = 'company_owner'
+		WHERE c.trial_activation_at IS NOT NULL
+			AND c.status = 'active'
+			AND c.archived_at IS NULL
+			AND (c.trial_ends_at IS NULL OR c.trial_ends_at > NOW())
+			AND NOT EXISTS (
+				SELECT 1 FROM inbound_notes n WHERE n.company_id = c.id LIMIT 1
+			)
+		ORDER BY c.id, u.created_at ASC
+	`
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []TrialOnboardingNudgeRow
+	for rows.Next() {
+		var row TrialOnboardingNudgeRow
+		if err := rows.Scan(
+			&row.CompanyID,
+			&row.CompanyName,
+			&row.CompanyCode,
+			&row.TrialActivationAt,
+			&row.SetupSent,
+			&row.Day1Sent,
+			&row.Day3Sent,
+			&row.OwnerEmail,
+		); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
+// ApplyTrialOnboardingNudgeSent marks the given stage (and implied earlier stages) as sent.
+func (r *CompanyRepository) ApplyTrialOnboardingNudgeSent(ctx context.Context, companyID uuid.UUID, stage string) error {
+	var q string
+	switch stage {
+	case "setup":
+		q = `
+			UPDATE companies
+			SET onboarding_nudge_setup_sent_at = NOW(), updated_at = NOW()
+			WHERE id = $1
+		`
+	case "day1":
+		q = `
+			UPDATE companies
+			SET
+				onboarding_nudge_setup_sent_at = COALESCE(onboarding_nudge_setup_sent_at, NOW()),
+				onboarding_nudge_day1_sent_at = NOW(),
+				updated_at = NOW()
+			WHERE id = $1
+		`
+	case "day3":
+		q = `
+			UPDATE companies
+			SET
+				onboarding_nudge_setup_sent_at = COALESCE(onboarding_nudge_setup_sent_at, NOW()),
+				onboarding_nudge_day1_sent_at = COALESCE(onboarding_nudge_day1_sent_at, NOW()),
+				onboarding_nudge_day3_sent_at = NOW(),
+				updated_at = NOW()
+			WHERE id = $1
+		`
+	default:
+		return errors.New("unknown onboarding nudge stage")
+	}
+	_, err := r.pool.Exec(ctx, q, companyID)
 	return err
 }

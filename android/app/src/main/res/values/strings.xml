@@ -97,4 +97,8 @@
     <string name="ver_en_drive">Ver en Drive</string>
     <string name="guardado_localmente_sin_conexi_n">Guardado localmente (sin conexión a internet)</string>
     <string name="error_de_conexi_n_no_se_pudo_subir_a_drive">Error de conexión: no se pudo subir a Google Drive</string>
+    <string name="ingreso_guardado_correctamente">Ingreso guardado correctamente</string>
+    <string name="first_run_scan_banner_title">Primer remito</string>
+    <string name="first_run_scan_banner_body">Elegí una foto del remito o usá la cámara. Podés corregir los datos antes de guardar.</string>
+    <string name="snackbar_first_remito_saved">¡Listo! Tu primer remito quedó guardado. Vas a verlo en Historial cuando sincronice.</string>
 </resources>

@@ -20,11 +20,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
+import org.mockito.kotlin.wheneverBlocking
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class InboundViewModelTest {
@@ -40,6 +42,8 @@ class InboundViewModelTest {
         Dispatchers.setMain(testDispatcher)
         repository = mock()
         settingsStore = mock()
+        wheneverBlocking { settingsStore.isFirstInboundOnboardingDone() } doReturn false
+        wheneverBlocking { settingsStore.setFirstInboundOnboardingDone() } doReturn Unit
         ocrProcessor = mock()
         authManager = mock()
         imageUploadManager = mock()
