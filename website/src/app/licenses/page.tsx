@@ -6,23 +6,27 @@ import type { License } from './types';
 export default function LicensesPage() {
   const webLicenses = webLicensesData as License[];
   const serverLicenses = serverLicensesData as License[];
+  const totalLicenses = serverLicenses.length + webLicenses.length;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-content mx-auto py-20 px-8">
         <h1 className="text-4xl font-bold text-blue-600 mb-4 text-left">
-          Licencias de Software de Terceros
+          Licencias de terceros
         </h1>
         <p className="text-gray-600 mb-12 leading-relaxed">
-          En Punto utiliza software de código abierto y de terceros. A
-          continuación se detallan todas las dependencias y sus respectivas
-          licencias.
+          Esta página reúne las bibliotecas de terceros utilizadas por En Punto
+          (ROASAL S.A.S.) en la API y en la aplicación web, junto con sus
+          licencias correspondientes.
+        </p>
+        <p className="text-sm text-gray-500 mb-12 leading-relaxed">
+          Total de paquetes listados: {totalLicenses}.
         </p>
 
-        {/* Backend/Server Licenses */}
+        {/* API/Server licenses */}
         <section className="bg-white p-8 mb-8 rounded-lg shadow-sm">
           <h2 className="text-3xl font-bold text-gray-800 mb-4">
-            Backend (Servidor)
+            API (Servidor)
           </h2>
           <p className="text-gray-600 mb-6">
             {serverLicenses.length} paquetes de terceros
@@ -30,10 +34,10 @@ export default function LicensesPage() {
           <Licenses licenses={serverLicenses} />
         </section>
 
-        {/* Frontend/Web Licenses */}
+        {/* Website licenses */}
         <section className="bg-white p-8 mb-8 rounded-lg shadow-sm">
           <h2 className="text-3xl font-bold text-gray-800 mb-4">
-            Frontend (Aplicación Web)
+            Sitio web (Frontend)
           </h2>
           <p className="text-gray-600 mb-6">
             {webLicenses.length} paquetes de terceros

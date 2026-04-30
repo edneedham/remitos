@@ -12,7 +12,7 @@ export default async function Privacy() {
             </h1>
 
             <p className="text-l text-gray-600 mb-8 mx-auto text-left">
-              Última modificación: 18 de septiembre de 2025
+              Última modificación: 30 de abril de 2026
             </p>
           </div>
         </section>
@@ -38,7 +38,7 @@ export default async function Privacy() {
             </p>
 
             <p className="text-gray-600 mb-6 leading-relaxed">
-              El Usuario puede utilizar el la el software o plataforma conocidos
+              El Usuario puede utilizar el software o la plataforma conocidos
               como En Punto, así como interactuar con los diversos medios de
               comunicación oficiales de la compañía para acceder a la bolsa de
               trabajo, aplicar o publicar servicios logísticos, contactar con
@@ -100,7 +100,7 @@ export default async function Privacy() {
             <p className="text-gray-600 mb-6 leading-relaxed">
               Este aviso aplica a todos los usuarios de las apps, sitios web, u
               otros servicios de ROASAL S.A.S. en cualquier parte del mundo. Se
-              considera Usuario a toda persona fisica, jurídica o entidad que
+              considera Usuario a toda persona física, jurídica o entidad que
               interactúa con los servicios de ROASAL S.A.S., lo que incluye pero
               no limita correos electrónicos, emails, mensajes, sitio web,
               software de aplicaciones, aplicaciones móviles y otros servicios
@@ -260,7 +260,7 @@ export default async function Privacy() {
                     </td>
                     <td className="p-4 border border-gray-300">
                       Datos de uso, interacción, segmentación, estadísticas,
-                      información arrojada por sistemas de navegacion y/o
+                      información arrojada por sistemas de navegación y/o
                       marketing; Información de navegación; Tiempos de actividad
                       e inactividad; Segmentación de uso; Estadísticas
                       operativas; Resultados de sistemas de análisis de
@@ -386,13 +386,13 @@ export default async function Privacy() {
 
             <p className="text-gray-600 mb-6 leading-relaxed">
               Además de la compañía, en algunos casos podrán acceder a los datos
-              ciertas categorías de datos personas autorizadas o subsidiarias,
+              ciertas categorías de personas autorizadas o subsidiarias,
               relacionadas con el funcionamiento esencial de este sitio web.
-              También podrán acceder a los datos personas o empresas externas a
-              la compañía como encargados del tratamiento, procesamiento,
-              recolección o oficial de protección de dato o entidades
+              También podrán acceder personas o empresas externas a la compañía,
+              como encargados del tratamiento, procesamiento,
+              recolección o responsables de protección de datos, o entidades
               autorizadas para garantizar la correcta prestación de los
-              servicios ofrecidos por esta compañía
+              servicios ofrecidos por esta compañía.
             </p>
 
             <p className="text-gray-600 mb-6 leading-relaxed">

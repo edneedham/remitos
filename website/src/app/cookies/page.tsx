@@ -12,7 +12,7 @@ export default async function Cookies() {
             </h1>
 
             <p className="text-l text-gray-600 mb-8 mx-auto text-left">
-              Última modificación: 18 de septiembre de 2025
+              Última modificación: 30 de abril de 2026
             </p>
           </div>
         </section>
@@ -21,30 +21,30 @@ export default async function Cookies() {
         <section className="py-20 px-8 bg-gray-50">
           <div className="max-w-content mx-auto">
             <p className="text-gray-600 mb-6 leading-relaxed">
-              El presente documento es un anexo de los Términos y condiciones de
-              los servicios provistos por ROASAL S.A.S. o las aplicaciones
-              registradas como &quot;En Punto&quot;, marca registrada propiedad
-              de la primera, de ahora en más denominada &quot;La compañía&quot;.
+              El presente documento complementa los Términos y Condiciones de
+              los servicios provistos por ROASAL S.A.S. a través de la
+              plataforma registrada como &quot;En Punto&quot;, en adelante
+              denominada &quot;la compañía&quot;.
             </p>
 
             <p className="text-gray-600 mb-6 leading-relaxed">
               ROASAL S.A.S. utiliza cookies en sus sitios web y aplicaciones
               móviles (colectivamente, los &quot;Servicios en Línea&quot;) para
               fines esenciales, en cumplimiento con la Ley 25.326 de Protección
-              de Datos Personales y regulaciones aplicables en Argentina.
+              de Datos Personales y demás regulaciones aplicables en Argentina.
             </p>
 
             <p className="text-gray-600 mb-6 leading-relaxed">
-              Estas cookies son requeridas para fines esenciales como la gestión
-              de sesiones de autenticación. Específicamente, se utiliza una
-              cookie llamada &apos;auth-token&apos; para mantener la sesión del
-              usuario segura y permitir el acceso a funciones personalizadas
-              después de iniciar sesión. ROASAL S.A.S. no utiliza cookies de
-              seguimiento, publicitarias de terceros, píxeles de rastreo, ni
-              otras tecnologías de seguimiento en este momento. Esta política se
-              actualizará si se introducen cambios, asegurando el consentimiento
-              donde sea requerido acorde las regulaciones de la República
-              Argentina o el país de prestación del servicio.
+              Estas cookies son requeridas para fines esenciales, como la gestión
+              de sesiones de autenticación. Actualmente se utiliza una cookie
+              llamada &apos;auth-token&apos; para mantener la sesión del usuario
+              de forma segura y permitir el acceso a funciones personalizadas
+              luego de iniciar sesión. ROASAL S.A.S. no utiliza cookies de
+              seguimiento, cookies publicitarias de terceros, píxeles de rastreo
+              ni otras tecnologías de seguimiento en este momento. Esta política
+              será actualizada si se introducen cambios y, cuando corresponda, se
+              solicitará el consentimiento conforme a la normativa aplicable en
+              la República Argentina o en el país donde se preste el servicio.
             </p>
           </div>
         </section>
@@ -58,9 +58,9 @@ export default async function Cookies() {
 
             <p className="text-gray-600 mb-6 leading-relaxed">
               Las cookies son pequeños archivos de texto que se almacenan en el
-              navegador del usuario o dispositivo por sitios web y aplicaciones,
-              que se utilizan para recordar al navegador o dispositivo durante y
-              a través de visitas a sitios web.
+              navegador o dispositivo del usuario por sitios web y aplicaciones.
+              Se utilizan para recordar información del navegador o dispositivo
+              durante una visita y entre visitas.
             </p>
 
             <h3 className="text-2xl font-semibold text-gray-800 mb-4">
@@ -135,7 +135,7 @@ export default async function Cookies() {
               cookies por defecto. Si el usuario lo prefiere, puede configurar
               su navegador para eliminar o rechazar cookies. Para hacerlo, el
               usuario debe seguir las instrucciones proporcionadas por su
-              navegador, que generalmente se encuentran dentro del menú
+              navegador, que generalmente se encuentran en el menú
               &apos;Ayuda&apos; o &apos;Preferencias&apos;.
             </p>
 

@@ -12,7 +12,7 @@ export default async function Terms() {
             </h1>
 
             <p className="text-l text-gray-600 mb-8 mx-auto text-left">
-              Última modificación: 18 de septiembre de 2025
+              Última modificación: 30 de abril de 2026
             </p>
           </div>
         </section>
@@ -55,7 +55,7 @@ export default async function Terms() {
             </p>
 
             <p className="text-gray-600 mb-6 leading-relaxed">
-              Al acceder a la plataforma y/o hacer uso de de los Servicios, el
+              Al acceder a la plataforma y/o hacer uso de los Servicios, el
               Usuario confirma estar de acuerdo y vinculado a estos Términos y
               Condiciones, que establecen una relación contractual entre el
               Usuario y la Compañía. Estos Términos sustituyen cualquier otro
@@ -308,7 +308,7 @@ export default async function Terms() {
             </ul>
 
             <p className="text-gray-600 mb-6 leading-relaxed">
-              Cualquier violación de estos puntos será considerádo una grave
+              Cualquier violación de estos puntos será considerada una grave
               infracción, además de causar perjuicio a ROASAL S.A.S., quien se
               reserva el derecho a requerir acciones legales y penalizaciones.
               Cualquier violación que perjudique, además, la gestión de datos
@@ -371,8 +371,8 @@ export default async function Terms() {
               plataforma digital para que las partes puedan contactarse, acordar
               condiciones comerciales y eventualmente celebrar contratos de
               transporte entre ellas. Su responsabilidad y alcance se limita al
-              servicio de la pltaforma que se oferta como intermediario
-              tecnologico dirigido a la relación &quot;business to
+              servicio de la plataforma que se oferta como intermediario
+              tecnológico dirigido a la relación &quot;business to
               business&quot;.
             </p>
 
@@ -449,7 +449,7 @@ export default async function Terms() {
               ROASAL S.A.S. como organización privada independiente, no asume
               responsabilidad sobre la calidad tributaria, legal o social de sus
               usuarios. La compañía asume que todos los usuarios son personas
-              fisicas o jurídicas registradas, habilitadas, y en uso total de
+              físicas o jurídicas registradas, habilitadas, y en uso total de
               sus facultades a la hora de acceder a sus servicios, y por tanto
               los usuarios son completa e intransferiblemente responsables de
               sus acciones.
@@ -498,9 +498,9 @@ export default async function Terms() {
             <p className="text-gray-600 mb-6 leading-relaxed">
               La compañía no controla, respalda ni asume responsabilidad por
               ningún contenido de usuario o de terceros disponible en la
-              plataforma en punto (incluyendo información relacionada a la bolsa
+              plataforma En Punto (incluyendo información relacionada a la bolsa
               de trabajo proporcionada por usuarios tipo cliente). La compañía
-              no puede y norepresenta ni garantiza que los servicios o
+              no puede ni representa ni garantiza que los servicios o
               servidores estén libres de virus u otros componentes dañinos.
             </p>
 
@@ -549,7 +549,7 @@ export default async function Terms() {
               calificaciones, comentarios o documentos) seguirá siendo de
               propiedad del usuario, pero al hacerlo, otorga a ROASAL S.A.S. una
               licencia gratuita, no exclusiva y por el tiempo de conservación de
-              la inforación y datos proporcionados para reproducir, mostrar o
+              la información y datos proporcionados para reproducir, mostrar o
               adaptar dicho contenido dentro del funcionamiento de los
               Servicios, siempre en el marco legal vigente.
             </p>

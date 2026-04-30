@@ -36,7 +36,7 @@ export default function LicenseSection({
               rel="noopener noreferrer"
               className="text-sm text-blue-600 hover:text-blue-700 mt-1 inline-block"
             >
-              Repository →
+              Repositorio →
             </a>
           )}
         </div>
