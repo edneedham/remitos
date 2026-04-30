@@ -73,7 +73,7 @@ describe('SignupTrialForm', () => {
     const [, req] = fetchMock.mock.calls[0] as [string, RequestInit];
     const payload = JSON.parse(String(req.body)) as { card_token?: string };
     expect(payload.card_token).toBeUndefined();
-    expect(routerPush).toHaveBeenCalledWith('/dashboard');
+    expect(routerPush).toHaveBeenCalledWith('/trial-started');
   });
 
   it('shows validation errors when required account fields are missing', async () => {

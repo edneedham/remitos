@@ -19,7 +19,12 @@ import {
   hasWebSession,
   refreshWebSession,
 } from '../lib/webAuth';
+import {
+  buildTrialOnboardingChecklist,
+  CHECKLIST_DOWNLOAD_PAGE_VISITED_KEY,
+} from '../lib/trialOnboardingChecklist';
 import DocumentUsageSection from './DocumentUsageSection';
+import TrialOnboardingChecklist from './TrialOnboardingChecklist';
 import {
   deriveBillingPresentation,
   formatPlanLabel,
@@ -30,6 +35,29 @@ import {
   formatInvoiceMoney,
   invoiceStatusLabel,
 } from './lib/invoiceFormat';
+import {
+  FIRST_SCAN_ANALYTICS_SENT_KEY,
+  trackTrialOnboardingEvent,
+} from '../lib/trialOnboardingAnalytics';
+
+function maybeEmitFirstScanCompleted(data: Entitlement): void {
+  try {
+    const n = data.remitos_processed_last_30_days;
+    if (typeof n === 'number' && n >= 1) {
+      if (
+        typeof window !== 'undefined' &&
+        window.localStorage.getItem(FIRST_SCAN_ANALYTICS_SENT_KEY) !== '1'
+      ) {
+        window.localStorage.setItem(FIRST_SCAN_ANALYTICS_SENT_KEY, '1');
+        trackTrialOnboardingEvent('first_scan_completed', {
+          remitos_processed_last_30_days: n,
+        });
+      }
+    }
+  } catch {
+    /* ignore localStorage / analytics */
+  }
+}
 
 export default function DashboardPageClient() {
   const router = useRouter();
@@ -38,6 +66,47 @@ export default function DashboardPageClient() {
   const [error, setError] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<BillingInvoiceRow[]>([]);
   const [invoicesError, setInvoicesError] = useState<string | null>(null);
+  const [downloadPageVisited, setDownloadPageVisited] = useState(false);
+
+  useEffect(() => {
+    function readDownloadVisitFlag() {
+      try {
+        setDownloadPageVisited(
+          window.localStorage.getItem(CHECKLIST_DOWNLOAD_PAGE_VISITED_KEY) ===
+            '1',
+        );
+      } catch {
+        setDownloadPageVisited(false);
+      }
+    }
+
+    async function refreshEntitlementOnFocus() {
+      if (!hasWebSession()) return;
+      const res = await fetchWithWebAuth('/auth/me/entitlement');
+      if (res.status === 401) {
+        clearWebSession();
+        router.replace('/login');
+        return;
+      }
+      if (!res.ok) return;
+      const data = (await res.json()) as Entitlement;
+      setEntitlement(data);
+      maybeEmitFirstScanCompleted(data);
+    }
+
+    function onWindowFocus() {
+      readDownloadVisitFlag();
+      if (ready) void refreshEntitlementOnFocus();
+    }
+
+    readDownloadVisitFlag();
+    window.addEventListener('focus', onWindowFocus);
+    window.addEventListener('storage', readDownloadVisitFlag);
+    return () => {
+      window.removeEventListener('focus', onWindowFocus);
+      window.removeEventListener('storage', readDownloadVisitFlag);
+    };
+  }, [ready, router]);
 
   useEffect(() => {
     if (!hasWebSession()) {
@@ -90,6 +159,7 @@ export default function DashboardPageClient() {
 
       const data = (await res.json()) as Entitlement;
       setEntitlement(data);
+      maybeEmitFirstScanCompleted(data);
 
       const invRes = await fetchWithWebAuth('/auth/me/invoices');
       if (cancelled) return;
@@ -127,6 +197,10 @@ export default function DashboardPageClient() {
 
   const now = Date.now();
   const billing = deriveBillingPresentation(entitlement, now);
+  const checklistModel =
+    entitlement &&
+    buildTrialOnboardingChecklist(entitlement, downloadPageVisited);
+
   const handleDownloadInvoice = (invoice: BillingInvoiceRow) => {
     const lines = [
       `Factura: ${invoice.id}`,
@@ -151,6 +225,10 @@ export default function DashboardPageClient() {
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6">
       <div className="mx-auto max-w-7xl space-y-8">
+        {checklistModel ? (
+          <TrialOnboardingChecklist model={checklistModel} />
+        ) : null}
+
         {entitlement ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <section

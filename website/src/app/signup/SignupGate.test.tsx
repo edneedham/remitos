@@ -72,7 +72,7 @@ describe('SignupGate', () => {
     vi.stubGlobal('fetch', vi.fn());
   });
 
-  it('auto-applies preselected plan and redirects to dashboard', async () => {
+  it('auto-applies preselected plan and redirects to trial onboarding', async () => {
     mockSearchParamGet.mockImplementation((k: string) =>
       k === 'plan' ? 'pyme' : null,
     );
@@ -91,7 +91,7 @@ describe('SignupGate', () => {
         Authorization: 'Bearer access-token',
       }),
     );
-    expect(mockPush).toHaveBeenCalledWith('/dashboard');
+    expect(mockPush).toHaveBeenCalledWith('/trial-started');
   });
 
   it('falls back to plan selector when preselected apply fails', async () => {
@@ -107,7 +107,7 @@ describe('SignupGate', () => {
     await waitFor(() =>
       expect(screen.getByTestId('signup-plan-selector')).toBeInTheDocument(),
     );
-    expect(mockPush).not.toHaveBeenCalledWith('/dashboard');
+    expect(mockPush).not.toHaveBeenCalledWith('/trial-started');
   });
 
   it('shows plan selector when no preselected plan is present', async () => {

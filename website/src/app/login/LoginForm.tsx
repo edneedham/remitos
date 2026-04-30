@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/apiUrl';
+import { safeRedirectPath } from '../lib/safeRedirectPath';
 import {
   canAccessWebManagement,
   clearWebSession,
@@ -16,6 +17,8 @@ import {
 
 export default function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = safeRedirectPath(searchParams.get('next')) ?? '/dashboard';
   const [companyCode, setCompanyCode] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -48,14 +51,14 @@ export default function LoginForm() {
         return;
       }
       if (res.ok) {
-        router.replace('/dashboard');
+        router.replace(nextPath);
       }
     }
     void validateSession();
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, nextPath]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -129,7 +132,7 @@ export default function LoginForm() {
         return;
       }
 
-      router.push('/dashboard');
+      router.push(nextPath);
       router.refresh();
     } catch {
       setError('Error de red. Verificá la conexión y la URL de la API.');

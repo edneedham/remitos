@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { isLikelyMobileDevice } from '../lib/mobileDevice';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import { getPublicSiteOrigin } from '../lib/siteUrl';
 import { getWebAccessToken } from '../lib/webAuth';
+import { trackTrialOnboardingEvent } from '../lib/trialOnboardingAnalytics';
 import SignupMarketingAside from './SignupMarketingAside';
 import SignupPlanSelector from './SignupPlanSelector';
 import SignupTrialForm from './SignupTrialForm';
@@ -25,14 +25,10 @@ export default function SignupGate() {
     preselectedPlanId === 'pyme' || preselectedPlanId === 'empresa';
 
   useEffect(() => {
-    if (isLikelyMobileDevice()) {
-      router.replace('/signup/m');
-      return;
-    }
     const origin = getPublicSiteOrigin();
-    setMobileUrl(`${origin}/signup/m`);
+    setMobileUrl(`${origin}/signup`);
     setReady(true);
-  }, [router]);
+  }, []);
 
   if (!ready) {
     return (
@@ -90,7 +86,10 @@ export default function SignupGate() {
                   throw new Error('failed to save selected plan');
                 }
 
-                router.push('/dashboard');
+                trackTrialOnboardingEvent('trial_started', {
+                  source: 'signup_plan_selected',
+                });
+                router.push('/trial-started');
               }}
             />
           </div>
@@ -173,7 +172,10 @@ export default function SignupGate() {
                       return;
                     }
 
-                    router.push('/dashboard');
+                    trackTrialOnboardingEvent('trial_started', {
+                      source: 'signup_plan_preselected',
+                    });
+                    router.push('/trial-started');
                   }}
                 />
               </div>

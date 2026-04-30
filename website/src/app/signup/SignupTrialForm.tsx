@@ -295,7 +295,7 @@ export default function SignupTrialForm({
           onSignupSuccess();
           return;
         }
-        router.push('/dashboard');
+        router.push('/trial-started');
         router.refresh();
       } catch {
         setError('Error de red. Verificá la conexión y la URL de la API.');

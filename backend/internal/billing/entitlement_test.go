@@ -28,8 +28,12 @@ func TestCompanyHasAppDownloadAccess(t *testing.T) {
 		{"inactive status", &models.Company{
 			ID: uuid.New(), Status: "suspended", SubscriptionPlan: "premium",
 		}, false},
-		{"trial active", &models.Company{
+		{"trial plan active window", &models.Company{
 			ID: uuid.New(), Status: "active", SubscriptionPlan: "trial",
+			TrialEndsAt: &trialEndFuture,
+		}, true},
+		{"pyme label during trial window", &models.Company{
+			ID: uuid.New(), Status: "active", SubscriptionPlan: "pyme",
 			TrialEndsAt: &trialEndFuture,
 		}, true},
 		{"trial expired", &models.Company{
@@ -38,6 +42,16 @@ func TestCompanyHasAppDownloadAccess(t *testing.T) {
 		}, false},
 		{"trial nil end", &models.Company{
 			ID: uuid.New(), Status: "active", SubscriptionPlan: "trial",
+		}, false},
+		{"pyme after trial with subscription", &models.Company{
+			ID: uuid.New(), Status: "active", SubscriptionPlan: "pyme",
+			TrialEndsAt:           &trialEndPast,
+			SubscriptionExpiresAt: &subExpiresFuture,
+		}, true},
+		{"pyme after trial subscription expired", &models.Company{
+			ID: uuid.New(), Status: "active", SubscriptionPlan: "pyme",
+			TrialEndsAt:           &trialEndPast,
+			SubscriptionExpiresAt: &subExpiresPast,
 		}, false},
 		{"premium no expiry", &models.Company{
 			ID: uuid.New(), Status: "active", SubscriptionPlan: "premium",

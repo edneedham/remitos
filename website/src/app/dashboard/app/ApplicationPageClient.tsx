@@ -18,6 +18,7 @@ import {
   hasWebSession,
   refreshWebSession,
 } from '../../lib/webAuth';
+import { CHECKLIST_DOWNLOAD_PAGE_VISITED_KEY } from '../../lib/trialOnboardingChecklist';
 import type { Entitlement } from '../lib/entitlementTypes';
 
 export default function ApplicationPageClient() {
@@ -37,6 +38,15 @@ export default function ApplicationPageClient() {
   useEffect(() => {
     setIsMobile(isLikelyMobileDevice());
   }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      window.localStorage.setItem(CHECKLIST_DOWNLOAD_PAGE_VISITED_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+  }, [ready]);
 
   useEffect(() => {
     if (!hasWebSession()) {
