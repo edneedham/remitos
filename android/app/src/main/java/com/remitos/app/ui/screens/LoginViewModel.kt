@@ -10,6 +10,7 @@ import com.google.gson.Gson
 import com.remitos.app.network.ApiClient
 import com.remitos.app.network.ApiErrorBody
 import com.remitos.app.network.LoginRequest
+import com.remitos.app.network.RefreshTokenRequest
 import com.remitos.app.network.RemitosApiService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -200,9 +201,9 @@ class LoginViewModel @Inject constructor(
         return try {
             // Check if token is still valid
             if (authManager.isTokenExpired(userId)) {
-                // TODO: Try to refresh token
-                // For now, require re-login if expired
-                return false
+                if (!tryRefreshUserToken(userId)) {
+                    return false
+                }
             }
 
             authManager.setCurrentUser(userId)
@@ -210,6 +211,30 @@ class LoginViewModel @Inject constructor(
         } catch (e: Exception) {
             false
         }
+    }
+
+    private suspend fun tryRefreshUserToken(userId: String): Boolean {
+        val currentToken = authManager.getToken(userId) ?: return false
+        val apiService = ApiClient.getApiService(authManager)
+        val refreshResponse = apiService.refreshToken(
+            RefreshTokenRequest(refreshToken = currentToken.refreshToken)
+        )
+
+        if (!refreshResponse.isSuccessful) {
+            return false
+        }
+
+        val authResponse = refreshResponse.body() ?: return false
+        val updatedToken = TokenData(
+            accessToken = authResponse.token,
+            refreshToken = authResponse.refreshToken,
+            expiresAt = calculateExpiryTime(authResponse.expiresIn),
+            userEmail = currentToken.userEmail,
+            userName = currentToken.userName,
+            role = authResponse.role ?: currentToken.role
+        )
+        authManager.saveToken(userId, updatedToken)
+        return true
     }
 
     /**
