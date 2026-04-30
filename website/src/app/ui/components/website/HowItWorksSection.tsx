@@ -129,7 +129,7 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
           {step.id}
         </p>
         <h3
-          className={`text-5xl font-bold leading-tight text-gray-900 sm:text-6xl lg:text-7xl ${
+          className={`text-4xl font-bold leading-tight text-gray-900 sm:text-5xl lg:text-5xl ${
             isPdfStep ? 'whitespace-nowrap' : ''
           }`}
         >
@@ -179,7 +179,7 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
           className={`min-w-0 ${textGridPlacement} ${isPdfStep ? 'order-1' : ''}`}
         >
           <p
-            className={`w-full max-w-none text-3xl leading-relaxed text-gray-600 sm:text-4xl lg:text-5xl lg:leading-snug ${textAlignClass}`}
+            className={`w-full max-w-none text-2xl leading-relaxed text-gray-600 sm:text-3xl lg:text-4xl lg:leading-snug ${textAlignClass}`}
           >
             {step.description}
           </p>
@@ -199,7 +199,7 @@ export default function HowItWorksSection() {
         <div className="mx-auto mb-14 max-w-content-prose text-center">
           <h2
             id="how-it-works-heading"
-            className="mb-6 text-4xl font-bold text-gray-900 sm:text-5xl lg:text-6xl"
+            className="mb-6 text-4xl font-bold text-gray-900 sm:text-5xl lg:text-5xl"
           >
             Cómo funciona, paso a paso
           </h2>
