@@ -632,10 +632,13 @@ type meEntitlementResponse struct {
 }
 
 type meProfileResponse struct {
-	Username    string `json:"username"`
-	CompanyName string `json:"company_name"`
-	CompanyCode string `json:"company_code"`
-	Role        string `json:"role"`
+	ID          string  `json:"id"`
+	Username    string  `json:"username"`
+	Email       *string `json:"email,omitempty"`
+	CompanyID   string  `json:"company_id"`
+	CompanyName string  `json:"company_name"`
+	CompanyCode string  `json:"company_code"`
+	Role        string  `json:"role"`
 }
 
 func canAccessWebManagement(role string) bool {
@@ -701,7 +704,10 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondWithJSON(w, http.StatusOK, meProfileResponse{
+		ID:          user.ID.String(),
 		Username:    username,
+		Email:       user.Email,
+		CompanyID:   companyID.String(),
 		CompanyName: company.Name,
 		CompanyCode: company.Code,
 		Role:        claims.Role,

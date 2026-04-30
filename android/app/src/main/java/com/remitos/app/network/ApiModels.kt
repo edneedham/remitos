@@ -47,17 +47,17 @@ data class AuthResponse(
     val role: String? = null
 )
 
-data class UserDto(
-    val id: Long,
-    val email: String,
-    val nombre: String?,
-    val apellido: String?,
+data class ProfileDto(
+    val id: String,
+    val username: String,
+    val email: String?,
+    @SerializedName("company_id")
+    val companyId: String,
+    @SerializedName("company_name")
+    val companyName: String,
+    @SerializedName("company_code")
+    val companyCode: String,
     val role: String,
-    val companyId: Long?,
-    @SerializedName("created_at")
-    val createdAt: String,
-    @SerializedName("updated_at")
-    val updatedAt: String
 )
 
 data class RegisterDeviceRequest(

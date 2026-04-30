@@ -45,7 +45,7 @@ interface RemitosApiService {
      * Get current user profile.
      */
     @GET("auth/me")
-    suspend fun getCurrentUser(): Response<UserDto>
+    suspend fun getCurrentUser(): Response<ProfileDto>
 
     /**
      * Register this device to a warehouse.

@@ -4,7 +4,10 @@ const ACCESS_KEY = 'enpunto_web_access_token';
 const REFRESH_KEY = 'enpunto_web_refresh_token';
 
 export type WebProfile = {
+  id: string;
   username: string;
+  email?: string;
+  company_id: string;
   company_name: string;
   company_code: string;
   role: string;
@@ -128,7 +131,9 @@ export async function fetchWebProfile(): Promise<WebProfile | null> {
   }
   const body = (await res.json().catch(() => ({}))) as Partial<WebProfile>;
   if (
+    typeof body.id !== 'string' ||
     typeof body.username !== 'string' ||
+    typeof body.company_id !== 'string' ||
     typeof body.company_name !== 'string' ||
     typeof body.company_code !== 'string' ||
     typeof body.role !== 'string'
@@ -136,7 +141,10 @@ export async function fetchWebProfile(): Promise<WebProfile | null> {
     return null;
   }
   return {
+    id: body.id,
     username: body.username,
+    email: typeof body.email === 'string' ? body.email : undefined,
+    company_id: body.company_id,
     company_name: body.company_name,
     company_code: body.company_code,
     role: body.role,
