@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { initMercadoPago } from '@mercadopago/sdk-react';
 import { getApiBaseUrl } from '../../lib/apiUrl';
 import { BILLING_LEGAL_NOTICE_AR } from '../../lib/billingLegalNotice';
+import type { PlanPricingResponse } from '../../lib/planPricing';
 import { PLAN_CATALOG } from '../../lib/planCatalog';
 import {
   canAccessWebManagement,
@@ -42,18 +43,13 @@ const useMockPayment =
 
 type PlanChoice = 'pyme' | 'empresa';
 
-type PlanPricingResponse = {
-  plan_id: string;
-  currency: string;
-  amount_minor: number;
-  monthly_list_usd: number;
-  ars_per_usd: number;
-  mep_ars_per_usd?: number;
-  fx_buffer_fraction?: number;
-  fx_source: string;
-  fx_effective_date?: string;
-  legal_notice_ar: string;
-};
+function paymentActivationSuccessHref(plan: PlanChoice): string {
+  const qs = new URLSearchParams({
+    contexto: 'activacion',
+    plan,
+  });
+  return `/dashboard/payment-success?${qs.toString()}`;
+}
 
 export default function ActivateSubscriptionPageClient() {
   const router = useRouter();
@@ -174,7 +170,7 @@ export default function ActivateSubscriptionPageClient() {
           data.message || 'No se pudo activar la suscripción (simulación).',
         );
       }
-      router.replace('/dashboard');
+      router.replace(paymentActivationSuccessHref(planId));
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al activar.');
@@ -352,7 +348,7 @@ export default function ActivateSubscriptionPageClient() {
                     setError(msg);
                     throw new Error(msg);
                   }
-                  router.replace('/dashboard');
+                  router.replace(paymentActivationSuccessHref(planId));
                   router.refresh();
                 } catch (e) {
                   const msg =

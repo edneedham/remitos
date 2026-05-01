@@ -27,6 +27,10 @@ import {
   formatInvoiceMoney,
   invoiceStatusLabel,
 } from './lib/invoiceFormat';
+import {
+  resolveUsageUpgradeAction,
+  subscriptionTier,
+} from './lib/selfServePlan';
 
 export default function BillingPageClient() {
   const router = useRouter();
@@ -152,6 +156,16 @@ export default function BillingPageClient() {
       ? Math.max(projectedMonthEndDocs - docsLimit, 0)
       : null;
 
+  const subscriptionTierId = subscriptionTier(
+    entitlement?.subscription_plan,
+    entitlement?.documents_monthly_limit,
+  );
+  const usageUpgrade = resolveUsageUpgradeAction(
+    projectedOverage,
+    subscriptionTierId,
+    billing.hasActivePaymentPeriod,
+  );
+
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6">
       <div className="mx-auto max-w-7xl space-y-8">
@@ -214,6 +228,42 @@ export default function BillingPageClient() {
               className="mt-2 inline-block font-semibold text-blue-800 underline"
             >
               Ir a activar suscripción
+            </Link>
+          </div>
+        ) : null}
+
+        {entitlement &&
+        usageUpgrade.type === 'href' &&
+        !billing.isArchived &&
+        !billing.companyBillingInactive ? (
+          <div
+            className="mx-auto max-w-2xl rounded-xl border border-amber-200 bg-amber-50 p-5 shadow-sm xl:mx-0 xl:max-w-none"
+            role="region"
+            aria-labelledby="usage-upgrade-heading"
+          >
+            <h2
+              id="usage-upgrade-heading"
+              className="text-base font-semibold text-amber-950"
+            >
+              Tu proyección supera el cupo del plan
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-amber-950/90">
+              Al ritmo actual, estimamos{' '}
+              <span className="font-semibold tabular-nums">
+                {projectedMonthEndDocs.toLocaleString('es-AR')}
+              </span>{' '}
+              documentos este mes
+              {typeof docsLimit === 'number'
+                ? ` (cupo: ${docsLimit.toLocaleString('es-AR')})`
+                : ''}
+              . Pasar al siguiente plan aumenta el límite mensual y puede
+              reducir el costo por excedentes.
+            </p>
+            <Link
+              href={usageUpgrade.href}
+              className="mt-4 inline-flex rounded-lg bg-amber-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-950"
+            >
+              {usageUpgrade.label}
             </Link>
           </div>
         ) : null}
@@ -304,7 +354,7 @@ export default function BillingPageClient() {
                     Excedentes: {currentPlanOverage}
                   </p>
                   <Link
-                    href="/pricing"
+                    href="/dashboard/billing/upgrade"
                     className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
                   >
                     Mejorar plan
