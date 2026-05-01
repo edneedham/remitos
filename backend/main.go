@@ -108,7 +108,7 @@ func main() {
 		BolsaURL:          cfg.BillingMEPBolsaURL,
 		FallbackARSPerUSD: cfg.BillingUSDToARSRate,
 	}
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx)
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo)
 	adminHandler := handlers.NewAdminHandler(userRepo, deviceRepo, jwtSvc)
 	scanHandler, err := handlers.NewScanHandler()
@@ -142,6 +142,7 @@ func main() {
 			mpClient,
 			cfg.BillingStubAutoCharge,
 			billingFx,
+			cfg.BillingFXBufferFraction,
 		)
 		billingRenewalHandler := handlers.NewBillingRenewalHandler(renewalSvc)
 		h.Route("/internal/billing", func(r chi.Router) {

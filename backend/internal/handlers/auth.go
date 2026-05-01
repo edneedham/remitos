@@ -52,11 +52,12 @@ type AuthHandler struct {
 	signupAllowMock   bool
 	releases          *AuthReleasesConfig
 	mailer            notifymail.Sender
-	publicSiteURL     string
-	billingRateQuoter billing.USDARSQuoter
+	publicSiteURL             string
+	billingRateQuoter         billing.USDARSQuoter
+	billingFXBufferFraction   float64
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64) *AuthHandler {
 	return &AuthHandler{
 		userRepo:          userRepo,
 		companyRepo:       companyRepo,
@@ -73,8 +74,9 @@ func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository
 		signupAllowMock:   signupAllowMock,
 		releases:          releases,
 		mailer:            mailer,
-		publicSiteURL:     publicSiteURL,
-		billingRateQuoter: billingRateQuoter,
+		publicSiteURL:           publicSiteURL,
+		billingRateQuoter:       billingRateQuoter,
+		billingFXBufferFraction: billingFXBufferFraction,
 	}
 }
 

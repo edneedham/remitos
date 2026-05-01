@@ -48,6 +48,8 @@ type PlanPricingResponse = {
   amount_minor: number;
   monthly_list_usd: number;
   ars_per_usd: number;
+  mep_ars_per_usd?: number;
+  fx_buffer_fraction?: number;
   fx_source: string;
   fx_effective_date?: string;
   legal_notice_ar: string;
@@ -241,7 +243,7 @@ export default function ActivateSubscriptionPageClient() {
       </p>
       {pricingMeta && !pricingError && !useMockPayment ? (
         <p className="mt-2 text-xs text-gray-500">
-          Cotización aplicada:{' '}
+          Tipo de cambio al cobro (MEP + margen):{' '}
           <span className="font-medium text-gray-700">
             1 USD ={' '}
             {pricingMeta.ars_per_usd.toLocaleString('es-AR', {
@@ -249,6 +251,16 @@ export default function ActivateSubscriptionPageClient() {
             })}{' '}
             ARS
           </span>
+          {typeof pricingMeta.mep_ars_per_usd === 'number' ? (
+            <>
+              {' '}
+              · MEP referencia:{' '}
+              {pricingMeta.mep_ars_per_usd.toLocaleString('es-AR', {
+                maximumFractionDigits: 2,
+              })}{' '}
+              ARS
+            </>
+          ) : null}
           {pricingMeta.fx_effective_date
             ? ` · Fecha referencia: ${pricingMeta.fx_effective_date}`
             : null}

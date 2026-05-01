@@ -21,8 +21,9 @@ type RenewalService struct {
 	Invoices       *repository.InvoiceRepository
 	Users          *repository.UserRepository
 	MP             *mercadopago.Client
-	StubAutoCharge bool
-	RateQuoter     USDARSQuoter // used when AmountMinor <= 0 in Run()
+	StubAutoCharge       bool
+	RateQuoter           USDARSQuoter // used when AmountMinor <= 0 in Run()
+	FXBufferFraction     float64      // applied on reference MEP before USD→ARS (e.g. 0.07)
 }
 
 type RenewalRunInput struct {
@@ -49,15 +50,17 @@ func NewRenewalService(
 	mp *mercadopago.Client,
 	stubAutoCharge bool,
 	quoter USDARSQuoter,
+	fxBufferFraction float64,
 ) *RenewalService {
 	return &RenewalService{
-		Pool:           pool,
-		Companies:      companies,
-		Invoices:       invoices,
-		Users:          users,
-		MP:             mp,
-		StubAutoCharge: stubAutoCharge,
-		RateQuoter:     quoter,
+		Pool:               pool,
+		Companies:          companies,
+		Invoices:           invoices,
+		Users:              users,
+		MP:                 mp,
+		StubAutoCharge:     stubAutoCharge,
+		RateQuoter:         quoter,
+		FXBufferFraction:   fxBufferFraction,
 	}
 }
 
@@ -93,7 +96,8 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 		if qerr != nil {
 			return nil, fmt.Errorf("billing fx: %w", qerr)
 		}
-		computed, perr := PlanMonthlyAmountMinorARS(company.SubscriptionPlan, q.SellPerUSD)
+		charged := ChargedARSPerUSD(q.SellPerUSD, s.FXBufferFraction)
+		computed, perr := PlanMonthlyAmountMinorARS(company.SubscriptionPlan, charged)
 		if perr != nil {
 			return nil, fmt.Errorf("billing amount: %w", perr)
 		}

@@ -10,14 +10,16 @@ import (
 )
 
 type planPricingResponse struct {
-	PlanID            string  `json:"plan_id"`
-	Currency          string  `json:"currency"`
-	AmountMinor       int64   `json:"amount_minor"`
-	MonthlyListUSD    float64 `json:"monthly_list_usd"`
-	ARSPerUSD         float64 `json:"ars_per_usd"` // ARS per 1 USD (MEP venta or fallback)
-	FxSource          string  `json:"fx_source"`
-	FxEffectiveDate   string  `json:"fx_effective_date,omitempty"`
-	LegalNoticeAR     string  `json:"legal_notice_ar"`
+	PlanID             string  `json:"plan_id"`
+	Currency           string  `json:"currency"`
+	AmountMinor        int64   `json:"amount_minor"`
+	MonthlyListUSD     float64 `json:"monthly_list_usd"`
+	ARSPerUSD          float64 `json:"ars_per_usd"`           // ARS per 1 USD after FX buffer (used for charge)
+	MepARSPerUSD       float64 `json:"mep_ars_per_usd"`       // reference MEP (or env fallback) before buffer
+	FxBufferFraction   float64 `json:"fx_buffer_fraction"`  // surcharge on reference rate (e.g. 0.07)
+	FxSource           string  `json:"fx_source"`
+	FxEffectiveDate    string  `json:"fx_effective_date,omitempty"`
+	LegalNoticeAR      string  `json:"legal_notice_ar"`
 }
 
 // GetMePlanPricing returns the ARS invoice amount (centavos) for a catalog plan using the MEP (bolsa) rate.
@@ -67,7 +69,8 @@ func (h *AuthHandler) GetMePlanPricing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	minor, err := billing.PlanMonthlyAmountMinorARS(planID, q.SellPerUSD)
+	charged := billing.ChargedARSPerUSD(q.SellPerUSD, h.billingFXBufferFraction)
+	minor, err := billing.PlanMonthlyAmountMinorARS(planID, charged)
 	if err != nil {
 		logger.Log.Error().Err(err).Str("plan_id", planID).Msg("plan pricing: compute")
 		RespondWithError(w, ErrCodeInternalError, "No se pudo calcular el importe", http.StatusInternalServerError)
@@ -80,13 +83,15 @@ func (h *AuthHandler) GetMePlanPricing(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondWithJSON(w, http.StatusOK, planPricingResponse{
-		PlanID:          planID,
-		Currency:        "ARS",
-		AmountMinor:     minor,
-		MonthlyListUSD:  usd,
-		ARSPerUSD:       q.SellPerUSD,
-		FxSource:        q.Source,
-		FxEffectiveDate: fxDate,
-		LegalNoticeAR:   billing.LegalNoticeContractUSDARSMEPTemplate,
+		PlanID:           planID,
+		Currency:         "ARS",
+		AmountMinor:      minor,
+		MonthlyListUSD:   usd,
+		ARSPerUSD:        charged,
+		MepARSPerUSD:     q.SellPerUSD,
+		FxBufferFraction: h.billingFXBufferFraction,
+		FxSource:         q.Source,
+		FxEffectiveDate:    fxDate,
+		LegalNoticeAR:    billing.LegalNoticeAR(h.billingFXBufferFraction),
 	})
 }

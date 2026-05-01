@@ -10,11 +10,11 @@ import (
 
 // USDARSQuote is one USD priced in ARS (seller side) for billing.
 type USDARSQuote struct {
-	// SellPerUSD is ARS per 1 USD (e.g. MEP venta).
+	// SellPerUSD is ARS per 1 USD (e.g. bolsa venta).
 	SellPerUSD float64
 	// EffectiveDate is the quote date from the source (billing date alignment).
 	EffectiveDate time.Time
-	// Source identifies how the rate was obtained (e.g. argentinadatos_bolsa_mep, env_fallback).
+	// Source identifies how the rate was obtained (e.g. dolarapi_bolsa, env_fallback).
 	Source string
 }
 
@@ -23,7 +23,7 @@ type USDARSQuoter interface {
 	Quote(ctx context.Context) (USDARSQuote, error)
 }
 
-// MEPWithFallback tries ArgentinaDatos dólar bolsa (MEP); on failure uses fallbackARSPerUSD if > 0.
+// MEPWithFallback tries dolarapi.com bolsa (default); on failure uses fallbackARSPerUSD if > 0.
 type MEPWithFallback struct {
 	HTTP              *http.Client
 	BolsaURL          string
@@ -41,7 +41,7 @@ func (m *MEPWithFallback) Quote(ctx context.Context) (USDARSQuote, error) {
 		return USDARSQuote{
 			SellPerUSD:    q.Sell,
 			EffectiveDate: q.QuoteDate,
-			Source:        "argentinadatos_bolsa_mep",
+			Source:        "dolarapi_bolsa",
 		}, nil
 	}
 	if m.FallbackARSPerUSD > 0 {
@@ -53,7 +53,3 @@ func (m *MEPWithFallback) Quote(ctx context.Context) (USDARSQuote, error) {
 	}
 	return USDARSQuote{}, err
 }
-
-// LegalNoticeContractUSDARSMEPTemplate is shown next to ARS amounts (Argentine Spanish).
-// Technical implementation uses the dólar bolsa series (ArgentinaDatos) as the MEP reference for each billing date.
-const LegalNoticeContractUSDARSMEPTemplate = "Los precios están denominados en dólares estadounidenses (USD). Los pagos en pesos argentinos (ARS) se calcularán utilizando el tipo de cambio del dólar MEP vigente en la fecha de facturación."
