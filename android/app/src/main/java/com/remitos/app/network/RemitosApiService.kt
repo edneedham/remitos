@@ -42,6 +42,24 @@ interface RemitosApiService {
     suspend fun logout(): Response<Unit>
 
     /**
+     * Request password reset email (public).
+     */
+    @POST("auth/forgot-password")
+    suspend fun forgotPassword(@Body body: ForgotPasswordRequest): Response<Map<String, String>>
+
+    /**
+     * Set password using token from email (public).
+     */
+    @POST("auth/reset-password")
+    suspend fun resetPassword(@Body body: ResetPasswordRequest): Response<Map<String, String>>
+
+    /**
+     * Change password for the logged-in user.
+     */
+    @POST("auth/change-password")
+    suspend fun changePassword(@Body body: ChangePasswordRequest): Response<Map<String, String>>
+
+    /**
      * Get current user profile.
      */
     @GET("auth/me")

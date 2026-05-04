@@ -136,6 +136,28 @@ func RequireRole(role string) func(http.Handler) http.Handler {
 	}
 }
 
+// RequireRoles allows any of the given JWT role strings (e.g. company_owner, warehouse_admin).
+func RequireRoles(roles ...string) func(http.Handler) http.Handler {
+	allowed := make(map[string]struct{}, len(roles))
+	for _, role := range roles {
+		allowed[role] = struct{}{}
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userClaims, ok := r.Context().Value(UserContextKey).(UserClaims)
+			if !ok {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+			if _, ok := allowed[userClaims.Role]; !ok {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 func GetUserClaims(r *http.Request) UserClaims {
 	userClaims, _ := r.Context().Value(UserContextKey).(UserClaims)
 	return userClaims

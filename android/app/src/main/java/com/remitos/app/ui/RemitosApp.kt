@@ -36,6 +36,8 @@ import com.remitos.app.ui.screens.InboundHistoryScreen
 import com.remitos.app.ui.screens.InboundPreviewScreen
 import com.remitos.app.ui.screens.InboundScanScreen
 import com.remitos.app.ui.screens.LoginScreen
+import com.remitos.app.ui.screens.ChangePasswordScreen
+import com.remitos.app.ui.screens.ForgotPasswordScreen
 import com.remitos.app.ui.screens.ActivityScreen
 import com.remitos.app.ui.screens.OutboundHistoryScreen
 import com.remitos.app.ui.screens.OutboundListScreen
@@ -78,6 +80,8 @@ private object Routes {
     const val Debug = "debug"
     const val Users = "users"
     const val Templates = "templates"
+    const val ForgotPassword = "forgot_password"
+    const val ChangePassword = "change_password"
 }
 
 private const val NAV_ANIM_DURATION = 300
@@ -213,6 +217,13 @@ private fun AppNavHost(navController: NavHostController) {
             LoginScreen(
                 onLoginSuccess = { scope.launch { navigateAfterAuth() } },
                 onContinueOffline = { scope.launch { navigateAfterAuth() } },
+                onForgotPassword = { navController.navigate(Routes.ForgotPassword) },
+            )
+        }
+
+        composable(Routes.ForgotPassword) {
+            ForgotPasswordScreen(
+                onBack = { navController.popBackStack() },
             )
         }
         
@@ -330,8 +341,20 @@ private fun AppNavHost(navController: NavHostController) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
                 onOpenDebug = { navController.navigate(Routes.Debug) },
+                onChangePassword = { navController.navigate(Routes.ChangePassword) },
                 onLogout = {
                     // Navigate to login and clear back stack
+                    navController.navigate(Routes.Login) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(Routes.ChangePassword) {
+            ChangePasswordScreen(
+                onBack = { navController.popBackStack() },
+                onPasswordChanged = {
                     navController.navigate(Routes.Login) {
                         popUpTo(0) { inclusive = true }
                     }

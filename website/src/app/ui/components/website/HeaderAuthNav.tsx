@@ -73,6 +73,9 @@ export default function HeaderAuthNav() {
   const dashboardHomeActive = pathname === '/dashboard';
   const billingNavActive = pathname.startsWith('/dashboard/billing');
   const applicationNavActive = pathname.startsWith('/dashboard/app');
+  const changePasswordNavActive = pathname.startsWith(
+    '/dashboard/change-password',
+  );
   /** Sidebar replaces these links on desktop; hide them in the dropdown only there. */
   const navLinksMobileOnlyInDropdown =
     pathname.startsWith('/dashboard');
@@ -160,6 +163,17 @@ export default function HeaderAuthNav() {
                   onClick={() => setAccountMenuOpen(false)}
                 >
                   Aplicación
+                </Link>
+                <Link
+                  href="/dashboard/change-password"
+                  className={`block w-full rounded-md px-3 py-2 text-left text-sm font-semibold ${
+                    changePasswordNavActive
+                      ? 'text-blue-700'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => setAccountMenuOpen(false)}
+                >
+                  Contraseña
                 </Link>
               </div>
               <button

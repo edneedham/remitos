@@ -1,66 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/apiUrl';
-import { safeRedirectPath } from '../lib/safeRedirectPath';
-import {
-  canAccessWebManagement,
-  clearWebSession,
-  fetchProfile,
-  fetchWithWebAuth,
-  hasWebSession,
-  saveWebSession,
-} from '../lib/webAuth';
 
-export default function LoginForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const nextPath = safeRedirectPath(searchParams.get('next')) ?? '/dashboard';
-  const justReset = searchParams.get('reset') === '1';
-  const passwordChanged = searchParams.get('password-changed') === '1';
+export default function ForgotPasswordForm() {
   const [companyCode, setCompanyCode] = useState('');
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
     company_code?: string;
     username?: string;
-    password?: string;
   }>({});
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!hasWebSession()) return;
-
-    let cancelled = false;
-    async function validateSession() {
-      const api = getApiBaseUrl();
-      if (!api) return;
-      const res = await fetchWithWebAuth('/auth/me/entitlement');
-      if (cancelled) return;
-      if (res.status === 401) {
-        clearWebSession();
-        return;
-      }
-      if (res.status === 403) {
-        clearWebSession();
-        setError(
-          'Tu rol no tiene acceso al panel web. Iniciá sesión desde la app móvil.',
-        );
-        return;
-      }
-      if (res.ok) {
-        router.replace(nextPath);
-      }
-    }
-    void validateSession();
-    return () => {
-      cancelled = true;
-    };
-  }, [router, nextPath]);
+  const [done, setDone] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -76,66 +30,39 @@ export default function LoginForm() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${api}/auth/login`, {
+      const res = await fetch(`${api}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           company_code: companyCode.trim().toUpperCase(),
           username: username.trim(),
-          password,
-          device_name: 'web',
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
-        token?: string;
-        refresh_token?: string;
         message?: string;
         error?: string;
         fields?: Record<string, string>;
       };
 
       if (!res.ok) {
-        const nextFields: {
-          company_code?: string;
-          username?: string;
-          password?: string;
-        } = {};
+        const nextFields: { company_code?: string; username?: string } = {};
         if (data.fields && typeof data.fields === 'object') {
           const f = data.fields;
           if (typeof f.company_code === 'string')
             nextFields.company_code = f.company_code;
           if (typeof f.username === 'string')
             nextFields.username = f.username;
-          if (typeof f.password === 'string')
-            nextFields.password = f.password;
         }
         setFieldErrors(nextFields);
         setError(
           data.message ||
             (typeof data.error === 'string' ? data.error : '') ||
-            'No se pudo iniciar sesión. Revisá los datos.',
+            'No se pudo procesar la solicitud.',
         );
         return;
       }
 
-      if (!data.token || !data.refresh_token) {
-        setError('Respuesta inválida del servidor.');
-        return;
-      }
-
-      saveWebSession(data.token, data.refresh_token);
-
-      const profile = await fetchProfile();
-      if (!profile || !canAccessWebManagement(profile.role)) {
-        clearWebSession();
-        setError(
-          'Tu rol no tiene acceso al panel web. Iniciá sesión desde la app móvil.',
-        );
-        return;
-      }
-
-      router.push(nextPath);
-      router.refresh();
+      setDone(true);
     } catch {
       setError('Error de red. Verificá la conexión y la URL de la API.');
     } finally {
@@ -143,20 +70,39 @@ export default function LoginForm() {
     }
   }
 
+  if (done) {
+    return (
+      <div className="mx-auto max-w-md space-y-6 px-4 py-12">
+        <div className="rounded-xl border border-green-100 bg-green-50 p-6 text-center">
+          <p className="text-gray-800">
+            Si los datos coinciden con una cuenta, te enviamos un correo con un
+            enlace para restablecer la contraseña.
+          </p>
+          <p className="mt-4 text-sm text-gray-600">
+            Revisá la carpeta de spam si no lo ves en la bandeja de entrada.
+          </p>
+        </div>
+        <p className="text-center text-sm text-gray-600">
+          <Link
+            href="/login"
+            className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            Volver al inicio de sesión
+          </Link>
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-md space-y-8 px-4 py-12">
       <div className="space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          Iniciar sesión en el sitio
+          ¿Olvidaste tu contraseña?
         </h1>
         <p className="text-sm leading-relaxed text-gray-600">
-          Después de entrar vas a la{' '}
-          <strong className="font-medium text-gray-800">
-            administración de tu cuenta
-          </strong>{' '}
-          (web). Para trabajar en el depósito con la app, abrí sesión en el
-          teléfono: ahí habilitás el uso del{' '}
-          <strong className="font-medium text-gray-800">modo app</strong>.
+          Ingresá el mismo código de empresa y correo o usuario que usás para
+          entrar.
         </p>
       </div>
 
@@ -165,22 +111,6 @@ export default function LoginForm() {
         className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
         noValidate
       >
-        {justReset && (
-          <p
-            className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-sm text-green-800"
-            role="status"
-          >
-            Contraseña actualizada. Iniciá sesión con tu nueva clave.
-          </p>
-        )}
-        {passwordChanged && (
-          <p
-            className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-sm text-green-800"
-            role="status"
-          >
-            Cambiaste tu contraseña. Iniciá sesión de nuevo.
-          </p>
-        )}
         {error && (
           <p
             className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700"
@@ -192,13 +122,13 @@ export default function LoginForm() {
 
         <div>
           <label
-            htmlFor="login-company"
+            htmlFor="forgot-company"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
             Código de empresa
           </label>
           <input
-            id="login-company"
+            id="forgot-company"
             value={companyCode}
             onChange={(e) => setCompanyCode(e.target.value.toUpperCase())}
             autoComplete="organization"
@@ -219,13 +149,13 @@ export default function LoginForm() {
 
         <div>
           <label
-            htmlFor="login-user"
+            htmlFor="forgot-user"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
             Correo o usuario
           </label>
           <input
-            id="login-user"
+            id="forgot-user"
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -245,34 +175,6 @@ export default function LoginForm() {
           ) : null}
         </div>
 
-        <div>
-          <label
-            htmlFor="login-pass"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Contraseña
-          </label>
-          <input
-            id="login-pass"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            aria-invalid={fieldErrors.password ? true : undefined}
-            className={`w-full rounded-lg border px-4 py-3 focus:ring-2 ${
-              fieldErrors.password
-                ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            }`}
-            required
-          />
-          {fieldErrors.password ? (
-            <p className="mt-1 text-sm text-red-600" role="alert">
-              {fieldErrors.password}
-            </p>
-          ) : null}
-        </div>
-
         <button
           type="submit"
           disabled={loading}
@@ -281,27 +183,17 @@ export default function LoginForm() {
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            'Entrar a mi cuenta'
+            'Enviar instrucciones'
           )}
         </button>
-
-        <p className="text-center text-sm">
-          <Link
-            href="/forgot-password"
-            className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
-          >
-            ¿Olvidaste tu contraseña?
-          </Link>
-        </p>
       </form>
 
       <p className="text-center text-sm text-gray-600">
-        ¿Todavía no tenés cuenta?{' '}
         <Link
-          href="/signup"
+          href="/login"
           className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
         >
-          Registrate
+          Volver al inicio de sesión
         </Link>
       </p>
     </div>

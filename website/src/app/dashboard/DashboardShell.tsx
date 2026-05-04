@@ -69,6 +69,9 @@ export default function DashboardShell({
           </SidebarNavLink>
           <SidebarNavLink href="/dashboard/billing">Facturación</SidebarNavLink>
           <SidebarNavLink href="/dashboard/app">Aplicación</SidebarNavLink>
+          <SidebarNavLink href="/dashboard/change-password" end>
+            Contraseña
+          </SidebarNavLink>
         </nav>
       </aside>
 
