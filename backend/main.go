@@ -108,7 +108,7 @@ func main() {
 		BolsaURL:          cfg.BillingMEPBolsaURL,
 		FallbackARSPerUSD: cfg.BillingUSDToARSRate,
 	}
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction, cfg.MercadoPagoPreapprovalPlanPyme, cfg.MercadoPagoPreapprovalPlanEmpresa, cfg.MercadoPagoSubscriptionReturnURL())
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction)
 	mpWebhookHandler := handlers.NewMercadoPagoWebhookHandler(db.Pool, invoiceRepo, companyRepo, mpClient)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo)
 	adminHandler := handlers.NewAdminHandler(userRepo, deviceRepo, jwtSvc)
@@ -145,8 +145,9 @@ func main() {
 	}
 
 	h.Mount("/auth", authHandler.Routes())
-	if cfg.BillingRenewalSecret != "" {
-		renewalSvc := billing.NewRenewalService(
+	var renewalSvc *billing.RenewalService
+	if cfg.BillingRenewalSecret != "" || cfg.BillingAutomaticRenewalEnabled {
+		renewalSvc = billing.NewRenewalService(
 			db.Pool,
 			companyRepo,
 			invoiceRepo,
@@ -156,12 +157,21 @@ func main() {
 			billingFx,
 			cfg.BillingFXBufferFraction,
 		)
+	}
+	if cfg.BillingRenewalSecret != "" && renewalSvc != nil {
 		billingRenewalHandler := handlers.NewBillingRenewalHandler(renewalSvc)
 		h.Route("/internal/billing", func(r chi.Router) {
 			r.Use(middleware.BillingRenewalSecret(cfg.BillingRenewalSecret))
 			r.Post("/trigger-renewal", billingRenewalHandler.PostTriggerRenewal)
 		})
 		logger.Log.Info().Msg("Billing renewal endpoint enabled at POST /internal/billing/trigger-renewal")
+	}
+	if cfg.BillingAutomaticRenewalEnabled && renewalSvc != nil {
+		poll := time.Duration(cfg.BillingRenewalPollMinutes) * time.Minute
+		if cfg.BillingRenewalPollMinutes <= 0 {
+			poll = time.Hour
+		}
+		jobs.StartBillingRenewalSweep(context.Background(), renewalSvc, companyRepo, poll)
 	}
 	h.Mount("/warehouses", warehouseHandler.Routes())
 	if scanHandler != nil {

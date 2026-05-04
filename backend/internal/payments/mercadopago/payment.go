@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 )
 
@@ -18,8 +17,6 @@ type PaymentDetails struct {
 	TransactionAmount float64
 	Metadata          map[string]string
 	ExternalReference string
-	// PreapprovalID links subscription charges to the preapproval resource when present.
-	PreapprovalID string
 }
 
 // GetPayment loads a payment by id (string or numeric id from notifications).
@@ -66,8 +63,6 @@ func (c *Client) GetPayment(ctx context.Context, paymentID string) (*PaymentDeta
 		meta[k] = strings.TrimSpace(fmt.Sprint(v))
 	}
 
-	preapprovalID := extractPreapprovalID(payload.Metadata, raw)
-
 	return &PaymentDetails{
 		ID:                strings.TrimSpace(fmt.Sprint(payload.ID)),
 		Status:            strings.TrimSpace(payload.Status),
@@ -75,73 +70,5 @@ func (c *Client) GetPayment(ctx context.Context, paymentID string) (*PaymentDeta
 		TransactionAmount: payload.TransactionAmount,
 		Metadata:          meta,
 		ExternalReference: strings.TrimSpace(payload.ExternalReference),
-		PreapprovalID:     preapprovalID,
 	}, nil
-}
-
-func extractPreapprovalID(metadata map[string]any, raw []byte) string {
-	if metadata != nil {
-		for _, key := range []string{"preapproval_id", "preapprovalId"} {
-			if v, ok := metadata[key]; ok {
-				s := strings.TrimSpace(fmt.Sprint(v))
-				if s != "" && s != "<nil>" {
-					return s
-				}
-			}
-		}
-	}
-	var loose map[string]any
-	if json.Unmarshal(raw, &loose) == nil {
-		if v, ok := loose["preapproval_id"]; ok {
-			s := strings.TrimSpace(fmt.Sprint(v))
-			if s != "" && s != "<nil>" {
-				return s
-			}
-		}
-	}
-	return ""
-}
-
-// GetPaymentIDFromAuthorizedPayment loads GET /authorized_payments/{id} (subscription “invoice” / authorized charge)
-// and returns nested payment.id when present. Empty string means no payment object yet.
-func (c *Client) GetPaymentIDFromAuthorizedPayment(ctx context.Context, authorizedPaymentID string) (string, error) {
-	authorizedPaymentID = strings.TrimSpace(authorizedPaymentID)
-	if authorizedPaymentID == "" {
-		return "", fmt.Errorf("mercadopago: authorized payment id required")
-	}
-	if c.accessToken == "" {
-		return "", fmt.Errorf("mercadopago: access token not configured")
-	}
-	u := fmt.Sprintf("%s/authorized_payments/%s", apiBase, url.PathEscape(authorizedPaymentID))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Authorization", "Bearer "+c.accessToken)
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	raw, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("mercadopago: get authorized_payment: status %d: %s", resp.StatusCode, strings.TrimSpace(string(raw)))
-	}
-	var out struct {
-		Payment *struct {
-			ID interface{} `json:"id"`
-		} `json:"payment"`
-	}
-	if err := json.Unmarshal(raw, &out); err != nil {
-		return "", fmt.Errorf("mercadopago: decode authorized_payment: %w", err)
-	}
-	if out.Payment == nil {
-		return "", nil
-	}
-	pid := strings.TrimSpace(fmt.Sprint(out.Payment.ID))
-	if pid == "" || pid == "<nil>" {
-		return "", nil
-	}
-	return pid, nil
 }

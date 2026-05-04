@@ -15,13 +15,9 @@ import (
 	"server/internal/repository"
 )
 
-// MercadoPagoWebhookHandler processes Mercado Pago notifications.
-//
-// - topic/type **payment**: `data.id` is a payment id → GET /v1/payments/{id}.
-// - **subscription_authorized_payment** (Planes y suscripciones): `data.id` is an authorized-payment (invoice) id → GET /authorized_payments/{id} → nested `payment.id`.
-// - Other subscription topics (e.g. preapproval) are acknowledged with 200 and optional info logs only.
-//
-// Internal cron renewal must not run for companies with mp_preapproval_id.
+// MercadoPagoWebhookHandler processes Mercado Pago **payment** notifications.
+// Merchant renewals set metadata (company_id, invoice_id); the handler updates the pending invoice
+// or no-ops if the payment was already recorded.
 type MercadoPagoWebhookHandler struct {
 	Pool      *pgxpool.Pool
 	Invoices  *repository.InvoiceRepository
@@ -63,28 +59,6 @@ func (h *MercadoPagoWebhookHandler) PostNotification(w http.ResponseWriter, r *h
 
 	paymentID := extractPaymentIDFromRequest(r, body)
 	if paymentID == "" {
-		if apID := extractAuthorizedPaymentResourceID(body); apID != "" {
-			pid, rerr := h.MP.GetPaymentIDFromAuthorizedPayment(r.Context(), apID)
-			if rerr != nil {
-				msg := rerr.Error()
-				if strings.Contains(msg, "status 404") || strings.Contains(msg, "status 401") || strings.Contains(msg, "status 403") {
-					logger.Log.Warn().Err(rerr).Str("authorized_payment_id", apID).Msg("mp webhook: GET authorized_payments failed")
-					w.WriteHeader(http.StatusOK)
-					return
-				}
-				logger.Log.Error().Err(rerr).Str("authorized_payment_id", apID).Msg("mp webhook: authorized_payment fetch")
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			if pid == "" {
-				logger.Log.Info().Str("authorized_payment_id", apID).Msg("mp webhook: authorized payment has no nested payment yet (pending)")
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			paymentID = pid
-		}
-	}
-	if paymentID == "" {
 		if t := peekNotificationType(body); t != "" {
 			logger.Log.Info().Str("notification_type", t).Msg("mp webhook: acknowledged (no payment id to process)")
 		}
@@ -120,10 +94,6 @@ func extractPaymentIDFromRequest(r *http.Request, body []byte) string {
 		return ""
 	}
 	typ := strings.ToLower(strings.TrimSpace(envelope.Type))
-	// This topic carries an authorized-payment id, not a payment id (handled separately in PostNotification).
-	if strings.Contains(typ, "subscription_authorized_payment") {
-		return ""
-	}
 	act := strings.ToLower(strings.TrimSpace(envelope.Action))
 	isPayment := typ == "payment" || strings.Contains(typ, "payment") ||
 		strings.Contains(act, "payment")
@@ -155,30 +125,6 @@ func peekNotificationType(body []byte) string {
 	return strings.TrimSpace(v.Topic)
 }
 
-// extractAuthorizedPaymentResourceID returns data.id for subscription_authorized_payment notifications.
-func extractAuthorizedPaymentResourceID(body []byte) string {
-	var envelope struct {
-		Type string          `json:"type"`
-		Data json.RawMessage `json:"data"`
-	}
-	if json.Unmarshal(body, &envelope) != nil {
-		return ""
-	}
-	t := strings.ToLower(strings.TrimSpace(envelope.Type))
-	if !strings.Contains(t, "subscription_authorized_payment") {
-		return ""
-	}
-	var dataObj map[string]json.RawMessage
-	if json.Unmarshal(envelope.Data, &dataObj) != nil {
-		return ""
-	}
-	rawID, ok := dataObj["id"]
-	if !ok {
-		return ""
-	}
-	return decodeJSONDataID(rawID)
-}
-
 func decodeJSONDataID(raw json.RawMessage) string {
 	var s string
 	if json.Unmarshal(raw, &s) == nil && strings.TrimSpace(s) != "" {
@@ -204,7 +150,6 @@ func (h *MercadoPagoWebhookHandler) handlePayment(ctx context.Context, paymentID
 	p, err := h.MP.GetPayment(ctx, paymentID)
 	if err != nil {
 		msg := err.Error()
-		// Wrong resource type (e.g. id is not a payment), test/prod mismatch, or stale id — acknowledge webhook.
 		if strings.Contains(msg, "status 404") {
 			logger.Log.Warn().Err(err).Str("mp_payment_id", paymentID).Msg("mp webhook: GET /v1/payments not found")
 			return nil
@@ -216,6 +161,15 @@ func (h *MercadoPagoWebhookHandler) handlePayment(ctx context.Context, paymentID
 		return err
 	}
 	if !strings.EqualFold(strings.TrimSpace(p.Status), "approved") {
+		return nil
+	}
+
+	if ok, err := h.tryMarkRenewalInvoiceFromWebhook(ctx, p); err != nil {
+		return err
+	} else if ok {
+		logger.Log.Info().
+			Str("mp_payment_id", p.ID).
+			Msg("mp webhook: renewal invoice marked paid from notification")
 		return nil
 	}
 
@@ -275,6 +229,54 @@ func (h *MercadoPagoWebhookHandler) handlePayment(ctx context.Context, paymentID
 	return nil
 }
 
+// tryMarkRenewalInvoiceFromWebhook updates a pending renewal invoice created by internal billing (metadata.invoice_id or external_reference).
+func (h *MercadoPagoWebhookHandler) tryMarkRenewalInvoiceFromWebhook(ctx context.Context, p *mercadopago.PaymentDetails) (bool, error) {
+	invID, ok := invoiceUUIDFromPayment(p)
+	if !ok {
+		return false, nil
+	}
+	inv, err := h.Invoices.GetByID(ctx, invID)
+	if err != nil {
+		return false, err
+	}
+	if inv == nil {
+		return false, nil
+	}
+	if p.Metadata != nil {
+		if rawCo := strings.TrimSpace(p.Metadata["company_id"]); rawCo != "" {
+			if cid, err := uuid.Parse(rawCo); err == nil && cid != inv.CompanyID {
+				return false, nil
+			}
+		}
+	}
+
+	tx, err := h.Pool.Begin(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	updated, err := h.Invoices.MarkPaid(ctx, tx, invID, inv.CompanyID, p.ID)
+	if err != nil {
+		return false, err
+	}
+	if updated {
+		return true, tx.Commit(ctx)
+	}
+
+	inv2, err := h.Invoices.GetByID(ctx, invID)
+	if err != nil {
+		_ = tx.Rollback(ctx)
+		return false, err
+	}
+	if inv2 != nil && inv2.MpPaymentID != nil && *inv2.MpPaymentID == p.ID && inv2.Status == "paid" {
+		_ = tx.Rollback(ctx)
+		return true, nil
+	}
+	_ = tx.Rollback(ctx)
+	return false, nil
+}
+
 func (h *MercadoPagoWebhookHandler) resolveCompanyID(ctx context.Context, p *mercadopago.PaymentDetails) (uuid.UUID, error) {
 	if p.Metadata != nil {
 		if raw := strings.TrimSpace(p.Metadata["company_id"]); raw != "" {
@@ -282,14 +284,45 @@ func (h *MercadoPagoWebhookHandler) resolveCompanyID(ctx context.Context, p *mer
 				return id, nil
 			}
 		}
+		if raw := strings.TrimSpace(p.Metadata["invoice_id"]); raw != "" {
+			if invID, err := uuid.Parse(raw); err == nil {
+				inv, err := h.Invoices.GetByID(ctx, invID)
+				if err != nil {
+					return uuid.Nil, err
+				}
+				if inv != nil {
+					return inv.CompanyID, nil
+				}
+			}
+		}
+	}
+	if raw := strings.TrimSpace(p.ExternalReference); raw != "" {
+		if invID, err := uuid.Parse(raw); err == nil {
+			inv, err := h.Invoices.GetByID(ctx, invID)
+			if err != nil {
+				return uuid.Nil, err
+			}
+			if inv != nil {
+				return inv.CompanyID, nil
+			}
+			return invID, nil
+		}
+	}
+	return uuid.Nil, nil
+}
+
+func invoiceUUIDFromPayment(p *mercadopago.PaymentDetails) (uuid.UUID, bool) {
+	if p.Metadata != nil {
+		if raw := strings.TrimSpace(p.Metadata["invoice_id"]); raw != "" {
+			if id, err := uuid.Parse(raw); err == nil {
+				return id, true
+			}
+		}
 	}
 	if raw := strings.TrimSpace(p.ExternalReference); raw != "" {
 		if id, err := uuid.Parse(raw); err == nil {
-			return id, nil
+			return id, true
 		}
 	}
-	if raw := strings.TrimSpace(p.PreapprovalID); raw != "" {
-		return h.Companies.GetCompanyIDByMpPreapprovalID(ctx, raw)
-	}
-	return uuid.Nil, nil
+	return uuid.Nil, false
 }

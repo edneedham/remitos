@@ -23,7 +23,6 @@ type Company struct {
 	DocumentsMonthlyLimit *int       `json:"documents_monthly_limit,omitempty"`
 	MpCustomerID          *string    `json:"-"`
 	MpCardID              *string    `json:"-"`
-	MpPreapprovalID       *string    `json:"-"`
 
 	CreatedAt  time.Time  `json:"created_at"`
 	UpdatedAt  time.Time  `json:"updated_at"`

@@ -16,14 +16,14 @@ import (
 
 // RenewalService ties invoice issuance, payment collection, and subscription extension together.
 type RenewalService struct {
-	Pool           *pgxpool.Pool
-	Companies      *repository.CompanyRepository
-	Invoices       *repository.InvoiceRepository
-	Users          *repository.UserRepository
-	MP             *mercadopago.Client
-	StubAutoCharge       bool
-	RateQuoter           USDARSQuoter // used when AmountMinor <= 0 in Run()
-	FXBufferFraction     float64      // applied on reference MEP before USD→ARS (e.g. 0.07)
+	Pool             *pgxpool.Pool
+	Companies        *repository.CompanyRepository
+	Invoices         *repository.InvoiceRepository
+	Users            *repository.UserRepository
+	MP               *mercadopago.Client
+	StubAutoCharge   bool
+	RateQuoter       USDARSQuoter // used when AmountMinor <= 0 in Run()
+	FXBufferFraction float64      // applied on reference MEP before USD→ARS (e.g. 0.07)
 }
 
 type RenewalRunInput struct {
@@ -53,14 +53,14 @@ func NewRenewalService(
 	fxBufferFraction float64,
 ) *RenewalService {
 	return &RenewalService{
-		Pool:               pool,
-		Companies:          companies,
-		Invoices:           invoices,
-		Users:              users,
-		MP:                 mp,
-		StubAutoCharge:     stubAutoCharge,
-		RateQuoter:         quoter,
-		FXBufferFraction:   fxBufferFraction,
+		Pool:             pool,
+		Companies:        companies,
+		Invoices:         invoices,
+		Users:            users,
+		MP:               mp,
+		StubAutoCharge:   stubAutoCharge,
+		RateQuoter:       quoter,
+		FXBufferFraction: fxBufferFraction,
 	}
 }
 
@@ -140,6 +140,7 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 		PayerEmail:        payerEmail,
 		CustomerID:        custID,
 		CardID:            cardID,
+		CompanyID:         in.CompanyID.String(),
 		AmountARS:         amountARS,
 		Description:       in.Description,
 		ExternalReference: invoiceID.String(),
@@ -163,9 +164,22 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 	if err != nil {
 		return nil, err
 	}
-	if err := s.Invoices.MarkPaid(ctx, tx2, invoiceID, in.CompanyID, chargeOut.PaymentID); err != nil {
+	updated, err := s.Invoices.MarkPaid(ctx, tx2, invoiceID, in.CompanyID, chargeOut.PaymentID)
+	if err != nil {
 		_ = tx2.Rollback(ctx)
 		return nil, err
+	}
+	if !updated {
+		// Webhook may have marked the same invoice paid first; only extend if that happened for this charge.
+		inv, gerr := s.Invoices.GetByID(ctx, invoiceID)
+		if gerr != nil {
+			_ = tx2.Rollback(ctx)
+			return nil, gerr
+		}
+		if inv == nil || inv.CompanyID != in.CompanyID || inv.MpPaymentID == nil || *inv.MpPaymentID != chargeOut.PaymentID || inv.Status != "paid" {
+			_ = tx2.Rollback(ctx)
+			return nil, fmt.Errorf("could not mark invoice %s paid after charge", invoiceID)
+		}
 	}
 	newEnds, err := s.Companies.ExtendPaidSubscriptionPeriod(ctx, tx2, in.CompanyID, in.ExtendMonths)
 	if err != nil {
@@ -192,9 +206,6 @@ func validateCompanyForRenewal(c *models.Company) error {
 	}
 	if c.Status != "" && c.Status != "active" {
 		return fmt.Errorf("company status is not active")
-	}
-	if c.MpPreapprovalID != nil && strings.TrimSpace(*c.MpPreapprovalID) != "" {
-		return fmt.Errorf("company uses Mercado Pago Suscripciones; renew via MP payments webhooks, not internal renewal")
 	}
 	if !IsPaidPlan(c.SubscriptionPlan) {
 		return fmt.Errorf("company plan is not billable as paid subscription")

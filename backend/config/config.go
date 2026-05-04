@@ -18,11 +18,6 @@ type Config struct {
 
 	// Mercado Pago (server-side). Public key is only for the website (NEXT_PUBLIC_*).
 	MercadoPagoAccessToken string
-	// Preapproval plan ids from the MP dashboard (Subscriptions with plan). If set for a plan, activation uses POST /preapproval.
-	MercadoPagoPreapprovalPlanPyme    string
-	MercadoPagoPreapprovalPlanEmpresa string
-	// Optional Back URL for subscriptions (defaults to PUBLIC_SITE_URL/dashboard/payment-success).
-	MercadoPagoSubscriptionBackURL string
 	// Comma-separated origins for browser signup (e.g. http://localhost:3000).
 	CorsAllowedOrigins []string
 	// If true, signup accepts trial without a real card token (development only).
@@ -30,6 +25,10 @@ type Config struct {
 
 	// Shared secret for POST /internal/billing/trigger-renewal (header X-Billing-Secret). Empty disables the route.
 	BillingRenewalSecret string
+	// If true, periodically runs subscription renewals for companies past subscription_expires_at (uses RenewalService; keep false until charges are verified).
+	BillingAutomaticRenewalEnabled bool
+	// Interval for automatic renewal sweep (default 60 minutes).
+	BillingRenewalPollMinutes int
 	// If true, renewal charges succeed without calling Mercado Pago (local/dev only).
 	BillingStubAutoCharge bool
 	// Fallback ARS per 1 USD when the MEP (bolsa) quote cannot be fetched. Primary rate is live MEP.
@@ -56,18 +55,6 @@ type Config struct {
 	PublicSiteURL string // optional; used for links in welcome emails (no trailing slash)
 }
 
-// MercadoPagoSubscriptionReturnURL is the `back_url` sent when creating a preapproval (subscription).
-func (c *Config) MercadoPagoSubscriptionReturnURL() string {
-	s := strings.TrimSpace(c.MercadoPagoSubscriptionBackURL)
-	if s != "" {
-		return s
-	}
-	if c.PublicSiteURL != "" {
-		return c.PublicSiteURL + "/dashboard/payment-success"
-	}
-	return ""
-}
-
 func Load() *Config {
 	return &Config{
 		DBHost:     getEnv("DB_HOST", "localhost"),
@@ -78,18 +65,17 @@ func Load() *Config {
 		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:  getEnv("JWT_SECRET", "change-me-in-production"),
 
-		MercadoPagoAccessToken:            getEnv("MERCADOPAGO_ACCESS_TOKEN", ""),
-		MercadoPagoPreapprovalPlanPyme:    strings.TrimSpace(getEnv("MERCADOPAGO_PREAPPROVAL_PLAN_PYME", "")),
-		MercadoPagoPreapprovalPlanEmpresa: strings.TrimSpace(getEnv("MERCADOPAGO_PREAPPROVAL_PLAN_EMPRESA", "")),
-		MercadoPagoSubscriptionBackURL:    strings.TrimSpace(getEnv("MERCADOPAGO_SUBSCRIPTION_BACK_URL", "")),
-		CorsAllowedOrigins:                splitCommaTrim(getEnv("CORS_ALLOWED_ORIGINS", "")),
-		SignupAllowMockPayment: getEnv("SIGNUP_ALLOW_MOCK_PAYMENT", "") == "true",
-		BillingRenewalSecret:   strings.TrimSpace(getEnv("BILLING_RENEWAL_SECRET", "")),
-		BillingStubAutoCharge:  getEnv("BILLING_STUB_AUTO_CHARGE", "") == "true",
-		BillingUSDToARSRate:     getEnvAsFloat64("BILLING_USD_ARS_RATE", 0),
-		BillingFXBufferFraction: getEnvAsFloat64("BILLING_FX_BUFFER_FRACTION", 0.07),
-		BillingMEPBolsaURL:      strings.TrimSpace(getEnv("BILLING_MEP_BOLSA_URL", "")),
-		SeedLocalDevUsers:      getEnv("SEED_LOCAL_DEV_USERS", "") == "true",
+		MercadoPagoAccessToken:         getEnv("MERCADOPAGO_ACCESS_TOKEN", ""),
+		CorsAllowedOrigins:             splitCommaTrim(getEnv("CORS_ALLOWED_ORIGINS", "")),
+		SignupAllowMockPayment:         getEnv("SIGNUP_ALLOW_MOCK_PAYMENT", "") == "true",
+		BillingRenewalSecret:           strings.TrimSpace(getEnv("BILLING_RENEWAL_SECRET", "")),
+		BillingAutomaticRenewalEnabled: getEnv("BILLING_AUTOMATIC_RENEWAL_ENABLED", "") == "true",
+		BillingRenewalPollMinutes:      getEnvAsInt("BILLING_RENEWAL_POLL_MINUTES", 60),
+		BillingStubAutoCharge:          getEnv("BILLING_STUB_AUTO_CHARGE", "") == "true",
+		BillingUSDToARSRate:            getEnvAsFloat64("BILLING_USD_ARS_RATE", 0),
+		BillingFXBufferFraction:        getEnvAsFloat64("BILLING_FX_BUFFER_FRACTION", 0.07),
+		BillingMEPBolsaURL:             strings.TrimSpace(getEnv("BILLING_MEP_BOLSA_URL", "")),
+		SeedLocalDevUsers:              getEnv("SEED_LOCAL_DEV_USERS", "") == "true",
 
 		GCSReleasesBucket:       getEnv("GCS_RELEASES_BUCKET", ""),
 		AndroidReleaseObject:    getEnv("ANDROID_RELEASE_OBJECT", ""),

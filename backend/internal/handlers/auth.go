@@ -37,52 +37,46 @@ type AuthReleasesConfig struct {
 }
 
 type AuthHandler struct {
-	userRepo          *repository.UserRepository
-	companyRepo       *repository.CompanyRepository
-	warehouseRepo     *repository.WarehouseRepository
-	syncRepo          *repository.SyncRepository
-	invoiceRepo       *repository.InvoiceRepository
-	deviceRepo        *repository.DeviceRepository
-	refreshTokenRepo  *repository.RefreshTokenRepository
-	transferRepo      *repository.WebSessionTransferRepository
-	subscriptionRepo  *repository.SubscriptionRepository
-	db                *pgxpool.Pool
-	jwtSvc            *jwt.Service
-	mp                *mercadopago.Client
-	signupAllowMock   bool
-	releases          *AuthReleasesConfig
-	mailer            notifymail.Sender
-	publicSiteURL             string
-	billingRateQuoter         billing.USDARSQuoter
-	billingFXBufferFraction   float64
-	mpPreapprovalPlanPyme     string
-	mpPreapprovalPlanEmpresa  string
-	mpSubscriptionBackURL     string
+	userRepo                *repository.UserRepository
+	companyRepo             *repository.CompanyRepository
+	warehouseRepo           *repository.WarehouseRepository
+	syncRepo                *repository.SyncRepository
+	invoiceRepo             *repository.InvoiceRepository
+	deviceRepo              *repository.DeviceRepository
+	refreshTokenRepo        *repository.RefreshTokenRepository
+	transferRepo            *repository.WebSessionTransferRepository
+	subscriptionRepo        *repository.SubscriptionRepository
+	db                      *pgxpool.Pool
+	jwtSvc                  *jwt.Service
+	mp                      *mercadopago.Client
+	signupAllowMock         bool
+	releases                *AuthReleasesConfig
+	mailer                  notifymail.Sender
+	publicSiteURL           string
+	billingRateQuoter       billing.USDARSQuoter
+	billingFXBufferFraction float64
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64, mpPreapprovalPlanPyme, mpPreapprovalPlanEmpresa, mpSubscriptionBackURL string) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64) *AuthHandler {
 	return &AuthHandler{
-		userRepo:          userRepo,
-		companyRepo:       companyRepo,
-		warehouseRepo:     warehouseRepo,
-		syncRepo:          syncRepo,
-		invoiceRepo:       invoiceRepo,
-		deviceRepo:        deviceRepo,
-		refreshTokenRepo:  refreshTokenRepo,
-		transferRepo:      transferRepo,
-		subscriptionRepo:  subscriptionRepo,
-		db:                db,
-		jwtSvc:            jwtSvc,
-		mp:                mp,
-		signupAllowMock:   signupAllowMock,
-		releases:          releases,
-		mailer:            mailer,
-		publicSiteURL:            publicSiteURL,
-		billingRateQuoter:        billingRateQuoter,
-		billingFXBufferFraction:  billingFXBufferFraction,
-		mpPreapprovalPlanPyme:    mpPreapprovalPlanPyme,
-		mpPreapprovalPlanEmpresa: mpPreapprovalPlanEmpresa,
-		mpSubscriptionBackURL:    mpSubscriptionBackURL,
+		userRepo:                userRepo,
+		companyRepo:             companyRepo,
+		warehouseRepo:           warehouseRepo,
+		syncRepo:                syncRepo,
+		invoiceRepo:             invoiceRepo,
+		deviceRepo:              deviceRepo,
+		refreshTokenRepo:        refreshTokenRepo,
+		transferRepo:            transferRepo,
+		subscriptionRepo:        subscriptionRepo,
+		db:                      db,
+		jwtSvc:                  jwtSvc,
+		mp:                      mp,
+		signupAllowMock:         signupAllowMock,
+		releases:                releases,
+		mailer:                  mailer,
+		publicSiteURL:           publicSiteURL,
+		billingRateQuoter:       billingRateQuoter,
+		billingFXBufferFraction: billingFXBufferFraction,
 	}
 }
 

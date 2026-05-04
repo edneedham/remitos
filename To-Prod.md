@@ -67,25 +67,24 @@ Set these in Cloud Run (values from your accounts — not committed):
 | Variable | Purpose |
 |----------|---------|
 | `MERCADOPAGO_ACCESS_TOKEN` | Production access token (MP dashboard, **production** credentials) |
-| `MERCADOPAGO_PREAPPROVAL_PLAN_PYME` | Plan id from MP Suscripciones / preapproval plan |
-| `MERCADOPAGO_PREAPPROVAL_PLAN_EMPRESA` | Same for Empresa plan |
-| `MERCADOPAGO_SUBSCRIPTION_BACK_URL` | Optional; defaults with `PUBLIC_SITE_URL` (see below) |
 | `JWT_SECRET` | Long random string; signing web sessions |
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSLMODE=require` | Neon |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated origins, e.g. `https://www.yourdomain.com,https://yourdomain.com` |
-| `PUBLIC_SITE_URL` | Canonical marketing/site URL **no trailing slash**, e.g. `https://www.yourdomain.com` — used in emails and Mercado Pago `back_url` |
+| `PUBLIC_SITE_URL` | Canonical marketing/site URL **no trailing slash**, e.g. `https://www.yourdomain.com` — used in emails |
 | `BILLING_USD_ARS_RATE` | Fallback FX if MEP API fails (**recommended** in prod) |
 | `BILLING_FX_BUFFER_FRACTION` | Default `0.07` unless you change pricing policy |
 | `SIGNUP_ALLOW_MOCK_PAYMENT` | **`false`** in production |
 | `BILLING_STUB_AUTO_CHARGE` | **`false`** in production |
-| `BILLING_RENEWAL_SECRET` | Only if you use internal `POST /internal/billing/trigger-renewal`; omit or leave empty if **only** MP webhooks renew subscriptions |
+| `BILLING_RENEWAL_SECRET` | Enables `POST /internal/billing/trigger-renewal` (cron or ops); merchant-owned renewals with MEP-priced charges |
+| `BILLING_AUTOMATIC_RENEWAL_ENABLED` | **`false`** until renewals verified; optional background sweep for expired `subscription_expires_at` |
+| `BILLING_RENEWAL_POLL_MINUTES` | Sweep interval when automatic renewal is enabled (default 60) |
 | `EMAIL_ENABLED`, `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` | If using Resend |
 | `GCS_RELEASES_BUCKET`, `ANDROID_RELEASE_OBJECT`, GCS credentials | If APK downloads via GCS (service account with sign-URL permission) |
 
 Mercado Pago **webhook** URL (configure in MP dashboard):
 
 - `POST https://<your-api-host>/webhooks/mercadopago`
-- Enable **`payment`** (and any subscription topics MP lists for your integration).
+- Enable **`payment`** for payment notifications on charges created by the API.
 
 Also configure **webhook signature secret** in MP and plan to validate `x-signature` in the API when you harden (not yet required for first deploy, but do not skip long-term).
 
@@ -120,10 +119,9 @@ The API’s `CORS_ALLOWED_ORIGINS` must include your **exact** Vercel production
 ## 5. Mercado Pago (single checklist)
 
 1. **Production** application + **production** access token (server) and **production** public key (browser).
-2. Create **preapproval plans** (PyME / Empresa) and copy ids into `MERCADOPAGO_PREAPPROVAL_PLAN_*` on the API.
-3. **Webhook** URL = `https://<api>/webhooks/mercadopago`, topic **`payment`** (plus whatever MP requires for Suscripciones).
+2. **Webhook** URL = `https://<api>/webhooks/mercadopago`, topic **`payment`**.
+3. **Test** renewals and activation with **`BILLING_STUB_AUTO_CHARGE`** off only after sandbox validation; MP approval rules vary by card and region.
 4. **Test** in MP **sandbox** first if available for your account region.
-5. Ensure `PUBLIC_SITE_URL` / `MERCADOPAGO_SUBSCRIPTION_BACK_URL` match a **real** route on the Vercel site (e.g. `/dashboard/payment-success`).
 
 ---
 

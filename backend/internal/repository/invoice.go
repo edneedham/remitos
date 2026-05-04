@@ -2,10 +2,13 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -113,17 +116,47 @@ func (r *InvoiceRepository) ExistsMpPaymentID(ctx context.Context, mpPaymentID s
 	return n > 0, err
 }
 
-func (r *InvoiceRepository) MarkPaid(ctx context.Context, conn DBConn, invoiceID, companyID uuid.UUID, mpPaymentID string) error {
+// MarkPaid sets status=paid for a pending invoice. Returns true if a row was updated.
+func (r *InvoiceRepository) MarkPaid(ctx context.Context, conn DBConn, invoiceID, companyID uuid.UUID, mpPaymentID string) (bool, error) {
 	tag, err := conn.Exec(ctx, `
 		UPDATE billing_invoices
 		SET status = 'paid', mp_payment_id = $3
 		WHERE id = $1 AND company_id = $2 AND status = 'pending'
 	`, invoiceID, companyID, mpPaymentID)
 	if err != nil {
-		return err
+		return false, err
 	}
-	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("invoice %s not pending or not found for company", invoiceID)
+	return tag.RowsAffected() > 0, nil
+}
+
+// GetByID returns a billing invoice by primary key.
+func (r *InvoiceRepository) GetByID(ctx context.Context, invoiceID uuid.UUID) (*BillingInvoice, error) {
+	var inv BillingInvoice
+	var mpID sql.NullString
+	err := r.pool.QueryRow(ctx, `
+		SELECT id, company_id, amount_minor, currency, status,
+		       COALESCE(description, ''), issued_at, mp_payment_id
+		FROM billing_invoices
+		WHERE id = $1
+	`, invoiceID).Scan(
+		&inv.ID,
+		&inv.CompanyID,
+		&inv.AmountMinor,
+		&inv.Currency,
+		&inv.Status,
+		&inv.Description,
+		&inv.IssuedAt,
+		&mpID,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
 	}
-	return nil
+	if mpID.Valid {
+		s := mpID.String
+		inv.MpPaymentID = &s
+	}
+	return &inv, nil
 }
