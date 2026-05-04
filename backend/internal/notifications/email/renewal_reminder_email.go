@@ -37,7 +37,7 @@ func SubscriptionRenewalUpcoming(
 	billingDatePhrase := formatDateEs(localEnd)
 
 	usdStr := formatUSDList(usdMajor)
-	arsStr := formatARSWholeWithDots(estimatedARSWhole)
+	arsStr := FormatARSWholeWithDots(estimatedARSWhole)
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html><body>
@@ -97,27 +97,6 @@ func formatUSDList(usd float64) string {
 		return strconv.FormatInt(int64(math.Round(usd)), 10)
 	}
 	return strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.2f", usd), "0"), ".")
-}
-
-func formatARSWholeWithDots(n int64) string {
-	if n < 0 {
-		n = -n
-	}
-	s := strconv.FormatInt(n, 10)
-	if len(s) <= 3 {
-		return s
-	}
-	var b strings.Builder
-	lead := len(s) % 3
-	if lead == 0 {
-		lead = 3
-	}
-	b.WriteString(s[:lead])
-	for i := lead; i < len(s); i += 3 {
-		b.WriteString(".")
-		b.WriteString(s[i : i+3])
-	}
-	return b.String()
 }
 
 func renewalReminderLinkBlock(publicSiteURL string) string {

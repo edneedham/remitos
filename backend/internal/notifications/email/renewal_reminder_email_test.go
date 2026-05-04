@@ -49,7 +49,7 @@ func TestFormatARSWholeWithDots(t *testing.T) {
 		{1000000, "1.000.000"},
 	}
 	for _, tc := range cases {
-		if got := formatARSWholeWithDots(tc.in); got != tc.want {
+		if got := FormatARSWholeWithDots(tc.in); got != tc.want {
 			t.Fatalf("%d: got %q want %q", tc.in, got, tc.want)
 		}
 	}

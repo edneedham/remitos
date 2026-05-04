@@ -22,20 +22,23 @@ func NewInvoiceRepository(pool *pgxpool.Pool) *InvoiceRepository {
 
 // BillingInvoice is a persisted invoice row for a company.
 type BillingInvoice struct {
-	ID          uuid.UUID
-	CompanyID   uuid.UUID
-	AmountMinor int64
-	Currency    string
-	Status      string
-	Description string
-	IssuedAt    time.Time
-	MpPaymentID *string
+	ID                         uuid.UUID
+	CompanyID                  uuid.UUID
+	AmountMinor                int64
+	Currency                   string
+	Status                     string
+	Description                string
+	IssuedAt                   time.Time
+	MpPaymentID                *string
+	ReceiptEmailSentAt         sql.NullTime
+	RenewalFailureNoticeSentAt sql.NullTime
 }
 
 func (r *InvoiceRepository) ListByCompanyID(ctx context.Context, companyID uuid.UUID) ([]BillingInvoice, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT id, company_id, amount_minor, currency, status,
-		       COALESCE(description, ''), issued_at, mp_payment_id
+		       COALESCE(description, ''), issued_at, mp_payment_id,
+		       receipt_email_sent_at, renewal_failure_notice_sent_at
 		FROM billing_invoices
 		WHERE company_id = $1
 		ORDER BY issued_at DESC, created_at DESC
@@ -48,6 +51,7 @@ func (r *InvoiceRepository) ListByCompanyID(ctx context.Context, companyID uuid.
 	out := make([]BillingInvoice, 0)
 	for rows.Next() {
 		var inv BillingInvoice
+		var mpID sql.NullString
 		if err := rows.Scan(
 			&inv.ID,
 			&inv.CompanyID,
@@ -56,9 +60,15 @@ func (r *InvoiceRepository) ListByCompanyID(ctx context.Context, companyID uuid.
 			&inv.Status,
 			&inv.Description,
 			&inv.IssuedAt,
-			&inv.MpPaymentID,
+			&mpID,
+			&inv.ReceiptEmailSentAt,
+			&inv.RenewalFailureNoticeSentAt,
 		); err != nil {
 			return nil, err
+		}
+		if mpID.Valid {
+			s := mpID.String
+			inv.MpPaymentID = &s
 		}
 		out = append(out, inv)
 	}
@@ -92,19 +102,22 @@ func (r *InvoiceRepository) CountByCompanyID(ctx context.Context, companyID uuid
 
 // InsertPaidInvoice records a paid invoice with a Mercado Pago payment id (caller ensures idempotency).
 func (r *InvoiceRepository) InsertPaidInvoice(ctx context.Context, companyID uuid.UUID, amountMinor int64, currency, description, mpPaymentID string) error {
-	return r.InsertPaidInvoiceTx(ctx, r.pool, companyID, amountMinor, currency, description, mpPaymentID)
+	_, err := r.InsertPaidInvoiceTx(ctx, r.pool, companyID, amountMinor, currency, description, mpPaymentID)
+	return err
 }
 
-// InsertPaidInvoiceTx records a paid invoice using an existing connection or transaction.
-func (r *InvoiceRepository) InsertPaidInvoiceTx(ctx context.Context, conn DBConn, companyID uuid.UUID, amountMinor int64, currency, description, mpPaymentID string) error {
+// InsertPaidInvoiceTx records a paid invoice using an existing connection or transaction and returns the new row id.
+func (r *InvoiceRepository) InsertPaidInvoiceTx(ctx context.Context, conn DBConn, companyID uuid.UUID, amountMinor int64, currency, description, mpPaymentID string) (uuid.UUID, error) {
 	if mpPaymentID == "" {
-		return fmt.Errorf("mp payment id required")
+		return uuid.Nil, fmt.Errorf("mp payment id required")
 	}
-	_, err := conn.Exec(ctx, `
+	var id uuid.UUID
+	err := conn.QueryRow(ctx, `
 		INSERT INTO billing_invoices (company_id, amount_minor, currency, status, description, issued_at, mp_payment_id)
 		VALUES ($1, $2, $3, 'paid', $4, NOW(), $5)
-	`, companyID, amountMinor, currency, description, mpPaymentID)
-	return err
+		RETURNING id
+	`, companyID, amountMinor, currency, description, mpPaymentID).Scan(&id)
+	return id, err
 }
 
 // ExistsMpPaymentID returns true if an invoice already references this MP payment id.
@@ -135,7 +148,8 @@ func (r *InvoiceRepository) GetByID(ctx context.Context, invoiceID uuid.UUID) (*
 	var mpID sql.NullString
 	err := r.pool.QueryRow(ctx, `
 		SELECT id, company_id, amount_minor, currency, status,
-		       COALESCE(description, ''), issued_at, mp_payment_id
+		       COALESCE(description, ''), issued_at, mp_payment_id,
+		       receipt_email_sent_at, renewal_failure_notice_sent_at
 		FROM billing_invoices
 		WHERE id = $1
 	`, invoiceID).Scan(
@@ -147,6 +161,8 @@ func (r *InvoiceRepository) GetByID(ctx context.Context, invoiceID uuid.UUID) (*
 		&inv.Description,
 		&inv.IssuedAt,
 		&mpID,
+		&inv.ReceiptEmailSentAt,
+		&inv.RenewalFailureNoticeSentAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -159,4 +175,32 @@ func (r *InvoiceRepository) GetByID(ctx context.Context, invoiceID uuid.UUID) (*
 		inv.MpPaymentID = &s
 	}
 	return &inv, nil
+}
+
+// SetReceiptEmailSentIfUnset records that a payment receipt was sent (idempotent).
+func (r *InvoiceRepository) SetReceiptEmailSentIfUnset(ctx context.Context, invoiceID uuid.UUID) (bool, error) {
+	tag, err := r.pool.Exec(ctx, `
+		UPDATE billing_invoices
+		SET receipt_email_sent_at = NOW()
+		WHERE id = $1 AND status = 'paid' AND mp_payment_id IS NOT NULL
+			AND receipt_email_sent_at IS NULL
+	`, invoiceID)
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() > 0, nil
+}
+
+// SetRenewalFailureNoticeSentIfUnset records a renewal-failure email for this invoice (idempotent).
+func (r *InvoiceRepository) SetRenewalFailureNoticeSentIfUnset(ctx context.Context, invoiceID uuid.UUID) (bool, error) {
+	tag, err := r.pool.Exec(ctx, `
+		UPDATE billing_invoices
+		SET renewal_failure_notice_sent_at = NOW()
+		WHERE id = $1 AND status = 'pending'
+			AND renewal_failure_notice_sent_at IS NULL
+	`, invoiceID)
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() > 0, nil
 }

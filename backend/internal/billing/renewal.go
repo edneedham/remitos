@@ -10,6 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"server/internal/models"
+	"server/internal/notifications/billingmail"
+	notifymail "server/internal/notifications/email"
 	"server/internal/payments/mercadopago"
 	"server/internal/repository"
 )
@@ -24,6 +26,8 @@ type RenewalService struct {
 	StubAutoCharge   bool
 	RateQuoter       USDARSQuoter // used when AmountMinor <= 0 in Run()
 	FXBufferFraction float64      // applied on reference MEP before USD→ARS (e.g. 0.07)
+	Mailer           notifymail.Sender
+	PublicSiteURL    string
 }
 
 type RenewalRunInput struct {
@@ -51,6 +55,8 @@ func NewRenewalService(
 	stubAutoCharge bool,
 	quoter USDARSQuoter,
 	fxBufferFraction float64,
+	mailer notifymail.Sender,
+	publicSiteURL string,
 ) *RenewalService {
 	return &RenewalService{
 		Pool:             pool,
@@ -61,6 +67,8 @@ func NewRenewalService(
 		StubAutoCharge:   stubAutoCharge,
 		RateQuoter:       quoter,
 		FXBufferFraction: fxBufferFraction,
+		Mailer:           mailer,
+		PublicSiteURL:    publicSiteURL,
 	}
 }
 
@@ -146,6 +154,12 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 		ExternalReference: invoiceID.String(),
 	}, s.StubAutoCharge)
 	if err != nil {
+		if s.Mailer != nil {
+			billingmail.QueueRenewalChargeFailure(
+				s.Invoices, s.Users, s.Companies, s.Mailer, s.PublicSiteURL,
+				in.CompanyID, invoiceID, amountMinor, currency, err.Error(),
+			)
+		}
 		return &RenewalRunResult{
 			InvoiceID:  invoiceID,
 			Charged:    false,
@@ -153,6 +167,13 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 		}, err
 	}
 	if !chargeOut.Approved || chargeOut.PaymentID == "" {
+		if s.Mailer != nil {
+			billingmail.QueueRenewalChargeFailure(
+				s.Invoices, s.Users, s.Companies, s.Mailer, s.PublicSiteURL,
+				in.CompanyID, invoiceID, amountMinor, currency,
+				"El cobro con la tarjeta guardada no fue aprobado por Mercado Pago.",
+			)
+		}
 		return &RenewalRunResult{
 			InvoiceID:  invoiceID,
 			Charged:    false,
@@ -188,6 +209,13 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 	}
 	if err := tx2.Commit(ctx); err != nil {
 		return nil, err
+	}
+
+	if s.Mailer != nil && updated {
+		billingmail.QueuePaymentReceipt(
+			s.Invoices, s.Users, s.Companies, s.Mailer, s.PublicSiteURL,
+			LegalNoticeAR(s.FXBufferFraction), invoiceID,
+		)
 	}
 
 	expiresRFC := newEnds.UTC().Format(time.RFC3339)

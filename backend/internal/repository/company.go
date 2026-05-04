@@ -484,3 +484,132 @@ func (r *CompanyRepository) MarkRenewalReminderSent(ctx context.Context, company
 	_, err := r.pool.Exec(ctx, q, companyID)
 	return err
 }
+
+// TrialEndingNoticeRow is a trial company for the 3-day trial-end reminder.
+type TrialEndingNoticeRow struct {
+	CompanyID   uuid.UUID
+	CompanyName string
+	TrialEndsAt time.Time
+	OwnerEmail  string
+}
+
+// ListCompaniesForTrialEndingNotice returns trial-plan rows whose trial end date (Buenos Aires)
+// is exactly 3 calendar days after today (Buenos Aires), idempotent per trial_ends_at.
+func (r *CompanyRepository) ListCompaniesForTrialEndingNotice(ctx context.Context) ([]TrialEndingNoticeRow, error) {
+	query := `
+		SELECT DISTINCT ON (c.id)
+			c.id,
+			c.name,
+			c.trial_ends_at,
+			COALESCE(NULLIF(TRIM(u.email), ''), NULLIF(TRIM(u.username), ''), '') AS owner_email
+		FROM companies c
+		INNER JOIN users u ON u.company_id = c.id AND u.role = 'company_owner'
+		WHERE c.archived_at IS NULL
+			AND (c.status = '' OR c.status = 'active')
+			AND LOWER(COALESCE(c.subscription_plan, '')) = 'trial'
+			AND c.trial_ends_at IS NOT NULL
+			AND c.trial_ends_at > NOW()
+			AND (
+				c.trial_end_notice_sent_for_trial_ends_at IS NULL
+				OR c.trial_end_notice_sent_for_trial_ends_at IS DISTINCT FROM c.trial_ends_at
+			)
+			AND (
+				((c.trial_ends_at AT TIME ZONE 'America/Argentina/Buenos_Aires')::date
+					- (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date) = 3
+			)
+		ORDER BY c.id, u.created_at ASC
+	`
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []TrialEndingNoticeRow
+	for rows.Next() {
+		var row TrialEndingNoticeRow
+		if err := rows.Scan(&row.CompanyID, &row.CompanyName, &row.TrialEndsAt, &row.OwnerEmail); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
+// MarkTrialEndingNoticeSent records which trial_ends_at we notified for.
+func (r *CompanyRepository) MarkTrialEndingNoticeSent(ctx context.Context, companyID uuid.UUID) error {
+	q := `
+		UPDATE companies
+		SET trial_end_notice_sent_for_trial_ends_at = trial_ends_at,
+			updated_at = NOW()
+		WHERE id = $1
+	`
+	_, err := r.pool.Exec(ctx, q, companyID)
+	return err
+}
+
+// SubscriptionLapseNoticeRow is a paid-plan company past subscription_expires_at for lapse email.
+type SubscriptionLapseNoticeRow struct {
+	CompanyID             uuid.UUID
+	CompanyName           string
+	SubscriptionExpiresAt time.Time
+	OwnerEmail            string
+}
+
+// ListCompaniesForSubscriptionLapseNotice returns paid-plan companies whose period end date has passed
+// and who have not yet been notified for this subscription_expires_at value.
+func (r *CompanyRepository) ListCompaniesForSubscriptionLapseNotice(ctx context.Context) ([]SubscriptionLapseNoticeRow, error) {
+	query := `
+		SELECT DISTINCT ON (c.id)
+			c.id,
+			c.name,
+			c.subscription_expires_at,
+			COALESCE(NULLIF(TRIM(u.email), ''), NULLIF(TRIM(u.username), ''), '') AS owner_email
+		FROM companies c
+		INNER JOIN users u ON u.company_id = c.id AND u.role = 'company_owner'
+		WHERE c.archived_at IS NULL
+			AND (c.status = '' OR c.status = 'active')
+			AND c.subscription_expires_at IS NOT NULL
+			AND c.subscription_expires_at < NOW()
+			AND LOWER(COALESCE(c.subscription_plan, '')) IN (
+				'premium', 'paid', 'subscriber', 'standard', 'pyme', 'empresa', 'corporativo'
+			)
+			AND (
+				c.subscription_lapse_notice_sent_for_expires_at IS NULL
+				OR c.subscription_lapse_notice_sent_for_expires_at IS DISTINCT FROM c.subscription_expires_at
+			)
+		ORDER BY c.id, u.created_at ASC
+	`
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []SubscriptionLapseNoticeRow
+	for rows.Next() {
+		var row SubscriptionLapseNoticeRow
+		if err := rows.Scan(
+			&row.CompanyID,
+			&row.CompanyName,
+			&row.SubscriptionExpiresAt,
+			&row.OwnerEmail,
+		); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
+// MarkSubscriptionLapseNoticeSent records which subscription_expires_at we sent a lapse notice for.
+func (r *CompanyRepository) MarkSubscriptionLapseNoticeSent(ctx context.Context, companyID uuid.UUID) error {
+	q := `
+		UPDATE companies
+		SET subscription_lapse_notice_sent_for_expires_at = subscription_expires_at,
+			updated_at = NOW()
+		WHERE id = $1
+	`
+	_, err := r.pool.Exec(ctx, q, companyID)
+	return err
+}

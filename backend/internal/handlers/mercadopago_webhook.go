@@ -10,7 +10,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"server/internal/billing"
 	"server/internal/logger"
+	"server/internal/notifications/billingmail"
+	notifymail "server/internal/notifications/email"
 	"server/internal/payments/mercadopago"
 	"server/internal/repository"
 )
@@ -19,18 +22,35 @@ import (
 // Merchant renewals set metadata (company_id, invoice_id); the handler updates the pending invoice
 // or no-ops if the payment was already recorded.
 type MercadoPagoWebhookHandler struct {
-	Pool      *pgxpool.Pool
-	Invoices  *repository.InvoiceRepository
-	Companies *repository.CompanyRepository
-	MP        *mercadopago.Client
+	Pool               *pgxpool.Pool
+	Invoices           *repository.InvoiceRepository
+	Companies          *repository.CompanyRepository
+	Users              *repository.UserRepository
+	MP                 *mercadopago.Client
+	Mailer             notifymail.Sender
+	PublicSiteURL      string
+	FXBufferFraction   float64
 }
 
-func NewMercadoPagoWebhookHandler(pool *pgxpool.Pool, inv *repository.InvoiceRepository, companies *repository.CompanyRepository, mp *mercadopago.Client) *MercadoPagoWebhookHandler {
+func NewMercadoPagoWebhookHandler(
+	pool *pgxpool.Pool,
+	inv *repository.InvoiceRepository,
+	companies *repository.CompanyRepository,
+	users *repository.UserRepository,
+	mp *mercadopago.Client,
+	mailer notifymail.Sender,
+	publicSiteURL string,
+	fxBufferFraction float64,
+) *MercadoPagoWebhookHandler {
 	return &MercadoPagoWebhookHandler{
-		Pool:      pool,
-		Invoices:  inv,
-		Companies: companies,
-		MP:        mp,
+		Pool:             pool,
+		Invoices:         inv,
+		Companies:        companies,
+		Users:            users,
+		MP:               mp,
+		Mailer:           mailer,
+		PublicSiteURL:    publicSiteURL,
+		FXBufferFraction: fxBufferFraction,
 	}
 }
 
@@ -164,12 +184,23 @@ func (h *MercadoPagoWebhookHandler) handlePayment(ctx context.Context, paymentID
 		return nil
 	}
 
-	if ok, err := h.tryMarkRenewalInvoiceFromWebhook(ctx, p); err != nil {
+	if ok, invUUID, err := h.tryMarkRenewalInvoiceFromWebhook(ctx, p); err != nil {
 		return err
 	} else if ok {
 		logger.Log.Info().
 			Str("mp_payment_id", p.ID).
 			Msg("mp webhook: renewal invoice marked paid from notification")
+		if h.Users != nil && h.Mailer != nil && invUUID != uuid.Nil {
+			billingmail.QueuePaymentReceipt(
+				h.Invoices,
+				h.Users,
+				h.Companies,
+				h.Mailer,
+				h.PublicSiteURL,
+				billing.LegalNoticeAR(h.FXBufferFraction),
+				invUUID,
+			)
+		}
 		return nil
 	}
 
@@ -203,7 +234,8 @@ func (h *MercadoPagoWebhookHandler) handlePayment(ctx context.Context, paymentID
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	if err := h.Invoices.InsertPaidInvoiceTx(ctx, tx, companyID, amountMinor, currency, desc, p.ID); err != nil {
+	newInvID, err := h.Invoices.InsertPaidInvoiceTx(ctx, tx, companyID, amountMinor, currency, desc, p.ID)
+	if err != nil {
 		return err
 	}
 	extended := false
@@ -226,55 +258,70 @@ func (h *MercadoPagoWebhookHandler) handlePayment(ctx context.Context, paymentID
 		Bool("extended_subscription_period", extended).
 		Msg("mp webhook: billing invoice recorded")
 
+	if h.Users != nil && h.Mailer != nil {
+		billingmail.QueuePaymentReceipt(
+			h.Invoices,
+			h.Users,
+			h.Companies,
+			h.Mailer,
+			h.PublicSiteURL,
+			billing.LegalNoticeAR(h.FXBufferFraction),
+			newInvID,
+		)
+	}
+
 	return nil
 }
 
 // tryMarkRenewalInvoiceFromWebhook updates a pending renewal invoice created by internal billing (metadata.invoice_id or external_reference).
-func (h *MercadoPagoWebhookHandler) tryMarkRenewalInvoiceFromWebhook(ctx context.Context, p *mercadopago.PaymentDetails) (bool, error) {
+func (h *MercadoPagoWebhookHandler) tryMarkRenewalInvoiceFromWebhook(ctx context.Context, p *mercadopago.PaymentDetails) (bool, uuid.UUID, error) {
 	invID, ok := invoiceUUIDFromPayment(p)
 	if !ok {
-		return false, nil
+		return false, uuid.Nil, nil
 	}
 	inv, err := h.Invoices.GetByID(ctx, invID)
 	if err != nil {
-		return false, err
+		return false, uuid.Nil, err
 	}
 	if inv == nil {
-		return false, nil
+		return false, uuid.Nil, nil
 	}
 	if p.Metadata != nil {
 		if rawCo := strings.TrimSpace(p.Metadata["company_id"]); rawCo != "" {
 			if cid, err := uuid.Parse(rawCo); err == nil && cid != inv.CompanyID {
-				return false, nil
+				return false, uuid.Nil, nil
 			}
 		}
 	}
 
 	tx, err := h.Pool.Begin(ctx)
 	if err != nil {
-		return false, err
+		return false, uuid.Nil, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	updated, err := h.Invoices.MarkPaid(ctx, tx, invID, inv.CompanyID, p.ID)
 	if err != nil {
-		return false, err
+		return false, uuid.Nil, err
 	}
 	if updated {
-		return true, tx.Commit(ctx)
+		if err := tx.Commit(ctx); err != nil {
+			return false, uuid.Nil, err
+		}
+		return true, invID, nil
 	}
 
 	inv2, err := h.Invoices.GetByID(ctx, invID)
 	if err != nil {
 		_ = tx.Rollback(ctx)
-		return false, err
+		return false, uuid.Nil, err
 	}
 	if inv2 != nil && inv2.MpPaymentID != nil && *inv2.MpPaymentID == p.ID && inv2.Status == "paid" {
 		_ = tx.Rollback(ctx)
-		return true, nil
+		return true, invID, nil
 	}
 	_ = tx.Rollback(ctx)
-	return false, nil
+	return false, uuid.Nil, nil
 }
 
 func (h *MercadoPagoWebhookHandler) resolveCompanyID(ctx context.Context, p *mercadopago.PaymentDetails) (uuid.UUID, error) {
