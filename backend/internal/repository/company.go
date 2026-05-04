@@ -404,3 +404,83 @@ func (r *CompanyRepository) ListCompanyIDsDueForSubscriptionRenewal(ctx context.
 	}
 	return out, rows.Err()
 }
+
+// RenewalReminderRow is an owner + subscription row for the upcoming renewal notice email.
+type RenewalReminderRow struct {
+	CompanyID             uuid.UUID
+	CompanyName           string
+	CompanyCode           string
+	SubscriptionPlan      string
+	SubscriptionExpiresAt time.Time
+	OwnerEmail            string
+}
+
+// ListCompaniesForRenewalReminder returns paid-plan companies with card on file whose renewal
+// date (Buenos Aires calendar) is exactly 3 days after today (Buenos Aires), and who have not
+// yet been notified for this subscription_expires_at.
+func (r *CompanyRepository) ListCompaniesForRenewalReminder(ctx context.Context) ([]RenewalReminderRow, error) {
+	query := `
+		SELECT DISTINCT ON (c.id)
+			c.id,
+			c.name,
+			c.code,
+			COALESCE(NULLIF(TRIM(c.subscription_plan), ''), ''),
+			c.subscription_expires_at,
+			COALESCE(NULLIF(TRIM(u.email), ''), NULLIF(TRIM(u.username), ''), '') AS owner_email
+		FROM companies c
+		INNER JOIN users u ON u.company_id = c.id AND u.role = 'company_owner'
+		WHERE c.archived_at IS NULL
+			AND (c.status = '' OR c.status = 'active')
+			AND c.subscription_expires_at IS NOT NULL
+			AND c.subscription_expires_at > NOW()
+			AND LOWER(COALESCE(c.subscription_plan, '')) IN (
+				'premium', 'paid', 'subscriber', 'standard', 'pyme', 'empresa', 'corporativo'
+			)
+			AND COALESCE(TRIM(c.mp_customer_id), '') NOT IN ('', 'stub_mp_customer')
+			AND COALESCE(TRIM(c.mp_card_id), '') != ''
+			AND (
+				c.renewal_reminder_sent_for_expires_at IS NULL
+				OR c.renewal_reminder_sent_for_expires_at IS DISTINCT FROM c.subscription_expires_at
+			)
+			AND (
+				((c.subscription_expires_at AT TIME ZONE 'America/Argentina/Buenos_Aires')::date
+					- (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date) = 3
+			)
+		ORDER BY c.id, u.created_at ASC
+	`
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []RenewalReminderRow
+	for rows.Next() {
+		var row RenewalReminderRow
+		if err := rows.Scan(
+			&row.CompanyID,
+			&row.CompanyName,
+			&row.CompanyCode,
+			&row.SubscriptionPlan,
+			&row.SubscriptionExpiresAt,
+			&row.OwnerEmail,
+		); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
+// MarkRenewalReminderSent sets renewal_reminder_sent_for_expires_at to the current
+// subscription_expires_at so we do not repeat for the same billing period.
+func (r *CompanyRepository) MarkRenewalReminderSent(ctx context.Context, companyID uuid.UUID) error {
+	q := `
+		UPDATE companies
+		SET renewal_reminder_sent_for_expires_at = subscription_expires_at,
+			updated_at = NOW()
+		WHERE id = $1
+	`
+	_, err := r.pool.Exec(ctx, q, companyID)
+	return err
+}
