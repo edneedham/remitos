@@ -28,7 +28,7 @@ func (c *Client) GetPayment(ctx context.Context, paymentID string) (*PaymentDeta
 	if c.accessToken == "" {
 		return nil, fmt.Errorf("mercadopago: access token not configured")
 	}
-	url := fmt.Sprintf("%s/v1/payments/%s", apiBase, paymentID)
+	url := fmt.Sprintf("%s/v1/payments/%s", c.apiBaseURL(), paymentID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err

@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const apiBase = "https://api.mercadopago.com"
+const defaultAPIBase = "https://api.mercadopago.com"
 
 // Client calls Mercado Pago to create a customer and save a card from a JS SDK card token (no charge).
 // See: https://www.mercadopago.com/developers/en/reference/customers/_customers/post
@@ -19,6 +19,17 @@ const apiBase = "https://api.mercadopago.com"
 type Client struct {
 	accessToken string
 	http        *http.Client
+	// APIBase overrides the API host (e.g. httptest server) for integration tests. Empty = production.
+	APIBase string
+}
+
+func (c *Client) apiBaseURL() string {
+	if c != nil {
+		if s := strings.TrimSpace(c.APIBase); s != "" {
+			return strings.TrimRight(s, "/")
+		}
+	}
+	return defaultAPIBase
 }
 
 func New(accessToken string) *Client {
@@ -79,7 +90,7 @@ func (c *Client) AttachCardToCustomer(ctx context.Context, customerID, cardToken
 
 func (c *Client) createCustomer(ctx context.Context, email string) (string, error) {
 	body, _ := json.Marshal(map[string]string{"email": email})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiBase+"/v1/customers", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.apiBaseURL()+"/v1/customers", bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -105,7 +116,7 @@ func (c *Client) createCustomer(ctx context.Context, email string) (string, erro
 }
 
 func (c *Client) attachCard(ctx context.Context, customerID, cardToken string) (string, error) {
-	path := fmt.Sprintf("%s/v1/customers/%s/cards", apiBase, customerID)
+	path := fmt.Sprintf("%s/v1/customers/%s/cards", c.apiBaseURL(), customerID)
 	body, _ := json.Marshal(map[string]string{"token": cardToken})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, path, bytes.NewReader(body))
 	if err != nil {

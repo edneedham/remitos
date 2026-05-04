@@ -85,7 +85,7 @@ func (c *Client) CreateCardPayment(ctx context.Context, in CreateCardPaymentInpu
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiBase+"/v1/payments", bytes.NewReader(rawBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.apiBaseURL()+"/v1/payments", bytes.NewReader(rawBody))
 	if err != nil {
 		return nil, err
 	}
