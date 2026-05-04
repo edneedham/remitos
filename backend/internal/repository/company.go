@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -50,13 +51,13 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 			status, is_verified, subscription_plan,
 			subscription_expires_at, trial_ends_at,
 			max_warehouses, max_users, documents_monthly_limit,
-			mp_customer_id, mp_card_id,
+			mp_customer_id, mp_card_id, mp_preapproval_id,
 			created_at, updated_at, archived_at
 		FROM companies WHERE id = $1
 	`
 	var c models.Company
 	var maxW, maxU, maxDoc sql.NullInt32
-	var mpCust, mpCard sql.NullString
+	var mpCust, mpCard, mpPre sql.NullString
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&c.ID,
 		&c.Code,
@@ -72,6 +73,7 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 		&maxDoc,
 		&mpCust,
 		&mpCard,
+		&mpPre,
 		&c.CreatedAt,
 		&c.UpdatedAt,
 		&c.ArchivedAt,
@@ -102,7 +104,32 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 		s := mpCard.String
 		c.MpCardID = &s
 	}
+	if mpPre.Valid {
+		s := mpPre.String
+		c.MpPreapprovalID = &s
+	}
 	return &c, nil
+}
+
+// GetCompanyIDByMpPreapprovalID returns the company id for a Mercado Pago preapproval id, if any.
+func (r *CompanyRepository) GetCompanyIDByMpPreapprovalID(ctx context.Context, preapprovalID string) (uuid.UUID, error) {
+	preapprovalID = strings.TrimSpace(preapprovalID)
+	if preapprovalID == "" {
+		return uuid.Nil, errors.New("empty preapproval id")
+	}
+	var id uuid.UUID
+	err := r.pool.QueryRow(ctx, `
+		SELECT id FROM companies
+		WHERE mp_preapproval_id = $1 AND archived_at IS NULL
+		LIMIT 1
+	`, preapprovalID).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, nil
+	}
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return id, nil
 }
 
 // ExtendPaidSubscriptionPeriod advances subscription_expires_at by extendMonths from the later of now or current expiry.
@@ -196,19 +223,29 @@ func (r *CompanyRepository) CreateTrial(ctx context.Context, company *models.Com
 	return err
 }
 
-// ActivateSubscription persists Mercado Pago customer/card ids, plan limits, and the first paid period end.
+// ActivateSubscription persists Mercado Pago customer/card ids, optional preapproval (subscription) id, plan limits, and the first paid period end.
+// mpPreapprovalID: nil leaves mp_preapproval_id unchanged; non-nil string (after trim) sets it.
 func (r *CompanyRepository) ActivateSubscription(
 	ctx context.Context,
 	companyID uuid.UUID,
 	mpCustomerID, mpCardID string,
+	mpPreapprovalID *string,
 	plan string,
 	maxWarehouses, maxUsers, documentsMonthlyLimit *int,
 	paidUntil time.Time,
 ) error {
+	var mpPre any
+	if mpPreapprovalID != nil {
+		s := strings.TrimSpace(*mpPreapprovalID)
+		if s != "" {
+			mpPre = s
+		}
+	}
 	query := `
 		UPDATE companies SET
 			mp_customer_id = $2,
 			mp_card_id = $3,
+			mp_preapproval_id = COALESCE($9::varchar, mp_preapproval_id),
 			subscription_plan = $4,
 			max_warehouses = $5,
 			max_users = $6,
@@ -229,6 +266,7 @@ func (r *CompanyRepository) ActivateSubscription(
 		maxUsers,
 		documentsMonthlyLimit,
 		paidUntil,
+		mpPre,
 	)
 	if err != nil {
 		return err

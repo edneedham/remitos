@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -320,6 +321,16 @@ export default function ActivateSubscriptionPageClient() {
 
         {showMpBrick && payerEmail ? (
           <div className="mt-2 space-y-2">
+            <div className="mb-5 flex justify-center border-b border-gray-100 pb-5">
+              <Image
+                src="/brands/MercadoPagoLogo.svg"
+                alt="Mercado Pago"
+                width={156}
+                height={63}
+                className="h-10 w-auto max-w-[min(100%,14rem)]"
+                unoptimized
+              />
+            </div>
             <CardPayment
               key={`${planId}-${brickAmountArs}`}
               initialization={{

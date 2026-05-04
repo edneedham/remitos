@@ -109,6 +109,61 @@ func (h *AuthHandler) PostMeActivateSubscription(w http.ResponseWriter, r *http.
 
 	maxWarehouses, maxUsers, documentsMonthlyLimit := planLimits(req.PlanID)
 
+	// Mercado Pago Suscripciones (preapproval + plan from dashboard): single source of truth for renewals via webhooks.
+	if !req.UseMockPayment && h.mp.HasAccessToken() && strings.TrimSpace(req.CardToken) != "" {
+		var preapprovalPlanEnv string
+		switch strings.ToLower(strings.TrimSpace(req.PlanID)) {
+		case "pyme":
+			preapprovalPlanEnv = strings.TrimSpace(h.mpPreapprovalPlanPyme)
+		case "empresa":
+			preapprovalPlanEnv = strings.TrimSpace(h.mpPreapprovalPlanEmpresa)
+		}
+		if preapprovalPlanEnv != "" {
+			sub, serr := h.mp.CreatePreapprovalWithPlan(ctx, mercadopago.CreatePreapprovalWithPlanInput{
+				PreapprovalPlanID: preapprovalPlanEnv,
+				Reason:            "Suscripción En Punto",
+				ExternalReference: companyID.String(),
+				PayerEmail:        email,
+				CardTokenID:       req.CardToken,
+				BackURL:           strings.TrimSpace(h.mpSubscriptionBackURL),
+				Metadata: map[string]string{
+					"company_id": companyID.String(),
+				},
+			})
+			if serr != nil {
+				logger.Log.Error().Err(serr).Msg("activate subscription: mercado pago preapproval")
+				RespondWithError(w, ErrCodeInvalidRequest, "No pudimos crear la suscripción en Mercado Pago. Revisá la tarjeta o intentá más tarde.", http.StatusBadRequest)
+				return
+			}
+			pre := sub.ID
+			paidUntil := now.UTC().AddDate(0, activateSubscriptionPaidMonths, 0)
+			if err := h.companyRepo.ActivateSubscription(
+				ctx,
+				companyID,
+				"",
+				"",
+				&pre,
+				req.PlanID,
+				maxWarehouses,
+				maxUsers,
+				documentsMonthlyLimit,
+				paidUntil,
+			); err != nil {
+				logger.Log.Error().Err(err).Msg("activate subscription: update company (mp subscription)")
+				RespondWithError(w, ErrCodeInternalError, "No se pudo activar la suscripción.", http.StatusInternalServerError)
+				return
+			}
+			RespondWithJSON(w, http.StatusOK, map[string]any{
+				"message":                 "Suscripción activada",
+				"plan_id":                 req.PlanID,
+				"subscription_expires_at": paidUntil.Format(time.RFC3339),
+				"mp_preapproval_id":       sub.ID,
+				"billing":                 "mercadopago_subscriptions",
+			})
+			return
+		}
+	}
+
 	var mpCust, mpCard string
 	switch {
 	case req.UseMockPayment && h.signupAllowMock:
@@ -148,6 +203,7 @@ func (h *AuthHandler) PostMeActivateSubscription(w http.ResponseWriter, r *http.
 		companyID,
 		mpCust,
 		mpCard,
+		nil,
 		req.PlanID,
 		maxWarehouses,
 		maxUsers,

@@ -193,6 +193,9 @@ func validateCompanyForRenewal(c *models.Company) error {
 	if c.Status != "" && c.Status != "active" {
 		return fmt.Errorf("company status is not active")
 	}
+	if c.MpPreapprovalID != nil && strings.TrimSpace(*c.MpPreapprovalID) != "" {
+		return fmt.Errorf("company uses Mercado Pago Suscripciones; renew via MP payments webhooks, not internal renewal")
+	}
 	if !IsPaidPlan(c.SubscriptionPlan) {
 		return fmt.Errorf("company plan is not billable as paid subscription")
 	}

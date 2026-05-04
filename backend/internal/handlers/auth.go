@@ -55,9 +55,12 @@ type AuthHandler struct {
 	publicSiteURL             string
 	billingRateQuoter         billing.USDARSQuoter
 	billingFXBufferFraction   float64
+	mpPreapprovalPlanPyme     string
+	mpPreapprovalPlanEmpresa  string
+	mpSubscriptionBackURL     string
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64, mpPreapprovalPlanPyme, mpPreapprovalPlanEmpresa, mpSubscriptionBackURL string) *AuthHandler {
 	return &AuthHandler{
 		userRepo:          userRepo,
 		companyRepo:       companyRepo,
@@ -74,9 +77,12 @@ func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository
 		signupAllowMock:   signupAllowMock,
 		releases:          releases,
 		mailer:            mailer,
-		publicSiteURL:           publicSiteURL,
-		billingRateQuoter:       billingRateQuoter,
-		billingFXBufferFraction: billingFXBufferFraction,
+		publicSiteURL:            publicSiteURL,
+		billingRateQuoter:        billingRateQuoter,
+		billingFXBufferFraction:  billingFXBufferFraction,
+		mpPreapprovalPlanPyme:    mpPreapprovalPlanPyme,
+		mpPreapprovalPlanEmpresa: mpPreapprovalPlanEmpresa,
+		mpSubscriptionBackURL:    mpSubscriptionBackURL,
 	}
 }
 

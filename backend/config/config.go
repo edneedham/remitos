@@ -18,6 +18,11 @@ type Config struct {
 
 	// Mercado Pago (server-side). Public key is only for the website (NEXT_PUBLIC_*).
 	MercadoPagoAccessToken string
+	// Preapproval plan ids from the MP dashboard (Subscriptions with plan). If set for a plan, activation uses POST /preapproval.
+	MercadoPagoPreapprovalPlanPyme    string
+	MercadoPagoPreapprovalPlanEmpresa string
+	// Optional Back URL for subscriptions (defaults to PUBLIC_SITE_URL/dashboard/payment-success).
+	MercadoPagoSubscriptionBackURL string
 	// Comma-separated origins for browser signup (e.g. http://localhost:3000).
 	CorsAllowedOrigins []string
 	// If true, signup accepts trial without a real card token (development only).
@@ -51,6 +56,18 @@ type Config struct {
 	PublicSiteURL string // optional; used for links in welcome emails (no trailing slash)
 }
 
+// MercadoPagoSubscriptionReturnURL is the `back_url` sent when creating a preapproval (subscription).
+func (c *Config) MercadoPagoSubscriptionReturnURL() string {
+	s := strings.TrimSpace(c.MercadoPagoSubscriptionBackURL)
+	if s != "" {
+		return s
+	}
+	if c.PublicSiteURL != "" {
+		return c.PublicSiteURL + "/dashboard/payment-success"
+	}
+	return ""
+}
+
 func Load() *Config {
 	return &Config{
 		DBHost:     getEnv("DB_HOST", "localhost"),
@@ -61,8 +78,11 @@ func Load() *Config {
 		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:  getEnv("JWT_SECRET", "change-me-in-production"),
 
-		MercadoPagoAccessToken: getEnv("MERCADOPAGO_ACCESS_TOKEN", ""),
-		CorsAllowedOrigins:     splitCommaTrim(getEnv("CORS_ALLOWED_ORIGINS", "")),
+		MercadoPagoAccessToken:            getEnv("MERCADOPAGO_ACCESS_TOKEN", ""),
+		MercadoPagoPreapprovalPlanPyme:    strings.TrimSpace(getEnv("MERCADOPAGO_PREAPPROVAL_PLAN_PYME", "")),
+		MercadoPagoPreapprovalPlanEmpresa: strings.TrimSpace(getEnv("MERCADOPAGO_PREAPPROVAL_PLAN_EMPRESA", "")),
+		MercadoPagoSubscriptionBackURL:    strings.TrimSpace(getEnv("MERCADOPAGO_SUBSCRIPTION_BACK_URL", "")),
+		CorsAllowedOrigins:                splitCommaTrim(getEnv("CORS_ALLOWED_ORIGINS", "")),
 		SignupAllowMockPayment: getEnv("SIGNUP_ALLOW_MOCK_PAYMENT", "") == "true",
 		BillingRenewalSecret:   strings.TrimSpace(getEnv("BILLING_RENEWAL_SECRET", "")),
 		BillingStubAutoCharge:  getEnv("BILLING_STUB_AUTO_CHARGE", "") == "true",

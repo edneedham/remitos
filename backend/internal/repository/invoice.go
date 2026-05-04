@@ -78,6 +78,41 @@ func (r *InvoiceRepository) InsertPending(ctx context.Context, conn DBConn, comp
 }
 
 // MarkPaid sets status=paid and stores the Mercado Pago payment id for a pending invoice row.
+// CountByCompanyID returns how many billing invoice rows exist for a company (any status).
+func (r *InvoiceRepository) CountByCompanyID(ctx context.Context, companyID uuid.UUID) (int64, error) {
+	var n int64
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM billing_invoices WHERE company_id = $1
+	`, companyID).Scan(&n)
+	return n, err
+}
+
+// InsertPaidInvoice records a paid invoice with a Mercado Pago payment id (caller ensures idempotency).
+func (r *InvoiceRepository) InsertPaidInvoice(ctx context.Context, companyID uuid.UUID, amountMinor int64, currency, description, mpPaymentID string) error {
+	return r.InsertPaidInvoiceTx(ctx, r.pool, companyID, amountMinor, currency, description, mpPaymentID)
+}
+
+// InsertPaidInvoiceTx records a paid invoice using an existing connection or transaction.
+func (r *InvoiceRepository) InsertPaidInvoiceTx(ctx context.Context, conn DBConn, companyID uuid.UUID, amountMinor int64, currency, description, mpPaymentID string) error {
+	if mpPaymentID == "" {
+		return fmt.Errorf("mp payment id required")
+	}
+	_, err := conn.Exec(ctx, `
+		INSERT INTO billing_invoices (company_id, amount_minor, currency, status, description, issued_at, mp_payment_id)
+		VALUES ($1, $2, $3, 'paid', $4, NOW(), $5)
+	`, companyID, amountMinor, currency, description, mpPaymentID)
+	return err
+}
+
+// ExistsMpPaymentID returns true if an invoice already references this MP payment id.
+func (r *InvoiceRepository) ExistsMpPaymentID(ctx context.Context, mpPaymentID string) (bool, error) {
+	var n int64
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM billing_invoices WHERE mp_payment_id = $1
+	`, mpPaymentID).Scan(&n)
+	return n > 0, err
+}
+
 func (r *InvoiceRepository) MarkPaid(ctx context.Context, conn DBConn, invoiceID, companyID uuid.UUID, mpPaymentID string) error {
 	tag, err := conn.Exec(ctx, `
 		UPDATE billing_invoices

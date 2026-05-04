@@ -36,8 +36,8 @@ It appears on: **Facturación** (dashboard), **Activar suscripción**, **pricing
 - **`POST /internal/billing/trigger-renewal`** (header **`X-Billing-Secret`**) — invoice → charge hook → extend subscription; **`amount_minor: 0`** uses catalog × MEP (or fallback). Requires **`BILLING_RENEWAL_SECRET`**.
 
 ### Mercado Pago (server)
-- **`SaveCard`** (new customer + card) and **`AttachCardToCustomer`** (existing customer).
-- **`ChargeRenewal`**: stub path for dev; live off-session card charge **not** wired (documented error — needs Subscriptions / Orders or similar).
+- **Suscripciones (recommended)**: If **`MERCADOPAGO_PREAPPROVAL_PLAN_PYME`** / **`..._EMPRESA`** are set, activation calls **`POST /preapproval`** with the Card Brick token and stores **`mp_preapproval_id`**. Renewals are applied via **`POST /webhooks/mercadopago`** when MP sends **`payment`** or **`subscription_authorized_payment`**: the handler resolves the charge (direct payment id, or **`GET /authorized_payments/{id}`** → nested **`payment.id`**), then on **approved** inserts `billing_invoices` and extends **`subscription_expires_at`** by one month only for **second and later** charges (first charge matches activation’s initial window). Other “Planes y suscripciones” topics are ack’d with **200** and may log only.
+- **Legacy (no plan ids)**: **`SaveCard`** / **`AttachCardToCustomer`** + internal **`POST /internal/billing/trigger-renewal`** (stub **`ChargeRenewal`** unless **`BILLING_STUB_AUTO_CHARGE`**).
 
 ### Web UX
 - **Signup**: still frictionless (no card on default signup form); optional `card_token` on API saves MP ids when configured.
@@ -63,6 +63,9 @@ It appears on: **Facturación** (dashboard), **Activar suscripción**, **pricing
 | `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` | Website | Card Brick |
 | `NEXT_PUBLIC_SIGNUP_USE_MOCK_PAYMENT` | Website | Dev UI without Brick |
 | `SIGNUP_ALLOW_MOCK_PAYMENT` | API | Dev: mock card paths |
+| `MERCADOPAGO_PREAPPROVAL_PLAN_PYME` / `..._EMPRESA` | API | MP dashboard plan id → subscription flow |
+| `MERCADOPAGO_SUBSCRIPTION_BACK_URL` | API | Optional `back_url` for preapproval |
+| Webhook URL | MP dashboard | `POST https://<api>/webhooks/mercadopago` + **`payment`** and **`subscription_authorized_payment`** (other subscription topics optional; ack only) |
 
 ---
 

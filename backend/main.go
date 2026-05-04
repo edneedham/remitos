@@ -108,7 +108,8 @@ func main() {
 		BolsaURL:          cfg.BillingMEPBolsaURL,
 		FallbackARSPerUSD: cfg.BillingUSDToARSRate,
 	}
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction)
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction, cfg.MercadoPagoPreapprovalPlanPyme, cfg.MercadoPagoPreapprovalPlanEmpresa, cfg.MercadoPagoSubscriptionReturnURL())
+	mpWebhookHandler := handlers.NewMercadoPagoWebhookHandler(db.Pool, invoiceRepo, companyRepo, mpClient)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo)
 	adminHandler := handlers.NewAdminHandler(userRepo, deviceRepo, jwtSvc)
 	scanHandler, err := handlers.NewScanHandler()
@@ -131,6 +132,17 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
+
+	// Mercado Pago may POST with a trailing slash or via proxies that add /api; aliases avoid false 404s.
+	for _, p := range []string{
+		"/webhooks/mercadopago",
+		"/webhooks/mercadopago/",
+		"/api/webhooks/mercadopago",
+		"/api/webhooks/mercadopago/",
+	} {
+		h.Get(p, mpWebhookHandler.Ping)
+		h.Post(p, mpWebhookHandler.PostNotification)
+	}
 
 	h.Mount("/auth", authHandler.Routes())
 	if cfg.BillingRenewalSecret != "" {
