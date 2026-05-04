@@ -64,6 +64,10 @@ func TestCompanyHasAppDownloadAccess(t *testing.T) {
 			ID: uuid.New(), Status: "active", SubscriptionPlan: "premium",
 			SubscriptionExpiresAt: &subExpiresPast,
 		}, false},
+		{"corporativo with future expiry", &models.Company{
+			ID: uuid.New(), Status: "active", SubscriptionPlan: "corporativo",
+			SubscriptionExpiresAt: &subExpiresFuture,
+		}, true},
 		{"paid plan", &models.Company{
 			ID: uuid.New(), Status: "active", SubscriptionPlan: "paid",
 		}, true},

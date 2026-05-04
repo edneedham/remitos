@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +13,7 @@ import (
 	"server/internal/logger"
 	"server/internal/models"
 	notifymail "server/internal/notifications/email"
+	"server/internal/payments/mercadopago"
 	"server/internal/repository"
 	"server/internal/validation"
 )
@@ -122,6 +124,29 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		IsVerified:   false,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
+	}
+
+	cardTok := strings.TrimSpace(req.CardToken)
+	if cardTok != "" {
+		switch {
+		case h.mp.HasAccessToken():
+			custID, mpCardID, err := h.mp.SaveCard(ctx, email, cardTok)
+			if err != nil {
+				logger.Log.Error().Err(err).Msg("signup trial: save card")
+				RespondWithError(w, ErrCodeInvalidRequest, "No pudimos validar la tarjeta. Revisá los datos e intentá de nuevo.", http.StatusBadRequest)
+				return
+			}
+			company.MpCustomerID = &custID
+			company.MpCardID = &mpCardID
+		case h.signupAllowMock:
+			custID := mercadopago.StubCustomerID
+			mpCardID := mercadopago.StubCardID
+			company.MpCustomerID = &custID
+			company.MpCardID = &mpCardID
+		default:
+			RespondWithError(w, ErrCodeInternalError, "Medios de pago no configurados en el servidor.", http.StatusServiceUnavailable)
+			return
+		}
 	}
 
 	subscription := &models.Subscription{

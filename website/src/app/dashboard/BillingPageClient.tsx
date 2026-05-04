@@ -13,18 +13,24 @@ import {
   hasWebSession,
   refreshWebSession,
 } from '../lib/webAuth';
+import { needsActivateSubscription } from './lib/activateSubscriptionGate';
 import {
   deriveBillingPresentation,
   formatDateTime,
   formatPlanLabel,
 } from './lib/billingPresentation';
 import type { BillingInvoiceRow, Entitlement } from './lib/entitlementTypes';
+import { BILLING_LEGAL_NOTICE_AR } from '../lib/billingLegalNotice';
 import { getPlanById } from '../lib/planCatalog';
 import {
   formatInvoiceDate,
   formatInvoiceMoney,
   invoiceStatusLabel,
 } from './lib/invoiceFormat';
+import {
+  resolveUsageUpgradeAction,
+  subscriptionTier,
+} from './lib/selfServePlan';
 
 export default function BillingPageClient() {
   const router = useRouter();
@@ -150,6 +156,16 @@ export default function BillingPageClient() {
       ? Math.max(projectedMonthEndDocs - docsLimit, 0)
       : null;
 
+  const subscriptionTierId = subscriptionTier(
+    entitlement?.subscription_plan,
+    entitlement?.documents_monthly_limit,
+  );
+  const usageUpgrade = resolveUsageUpgradeAction(
+    projectedOverage,
+    subscriptionTierId,
+    billing.hasActivePaymentPeriod,
+  );
+
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6">
       <div className="mx-auto max-w-7xl space-y-8">
@@ -159,6 +175,9 @@ export default function BillingPageClient() {
           </h1>
           <p className="text-base leading-relaxed text-gray-600">
             Plan, estado de suscripción y comprobantes de pago de tu empresa.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+            {BILLING_LEGAL_NOTICE_AR}
           </p>
         </header>
 
@@ -188,6 +207,64 @@ export default function BillingPageClient() {
           >
             El estado de la empresa no es &quot;activo&quot;; revisá la cuenta o
             contactá soporte si necesitás reactivarla.
+          </div>
+        ) : null}
+
+        {entitlement &&
+        !billing.isArchived &&
+        !billing.companyBillingInactive &&
+        needsActivateSubscription(entitlement) ? (
+          <div
+            className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900"
+            role="status"
+          >
+            <p className="font-medium">Activá tu suscripción para seguir usando la app</p>
+            <p className="mt-1 text-blue-800">
+              La prueba terminó o el período pago venció. Cargá un medio de pago y
+              elegí un plan.
+            </p>
+            <Link
+              href="/dashboard/activate-subscription"
+              className="mt-2 inline-block font-semibold text-blue-800 underline"
+            >
+              Ir a activar suscripción
+            </Link>
+          </div>
+        ) : null}
+
+        {entitlement &&
+        usageUpgrade.type === 'href' &&
+        !billing.isArchived &&
+        !billing.companyBillingInactive ? (
+          <div
+            className="mx-auto max-w-2xl rounded-xl border border-amber-200 bg-amber-50 p-5 shadow-sm xl:mx-0 xl:max-w-none"
+            role="region"
+            aria-labelledby="usage-upgrade-heading"
+          >
+            <h2
+              id="usage-upgrade-heading"
+              className="text-base font-semibold text-amber-950"
+            >
+              Tu proyección supera el cupo del plan
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-amber-950/90">
+              Al ritmo actual, estimamos{' '}
+              <span className="font-semibold tabular-nums">
+                {projectedMonthEndDocs.toLocaleString('es-AR')}
+              </span>{' '}
+              documentos este mes
+              {typeof docsLimit === 'number'
+                ? ` (cupo: ${docsLimit.toLocaleString('es-AR')})`
+                : ''}
+              . Pasar al siguiente plan aumenta el límite mensual y puede
+              reducir el costo por excedentes.
+            </p>
+            <Link
+              href={usageUpgrade.href}
+              className="mt-4 inline-flex rounded-lg bg-amber-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-950"
+            >
+              {usageUpgrade.label}
+            </Link>
           </div>
         ) : null}
 
@@ -273,14 +350,11 @@ export default function BillingPageClient() {
                   <p className="mt-1 text-sm text-gray-600">
                     {currentPlanPrice} / mes + IVA
                   </p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Facturado en pesos argentinos.
-                  </p>
                   <p className="mt-2 text-xs text-gray-500">
                     Excedentes: {currentPlanOverage}
                   </p>
                   <Link
-                    href="/pricing"
+                    href="/dashboard/billing/upgrade"
                     className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
                   >
                     Mejorar plan

@@ -30,6 +30,11 @@ func New(accessToken string) *Client {
 	}
 }
 
+// HasAccessToken reports whether server-side Mercado Pago calls are configured.
+func (c *Client) HasAccessToken() bool {
+	return strings.TrimSpace(c.accessToken) != ""
+}
+
 // StubResult is returned when the server runs without MERCADOPAGO_ACCESS_TOKEN but mock signup is enabled.
 const StubCustomerID = "stub_mp_customer"
 const StubCardID = "stub_mp_card"
@@ -57,6 +62,19 @@ func (c *Client) SaveCard(ctx context.Context, email, cardToken string) (custome
 		return "", "", err
 	}
 	return customerID, cardID, nil
+}
+
+// AttachCardToCustomer attaches a card token to an existing Mercado Pago customer (no new customer row).
+func (c *Client) AttachCardToCustomer(ctx context.Context, customerID, cardToken string) (cardID string, err error) {
+	customerID = strings.TrimSpace(customerID)
+	cardToken = strings.TrimSpace(cardToken)
+	if customerID == "" || cardToken == "" {
+		return "", fmt.Errorf("mercadopago: customer id and card token required")
+	}
+	if c.accessToken == "" {
+		return "", fmt.Errorf("mercadopago: access token not configured")
+	}
+	return c.attachCard(ctx, customerID, cardToken)
 }
 
 func (c *Client) createCustomer(ctx context.Context, email string) (string, error) {

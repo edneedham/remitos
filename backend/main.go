@@ -17,6 +17,7 @@ import (
 	"github.com/joho/godotenv"
 	"server/config"
 	"server/db"
+	"server/internal/billing"
 	"server/internal/handlers"
 	"server/internal/jobs"
 	"server/internal/jwt"
@@ -100,7 +101,15 @@ func main() {
 	}
 	syncRepo := repository.NewSyncRepository(db.Pool)
 	invoiceRepo := repository.NewInvoiceRepository(db.Pool)
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL)
+	billingFx := &billing.MEPWithFallback{
+		HTTP: &http.Client{
+			Timeout: 20 * time.Second,
+		},
+		BolsaURL:          cfg.BillingMEPBolsaURL,
+		FallbackARSPerUSD: cfg.BillingUSDToARSRate,
+	}
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction)
+	mpWebhookHandler := handlers.NewMercadoPagoWebhookHandler(db.Pool, invoiceRepo, companyRepo, mpClient)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo)
 	adminHandler := handlers.NewAdminHandler(userRepo, deviceRepo, jwtSvc)
 	scanHandler, err := handlers.NewScanHandler()
@@ -124,7 +133,46 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
+	// Mercado Pago may POST with a trailing slash or via proxies that add /api; aliases avoid false 404s.
+	for _, p := range []string{
+		"/webhooks/mercadopago",
+		"/webhooks/mercadopago/",
+		"/api/webhooks/mercadopago",
+		"/api/webhooks/mercadopago/",
+	} {
+		h.Get(p, mpWebhookHandler.Ping)
+		h.Post(p, mpWebhookHandler.PostNotification)
+	}
+
 	h.Mount("/auth", authHandler.Routes())
+	var renewalSvc *billing.RenewalService
+	if cfg.BillingRenewalSecret != "" || cfg.BillingAutomaticRenewalEnabled {
+		renewalSvc = billing.NewRenewalService(
+			db.Pool,
+			companyRepo,
+			invoiceRepo,
+			userRepo,
+			mpClient,
+			cfg.BillingStubAutoCharge,
+			billingFx,
+			cfg.BillingFXBufferFraction,
+		)
+	}
+	if cfg.BillingRenewalSecret != "" && renewalSvc != nil {
+		billingRenewalHandler := handlers.NewBillingRenewalHandler(renewalSvc)
+		h.Route("/internal/billing", func(r chi.Router) {
+			r.Use(middleware.BillingRenewalSecret(cfg.BillingRenewalSecret))
+			r.Post("/trigger-renewal", billingRenewalHandler.PostTriggerRenewal)
+		})
+		logger.Log.Info().Msg("Billing renewal endpoint enabled at POST /internal/billing/trigger-renewal")
+	}
+	if cfg.BillingAutomaticRenewalEnabled && renewalSvc != nil {
+		poll := time.Duration(cfg.BillingRenewalPollMinutes) * time.Minute
+		if cfg.BillingRenewalPollMinutes <= 0 {
+			poll = time.Hour
+		}
+		jobs.StartBillingRenewalSweep(context.Background(), renewalSvc, companyRepo, poll)
+	}
 	h.Mount("/warehouses", warehouseHandler.Routes())
 	if scanHandler != nil {
 		h.Group(func(r chi.Router) {

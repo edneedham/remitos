@@ -91,7 +91,7 @@ describe('BillingPageClient', () => {
     expect(screen.getByText('Proyección')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Mejorar plan' }),
-    ).toHaveAttribute('href', '/pricing');
+    ).toHaveAttribute('href', '/dashboard/billing/upgrade');
     expect(
       screen.getByRole('heading', { name: 'Comprobantes de pago' }),
     ).toBeInTheDocument();

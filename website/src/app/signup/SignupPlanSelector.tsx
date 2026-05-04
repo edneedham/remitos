@@ -9,6 +9,7 @@ import {
   Sparkles,
   Warehouse,
 } from 'lucide-react';
+import { BILLING_LEGAL_NOTICE_AR } from '../lib/billingLegalNotice';
 import { PLAN_CATALOG } from '../lib/planCatalog';
 
 export type SignupPlan = {
@@ -154,8 +155,8 @@ export default function SignupPlanSelector({
         <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden />
         <span>Sin permanencia. Cancela cuando quieras.</span>
       </div>
-      <p className="mt-3 text-center text-xs text-gray-500">
-        Facturado en pesos argentinos.
+      <p className="mx-auto mt-3 max-w-2xl text-center text-xs leading-relaxed text-gray-500">
+        {BILLING_LEGAL_NOTICE_AR}
       </p>
     </section>
   );

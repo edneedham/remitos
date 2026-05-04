@@ -120,6 +120,43 @@ export async function fetchWithWebAuth(path: string): Promise<Response> {
   return res;
 }
 
+/** POST JSON with Bearer; retries once after token refresh when the API returns 401. */
+export async function postWithWebAuth(
+  path: string,
+  body: unknown,
+): Promise<Response> {
+  const api = getApiBaseUrl();
+  if (!api) {
+    return new Response(null, { status: 500 });
+  }
+
+  let token = getWebAccessToken();
+  if (!token) {
+    return new Response(null, { status: 401 });
+  }
+
+  const post = (t: string) =>
+    fetch(`${api}${path}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${t}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+  let res = await post(token);
+  if (res.status === 401) {
+    const ok = await refreshWebSession();
+    token = getWebAccessToken();
+    if (ok && token) {
+      res = await post(token);
+    }
+  }
+
+  return res;
+}
+
 /** Returns null when session is invalid or profile cannot be loaded. */
 export async function fetchProfile(): Promise<WebProfile | null> {
   const res = await fetchWithWebAuth('/auth/me');

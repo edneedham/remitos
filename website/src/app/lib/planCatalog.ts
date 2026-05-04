@@ -1,3 +1,9 @@
+/** Catalog list price in USD per month (major units). Keep in sync with backend `billing.MonthlyListPriceUSD`. */
+export const PLAN_MONTHLY_LIST_PRICE_USD: Record<'pyme' | 'empresa', number> = {
+  pyme: 29,
+  empresa: 59,
+};
+
 export type PlanCatalogItem = {
   id: 'pyme' | 'empresa' | 'corporativo';
   name: string;

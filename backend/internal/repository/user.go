@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -212,4 +213,24 @@ func (r *UserRepository) UpdatePassword(ctx context.Context, id uuid.UUID, passw
 	query := `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`
 	_, err := r.pool.Exec(ctx, query, passwordHash, id)
 	return err
+}
+
+// GetCompanyOwnerPrimaryEmail returns the first company_owner email or username-like identifier for payer metadata.
+func (r *UserRepository) GetCompanyOwnerPrimaryEmail(ctx context.Context, companyID uuid.UUID) (string, error) {
+	query := `
+		SELECT COALESCE(NULLIF(TRIM(email), ''), NULLIF(TRIM(username), ''), '')
+		FROM users
+		WHERE company_id = $1 AND role = 'company_owner'
+		ORDER BY created_at ASC
+		LIMIT 1
+	`
+	var s string
+	err := r.pool.QueryRow(ctx, query, companyID).Scan(&s)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(s), nil
 }
