@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { ContactFormSchema } from '../../lib/validations/contact';
+import { sendContactAckEmail } from '../../lib/sendContactAck';
 
 const FORMSPREE_FORM_ID = process.env.FORMSPREE_FORM_ID;
 
@@ -48,6 +49,15 @@ export async function POST(request: NextRequest) {
         { success: false, message: 'Error al enviar el mensaje.' },
         { status: response.status }
       );
+    }
+
+    try {
+      await sendContactAckEmail(
+        validatedFields.data.email,
+        validatedFields.data.name
+      );
+    } catch (ackErr) {
+      console.warn('/api/contact: optional Resend ack failed', ackErr);
     }
 
     return NextResponse.json({

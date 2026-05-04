@@ -93,12 +93,6 @@ func main() {
 
 	mailSender := notifymail.ConfigureSender(cfg.EmailEnabled, cfg.ResendAPIKey, cfg.EmailFrom, cfg.EmailReplyTo)
 
-	if cfg.EmailEnabled && strings.TrimSpace(cfg.ResendAPIKey) != "" && strings.TrimSpace(cfg.EmailFrom) != "" {
-		go func() {
-			jobs.StartTrialOnboardingNudgeLoop(context.Background(), companyRepo, mailSender, cfg.PublicSiteURL)
-		}()
-		logger.Log.Info().Msg("Trial onboarding email nudges enabled (5m ticker)")
-	}
 	syncRepo := repository.NewSyncRepository(db.Pool)
 	invoiceRepo := repository.NewInvoiceRepository(db.Pool)
 	billingFx := &billing.MEPWithFallback{
@@ -108,8 +102,43 @@ func main() {
 		BolsaURL:          cfg.BillingMEPBolsaURL,
 		FallbackARSPerUSD: cfg.BillingUSDToARSRate,
 	}
+
+	if cfg.EmailEnabled && strings.TrimSpace(cfg.ResendAPIKey) != "" && strings.TrimSpace(cfg.EmailFrom) != "" {
+		go func() {
+			jobs.StartTrialOnboardingNudgeLoop(context.Background(), companyRepo, mailSender, cfg.PublicSiteURL)
+		}()
+		logger.Log.Info().Msg("Trial onboarding email nudges enabled (5m ticker)")
+		go func() {
+			jobs.StartSubscriptionRenewalReminderLoop(
+				context.Background(),
+				companyRepo,
+				mailSender,
+				billingFx,
+				cfg.BillingFXBufferFraction,
+				cfg.PublicSiteURL,
+			)
+		}()
+		logger.Log.Info().Msg("Subscription renewal reminder emails enabled (1h ticker)")
+		go func() {
+			jobs.StartTrialEndingNoticeLoop(context.Background(), companyRepo, mailSender, cfg.PublicSiteURL)
+		}()
+		logger.Log.Info().Msg("Trial ending notice emails enabled (1h ticker)")
+		go func() {
+			jobs.StartSubscriptionLapseNoticeLoop(context.Background(), companyRepo, mailSender, cfg.PublicSiteURL)
+		}()
+		logger.Log.Info().Msg("Subscription lapse notice emails enabled (1h ticker)")
+	}
 	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction)
-	mpWebhookHandler := handlers.NewMercadoPagoWebhookHandler(db.Pool, invoiceRepo, companyRepo, mpClient)
+	mpWebhookHandler := handlers.NewMercadoPagoWebhookHandler(
+		db.Pool,
+		invoiceRepo,
+		companyRepo,
+		userRepo,
+		mpClient,
+		mailSender,
+		cfg.PublicSiteURL,
+		cfg.BillingFXBufferFraction,
+	)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo)
 	adminHandler := handlers.NewAdminHandler(userRepo, deviceRepo, jwtSvc)
 	scanHandler, err := handlers.NewScanHandler()
@@ -156,6 +185,8 @@ func main() {
 			cfg.BillingStubAutoCharge,
 			billingFx,
 			cfg.BillingFXBufferFraction,
+			mailSender,
+			cfg.PublicSiteURL,
 		)
 	}
 	if cfg.BillingRenewalSecret != "" && renewalSvc != nil {

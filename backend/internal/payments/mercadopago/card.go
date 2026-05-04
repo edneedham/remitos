@@ -33,7 +33,7 @@ func (c *Client) GetCustomerCard(ctx context.Context, customerID, cardID string)
 	}
 
 	u := fmt.Sprintf("%s/v1/customers/%s/cards/%s",
-		apiBase,
+		c.apiBaseURL(),
 		url.PathEscape(customerID),
 		url.PathEscape(cardID),
 	)
