@@ -141,8 +141,9 @@ func main() {
 		cfg.PublicSiteURL,
 		cfg.BillingFXBufferFraction,
 	)
-	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo)
-	adminHandler := handlers.NewAdminHandler(userRepo, deviceRepo, jwtSvc)
+	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo, companyRepo, deviceRepo, jwtSvc)
+	deviceHandler := handlers.NewDeviceHandler(deviceRepo, jwtSvc)
+	adminHandler := handlers.NewAdminHandler(userRepo, companyRepo, deviceRepo, jwtSvc)
 	scanHandler, err := handlers.NewScanHandler()
 	if err != nil {
 		logger.Log.Warn().Err(err).Msg("Failed to initialize scan handler, /scan endpoint will not be available")
@@ -207,6 +208,7 @@ func main() {
 		jobs.StartBillingRenewalSweep(context.Background(), renewalSvc, companyRepo, poll)
 	}
 	h.Mount("/warehouses", warehouseHandler.Routes())
+	h.Mount("/devices", deviceHandler.Routes())
 	if scanHandler != nil {
 		h.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo}))

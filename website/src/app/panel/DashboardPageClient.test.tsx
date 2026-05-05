@@ -71,7 +71,10 @@ describe('DashboardPageClient', () => {
           subscription_plan: 'trial',
           trial_ends_at: new Date(Date.now() + 86400000).toISOString(),
           warehouse_count: 3,
+          max_warehouses: 4,
           device_count: 2,
+          user_count: 5,
+          max_users: 10,
           remitos_processed_last_30_days: 12,
           documents_monthly_limit: 3000,
           documents_usage_mtd: 2347,
@@ -109,6 +112,7 @@ describe('DashboardPageClient', () => {
 
     expect(await screen.findByRole('heading', { name: 'Depósitos' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Dispositivos' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Usuarios' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Documentos' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Plan actual' })).toBeInTheDocument();
     expect(
@@ -117,7 +121,9 @@ describe('DashboardPageClient', () => {
     expect(screen.getByText('2347 / 3000')).toBeInTheDocument();
     expect(screen.getByText('Documentos (mes en curso)')).toBeInTheDocument();
     expect(screen.getByText('Límite del plan')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
+    // Warehouses card now shows "X / N" because max_warehouses is set.
+    expect(screen.getByText('3 / 4')).toBeInTheDocument();
+    expect(screen.getByText('5 / 10')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(

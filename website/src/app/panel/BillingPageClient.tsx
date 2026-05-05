@@ -7,12 +7,15 @@ import Link from 'next/link';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import {
   canAccessWebManagement,
+  canManageBillingSubscriptions,
   clearWebSession,
   fetchProfile,
   fetchWithWebAuth,
   hasWebSession,
   refreshWebSession,
+  type WebProfile,
 } from '../lib/webAuth';
+import PaymentMethodSection from './facturacion/PaymentMethodSection';
 import { needsActivateSubscription } from './lib/activateSubscriptionGate';
 import {
   deriveBillingPresentation,
@@ -35,6 +38,7 @@ import {
 export default function BillingPageClient() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [profile, setProfile] = useState<WebProfile | null>(null);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<BillingInvoiceRow[]>([]);
@@ -62,13 +66,14 @@ export default function BillingPageClient() {
 
       await refreshWebSession();
 
-      const profile = await fetchProfile();
+      const userProfile = await fetchProfile();
       if (cancelled) return;
-      if (!profile || !canAccessWebManagement(profile.role)) {
+      if (!userProfile || !canAccessWebManagement(userProfile.role)) {
         clearWebSession();
         router.replace('/ingresar');
         return;
       }
+      setProfile(userProfile);
 
       const res = await fetchWithWebAuth('/auth/me/entitlement');
       if (cancelled) return;
@@ -268,6 +273,45 @@ export default function BillingPageClient() {
               className="mt-2 inline-block font-semibold text-blue-800 underline"
             >
               Ir a activar suscripción
+            </Link>
+          </div>
+        ) : null}
+
+        {entitlement?.pending_plan &&
+        entitlement.pending_plan.trim() !== '' &&
+        billing.hasActivePaymentPeriod &&
+        !billing.isArchived &&
+        !billing.companyBillingInactive ? (
+          <div
+            className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-4 text-sm text-indigo-950 shadow-sm"
+            role="status"
+          >
+            <p className="font-semibold">Cambio de plan programado</p>
+            <p className="mt-2 leading-relaxed opacity-95">
+              Pasarás al plan{' '}
+              <span className="font-semibold uppercase">
+                {entitlement.pending_plan.trim()}
+              </span>{' '}
+              al comenzar el próximo período de facturación
+              {entitlement.subscription_expires_at ? (
+                <>
+                  {' '}
+                  (después del{' '}
+                  <span className="font-medium">
+                    {formatDateTime(entitlement.subscription_expires_at)}
+                  </span>
+                  ).
+                </>
+              ) : (
+                '.'
+              )}{' '}
+              Seguís con el plan actual hasta esa fecha.
+            </p>
+            <Link
+              href="/panel/facturacion/mejorar-plan"
+              className="mt-3 inline-block font-semibold text-indigo-900 underline"
+            >
+              Ver o modificar en Cambiar de plan
             </Link>
           </div>
         ) : null}
@@ -538,14 +582,14 @@ export default function BillingPageClient() {
             </div>
 
             <div className="mt-8 border-t border-gray-100 pt-6">
-              <h3 className="text-sm font-semibold text-gray-900">
-                Medio de pago
-              </h3>
-              <p className="mt-2 text-sm text-gray-600">
-                La gestión del medio de pago (tarjeta u otros medios) desde esta
-                web estará disponible próximamente. Para cambios o consultas
-                sobre tu suscripción, contactá a soporte.
-              </p>
+              <PaymentMethodSection
+                canManage={
+                  profile ? canManageBillingSubscriptions(profile.role) : false
+                }
+                payerEmail={
+                  profile?.email?.trim() || profile?.username?.trim() || ''
+                }
+              />
             </div>
           </section>
         ) : null}

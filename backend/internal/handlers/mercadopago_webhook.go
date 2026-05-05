@@ -244,6 +244,10 @@ func (h *MercadoPagoWebhookHandler) handlePayment(ctx context.Context, paymentID
 			return err
 		}
 		extended = true
+		// Consume any user-scheduled downgrade so the new period starts on the chosen plan.
+		if _, err := h.Companies.ApplyPendingPlanIfAny(ctx, tx, companyID, billing.PlanLimitsByID); err != nil {
+			return err
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {

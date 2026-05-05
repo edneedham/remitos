@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   BadgeCheck,
@@ -8,6 +9,7 @@ import {
   Loader2,
   ScanLine,
   Smartphone,
+  Users,
   Warehouse,
 } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/apiUrl';
@@ -230,9 +232,10 @@ export default function DashboardPageClient() {
         ) : null}
 
         {entitlement ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <section
-              className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <Link
+              href="/panel/depositos"
+              className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40"
               aria-labelledby="warehouses-card-heading"
             >
               <div className="flex gap-3">
@@ -251,18 +254,23 @@ export default function DashboardPageClient() {
                   </h2>
                   <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-gray-900">
                     {typeof entitlement.warehouse_count === 'number'
-                      ? entitlement.warehouse_count
+                      ? typeof entitlement.max_warehouses === 'number'
+                        ? `${entitlement.warehouse_count} / ${entitlement.max_warehouses}`
+                        : entitlement.warehouse_count
                       : '—'}
                   </p>
                   <p className="mt-2 text-xs leading-snug text-gray-600">
-                    Depósitos configurados para tu empresa.
+                    {typeof entitlement.max_warehouses === 'number'
+                      ? 'Usados frente al límite de tu plan.'
+                      : 'Depósitos configurados para tu empresa.'}
                   </p>
                 </div>
               </div>
-            </section>
+            </Link>
 
-            <section
-              className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            <Link
+              href="/panel/dispositivos"
+              className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-orange-300 hover:bg-orange-50/40"
               aria-labelledby="devices-card-heading"
             >
               <div className="flex gap-3">
@@ -289,7 +297,42 @@ export default function DashboardPageClient() {
                   </p>
                 </div>
               </div>
-            </section>
+            </Link>
+
+            <Link
+              href="/panel/facturacion"
+              className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-violet-300 hover:bg-violet-50/40"
+              aria-labelledby="users-card-heading"
+            >
+              <div className="flex gap-3">
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700"
+                  aria-hidden
+                >
+                  <Users className="h-7 w-7" strokeWidth={1.75} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2
+                    id="users-card-heading"
+                    className="text-sm font-semibold uppercase tracking-wide text-gray-500"
+                  >
+                    Usuarios
+                  </h2>
+                  <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-gray-900">
+                    {typeof entitlement.user_count === 'number'
+                      ? typeof entitlement.max_users === 'number'
+                        ? `${entitlement.user_count} / ${entitlement.max_users}`
+                        : entitlement.user_count
+                      : '—'}
+                  </p>
+                  <p className="mt-2 text-xs leading-snug text-gray-600">
+                    {typeof entitlement.max_users === 'number'
+                      ? 'Cuentas de la empresa frente al límite del plan.'
+                      : 'Cuentas de la empresa con acceso web o app.'}
+                  </p>
+                </div>
+              </div>
+            </Link>
 
             <section
               className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"

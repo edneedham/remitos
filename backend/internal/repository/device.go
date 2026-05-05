@@ -140,6 +140,17 @@ func (r *DeviceRepository) RevokeDevice(ctx context.Context, deviceID uuid.UUID)
 	return err
 }
 
+// SetDeviceStatusForCompany updates a device's status only when it belongs to the given
+// company. Returns false if the row was not found in that scope.
+func (r *DeviceRepository) SetDeviceStatusForCompany(ctx context.Context, companyID, deviceID uuid.UUID, status string) (bool, error) {
+	query := `UPDATE devices SET status = $1 WHERE id = $2 AND company_id = $3`
+	tag, err := r.pool.Exec(ctx, query, status, deviceID, companyID)
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() > 0, nil
+}
+
 func (r *DeviceRepository) CountByCompanyID(ctx context.Context, companyID uuid.UUID) (int64, error) {
 	var n int64
 	err := r.pool.QueryRow(ctx, `
@@ -148,12 +159,70 @@ func (r *DeviceRepository) CountByCompanyID(ctx context.Context, companyID uuid.
 	return n, err
 }
 
-func (r *DeviceRepository) CountByWarehouseID(ctx context.Context, warehouseID uuid.UUID) (int64, error) {
+// CountActiveByWarehouseID counts devices that may sync (active only). Used when enforcing
+// per-warehouse device caps so revoking a device frees a slot for a new registration.
+func (r *DeviceRepository) CountActiveByWarehouseID(ctx context.Context, warehouseID uuid.UUID) (int64, error) {
 	var n int64
 	err := r.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM devices WHERE warehouse_id = $1
+		SELECT COUNT(*) FROM devices WHERE warehouse_id = $1 AND status = 'active'
 	`, warehouseID).Scan(&n)
 	return n, err
+}
+
+// DeviceWithWarehouse pairs a device row with the human-readable warehouse name.
+type DeviceWithWarehouse struct {
+	models.Device
+	WarehouseName string `json:"warehouse_name"`
+}
+
+// ListByCompanyWithWarehouseName returns devices for a company joined to their warehouse name.
+// Devices whose warehouse has been archived are still included (warehouse_name is empty).
+func (r *DeviceRepository) ListByCompanyWithWarehouseName(ctx context.Context, companyID uuid.UUID) ([]DeviceWithWarehouse, error) {
+	query := `
+		SELECT d.id, d.company_id, d.warehouse_id, d.device_uuid, d.platform, d.model,
+		       d.os_version, d.app_version, d.status, d.approved_by, d.approved_at,
+		       d.registered_at, d.last_seen_at,
+		       COALESCE(w.name, '')
+		FROM devices d
+		LEFT JOIN warehouses w ON w.id = d.warehouse_id
+		WHERE d.company_id = $1
+		ORDER BY d.registered_at DESC
+	`
+	rows, err := r.pool.Query(ctx, query, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []DeviceWithWarehouse
+	for rows.Next() {
+		var d DeviceWithWarehouse
+		var approvedBy *uuid.UUID
+		var approvedAt, lastSeenAt *time.Time
+		if err := rows.Scan(
+			&d.ID,
+			&d.CompanyID,
+			&d.WarehouseID,
+			&d.DeviceUUID,
+			&d.Platform,
+			&d.Model,
+			&d.OSVersion,
+			&d.AppVersion,
+			&d.Status,
+			&approvedBy,
+			&approvedAt,
+			&d.RegisteredAt,
+			&lastSeenAt,
+			&d.WarehouseName,
+		); err != nil {
+			return nil, err
+		}
+		d.LastSeenAt = lastSeenAt
+		d.ApprovedBy = approvedBy
+		d.ApprovedAt = approvedAt
+		out = append(out, d)
+	}
+	return out, rows.Err()
 }
 
 func (r *DeviceRepository) ListByCompany(ctx context.Context, companyID uuid.UUID) ([]models.Device, error) {

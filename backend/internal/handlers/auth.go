@@ -623,12 +623,16 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 type meEntitlementResponse struct {
 	CanDownloadApp               bool                                  `json:"can_download_app"`
 	SubscriptionPlan             string                                `json:"subscription_plan"`
+	PendingPlan                  *string                               `json:"pending_plan,omitempty"`
 	TrialEndsAt                  *time.Time                            `json:"trial_ends_at,omitempty"`
 	SubscriptionExpiresAt        *time.Time                            `json:"subscription_expires_at,omitempty"`
 	CompanyStatus                string                                `json:"company_status"`
 	ArchivedAt                   *time.Time                            `json:"archived_at,omitempty"`
 	WarehouseCount               int64                                 `json:"warehouse_count"`
+	MaxWarehouses                *int                                  `json:"max_warehouses,omitempty"`
 	DeviceCount                  int64                                 `json:"device_count"`
+	UserCount                    int64                                 `json:"user_count"`
+	MaxUsers                     *int                                  `json:"max_users,omitempty"`
 	RemitosProcessedLast30Days   int64                                 `json:"remitos_processed_last_30_days"`
 	WarehouseUsageLast30Days     []repository.WarehouseInboundUsageRow `json:"warehouse_usage_last_30_days"`
 	DocumentsMonthlyLimit        *int                                  `json:"documents_monthly_limit,omitempty"`
@@ -650,6 +654,17 @@ type meProfileResponse struct {
 func canAccessWebManagement(role string) bool {
 	switch role {
 	case models.RoleCompanyOwner, models.RoleWarehouseAdmin, models.RoleReadOnly, "admin":
+		return true
+	default:
+		return false
+	}
+}
+
+// canManageBillingSubscriptions allows charging cards, activating or changing paid plans, and
+// updating saved payment methods. read_only may view invoices/entitlement but must not mutate billing.
+func canManageBillingSubscriptions(role string) bool {
+	switch role {
+	case models.RoleCompanyOwner, models.RoleWarehouseAdmin, "admin":
 		return true
 	default:
 		return false
@@ -770,6 +785,12 @@ func (h *AuthHandler) GetMeEntitlement(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
 		return
 	}
+	userCount, err := h.userRepo.CountByCompanyID(r.Context(), companyID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("GetMeEntitlement: user count")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
 	mtdTotal, usageSeries, err := h.syncRepo.InboundNotesMTDCumulativeSeries(r.Context(), companyID)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("GetMeEntitlement: documents MTD series")
@@ -786,12 +807,16 @@ func (h *AuthHandler) GetMeEntitlement(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, meEntitlementResponse{
 		CanDownloadApp:               billing.CompanyHasAppDownloadAccess(now, company),
 		SubscriptionPlan:             company.SubscriptionPlan,
+		PendingPlan:                  company.PendingPlan,
 		TrialEndsAt:                  company.TrialEndsAt,
 		SubscriptionExpiresAt:        company.SubscriptionExpiresAt,
 		CompanyStatus:                company.Status,
 		ArchivedAt:                   company.ArchivedAt,
 		WarehouseCount:               warehouseCount,
+		MaxWarehouses:                company.MaxWarehouses,
 		DeviceCount:                  deviceCount,
+		UserCount:                    userCount,
+		MaxUsers:                     company.MaxUsers,
 		RemitosProcessedLast30Days:   remitos30d,
 		WarehouseUsageLast30Days:     warehouseUsage,
 		DocumentsMonthlyLimit:        company.DocumentsMonthlyLimit,
@@ -947,24 +972,22 @@ func (h *AuthHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.EqualFold(strings.TrimSpace(company.SubscriptionPlan), "trial") {
-		existingDevice, err := h.deviceRepo.GetByUUID(ctx, companyID, req.DeviceUUID)
+	existingDevice, err := h.deviceRepo.GetByUUID(ctx, companyID, req.DeviceUUID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("RegisterDevice: existing device lookup")
+		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	if existingDevice == nil {
+		activeInWarehouse, err := h.deviceRepo.CountActiveByWarehouseID(ctx, warehouseID)
 		if err != nil {
-			logger.Log.Error().Err(err).Msg("RegisterDevice: existing device lookup")
+			logger.Log.Error().Err(err).Msg("RegisterDevice: count active devices by warehouse")
 			RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
 			return
 		}
-		if existingDevice == nil {
-			deviceCountInWarehouse, err := h.deviceRepo.CountByWarehouseID(ctx, warehouseID)
-			if err != nil {
-				logger.Log.Error().Err(err).Msg("RegisterDevice: count devices by warehouse")
-				RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
-				return
-			}
-			if shouldBlockTrialDeviceRegistration(false, deviceCountInWarehouse) {
-				RespondWithError(w, ErrCodeForbidden, "La prueba permite 1 dispositivo por depósito.", http.StatusForbidden)
-				return
-			}
+		if block, msg := blockNewDeviceForWarehousePlan(company.SubscriptionPlan, activeInWarehouse); block {
+			RespondWithError(w, ErrCodeForbidden, msg, http.StatusForbidden)
+			return
 		}
 	}
 
@@ -1032,8 +1055,20 @@ type UserStatusResponse struct {
 	Message      string `json:"message,omitempty"`
 }
 
-func shouldBlockTrialDeviceRegistration(existingDevice bool, deviceCountInWarehouse int64) bool {
-	return !existingDevice && deviceCountInWarehouse >= 1
+// blockNewDeviceForWarehousePlan enforces one active handset per warehouse on trial and PyME.
+// Other paid tiers may register multiple devices per warehouse.
+func blockNewDeviceForWarehousePlan(subscriptionPlan string, activeDevicesInWarehouse int64) (block bool, message string) {
+	if activeDevicesInWarehouse < 1 {
+		return false, ""
+	}
+	switch strings.ToLower(strings.TrimSpace(subscriptionPlan)) {
+	case "trial":
+		return true, "La prueba permite 1 dispositivo por depósito."
+	case "pyme":
+		return true, "Tu plan permite 1 dispositivo activo por depósito. Revocá un dispositivo en el panel para registrar otro."
+	default:
+		return false, ""
+	}
 }
 
 func (h *AuthHandler) GetUserStatus(w http.ResponseWriter, r *http.Request) {
@@ -1103,12 +1138,15 @@ func (h *AuthHandler) Routes() *chi.Mux {
 		r.Post("/logout", h.Logout)
 		r.Post("/change-password", h.ChangePassword)
 		r.Post("/me/plan", h.SelectMyPlan)
+		r.Post("/me/plan/change", h.PostMeChangePlan)
+		r.Post("/me/payment-method", h.PostMeUpdatePaymentMethod)
 		r.Post("/me/activate-subscription", h.PostMeActivateSubscription)
 		r.Post("/transfer/start", h.StartSessionTransfer)
 		r.Get("/me", h.GetMe)
 		r.Get("/user/status", h.GetUserStatus)
 		r.Get("/me/entitlement", h.GetMeEntitlement)
 		r.Get("/me/invoices", h.GetMeInvoices)
+		r.Get("/me/plan-catalog-limits", h.GetMePlanCatalogLimits)
 		r.Get("/me/plan-pricing", h.GetMePlanPricing)
 		r.Get("/downloads/android", h.GetAndroidDownloadURL)
 	})

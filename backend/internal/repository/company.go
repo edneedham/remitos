@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -50,13 +51,14 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 			status, is_verified, subscription_plan,
 			subscription_expires_at, trial_ends_at,
 			max_warehouses, max_users, documents_monthly_limit,
+			pending_plan,
 			mp_customer_id, mp_card_id,
 			created_at, updated_at, archived_at
 		FROM companies WHERE id = $1
 	`
 	var c models.Company
 	var maxW, maxU, maxDoc sql.NullInt32
-	var mpCust, mpCard sql.NullString
+	var mpCust, mpCard, pendingPlan sql.NullString
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&c.ID,
 		&c.Code,
@@ -70,6 +72,7 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 		&maxW,
 		&maxU,
 		&maxDoc,
+		&pendingPlan,
 		&mpCust,
 		&mpCard,
 		&c.CreatedAt,
@@ -93,6 +96,10 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 	if maxDoc.Valid {
 		v := int(maxDoc.Int32)
 		c.DocumentsMonthlyLimit = &v
+	}
+	if pendingPlan.Valid && strings.TrimSpace(pendingPlan.String) != "" {
+		s := strings.TrimSpace(pendingPlan.String)
+		c.PendingPlan = &s
 	}
 	if mpCust.Valid {
 		s := mpCust.String
@@ -235,6 +242,133 @@ func (r *CompanyRepository) ActivateSubscription(
 	}
 	if tag.RowsAffected() == 0 {
 		return errors.New("company not found or not eligible for activation")
+	}
+	return nil
+}
+
+// UpdateMercadoPagoPaymentMethod replaces saved Mercado Pago customer/card ids without changing
+// plan or subscription period (card refresh / replacement).
+func (r *CompanyRepository) UpdateMercadoPagoPaymentMethod(
+	ctx context.Context,
+	companyID uuid.UUID,
+	mpCustomerID, mpCardID string,
+) error {
+	query := `
+		UPDATE companies SET
+			mp_customer_id = $2,
+			mp_card_id = $3,
+			updated_at = NOW()
+		WHERE id = $1
+			AND archived_at IS NULL
+			AND (status = '' OR status = 'active')
+	`
+	tag, err := r.pool.Exec(ctx, query, companyID, mpCustomerID, mpCardID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return errors.New("company not found or not eligible for payment method update")
+	}
+	return nil
+}
+
+// ApplyPendingPlanIfAny consumes companies.pending_plan (if set) and writes it as the
+// active subscription_plan with the associated limits. Returns the plan id that was applied
+// (empty string when no pending plan was scheduled).
+//
+// This is called from the renewal flow so a user-scheduled downgrade (Empresa → PyME)
+// takes effect at the start of the next paid period.
+func (r *CompanyRepository) ApplyPendingPlanIfAny(
+	ctx context.Context,
+	conn DBConn,
+	companyID uuid.UUID,
+	planLimits func(plan string) (maxWarehouses, maxUsers, documentsMonthlyLimit *int),
+) (string, error) {
+	var pending sql.NullString
+	if err := conn.QueryRow(ctx, `SELECT pending_plan FROM companies WHERE id = $1`, companyID).Scan(&pending); err != nil {
+		return "", err
+	}
+	plan := strings.TrimSpace(pending.String)
+	if !pending.Valid || plan == "" {
+		return "", nil
+	}
+	maxW, maxU, maxD := planLimits(plan)
+	tag, err := conn.Exec(ctx, `
+		UPDATE companies SET
+			subscription_plan = $2,
+			max_warehouses = $3,
+			max_users = $4,
+			documents_monthly_limit = $5,
+			pending_plan = NULL,
+			updated_at = NOW()
+		WHERE id = $1
+	`, companyID, plan, maxW, maxU, maxD)
+	if err != nil {
+		return "", err
+	}
+	if tag.RowsAffected() == 0 {
+		return "", errors.New("company not found while applying pending plan")
+	}
+	return plan, nil
+}
+
+// ChangePlan updates a company's plan and the associated limits without resetting
+// the current paid period (subscription_expires_at is preserved). Used for self-serve
+// plan changes during an active paid period (e.g. PyME → Empresa upgrade).
+func (r *CompanyRepository) ChangePlan(
+	ctx context.Context,
+	companyID uuid.UUID,
+	plan string,
+	maxWarehouses, maxUsers, documentsMonthlyLimit *int,
+) error {
+	query := `
+		UPDATE companies SET
+			subscription_plan = $2,
+			max_warehouses = $3,
+			max_users = $4,
+			documents_monthly_limit = $5,
+			pending_plan = NULL,
+			updated_at = NOW()
+		WHERE id = $1
+			AND archived_at IS NULL
+			AND (status = '' OR status = 'active')
+	`
+	tag, err := r.pool.Exec(ctx, query,
+		companyID,
+		plan,
+		maxWarehouses,
+		maxUsers,
+		documentsMonthlyLimit,
+	)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return errors.New("company not found or not eligible for plan change")
+	}
+	return nil
+}
+
+// SetPendingPlan schedules a downgrade plan to take effect at the next renewal.
+// Pass an empty string to clear an existing scheduled change.
+func (r *CompanyRepository) SetPendingPlan(ctx context.Context, companyID uuid.UUID, plan string) error {
+	plan = strings.TrimSpace(plan)
+	var arg interface{}
+	if plan == "" {
+		arg = nil
+	} else {
+		arg = plan
+	}
+	query := `
+		UPDATE companies SET pending_plan = $2, updated_at = NOW()
+		WHERE id = $1 AND archived_at IS NULL AND (status = '' OR status = 'active')
+	`
+	tag, err := r.pool.Exec(ctx, query, companyID, arg)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return errors.New("company not found or not eligible for pending plan update")
 	}
 	return nil
 }

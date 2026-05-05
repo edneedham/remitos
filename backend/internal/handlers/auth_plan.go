@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"server/internal/billing"
 	"server/internal/middleware"
 	"server/internal/validation"
 )
@@ -17,19 +18,9 @@ type SignupPlanSelectionRequest struct {
 	TrialDays    int    `json:"trial_days"`
 }
 
+// planLimits delegates to billing.PlanLimitsByID so handlers and the renewal sweep agree.
 func planLimits(planID string) (maxWarehouses *int, maxUsers *int, documentsMonthlyLimit *int) {
-	switch planID {
-	case "pyme":
-		w, u, d := 2, 3, 500
-		return &w, &u, &d
-	case "empresa":
-		w, u, d := 3, 10, 10000
-		return &w, &u, &d
-	case "corporativo":
-		return nil, nil, nil
-	default:
-		return nil, nil, nil
-	}
+	return billing.PlanLimitsByID(planID)
 }
 
 func (h *AuthHandler) SelectMyPlan(w http.ResponseWriter, r *http.Request) {

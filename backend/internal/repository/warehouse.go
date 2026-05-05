@@ -2,9 +2,11 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -35,7 +37,7 @@ func (r *WarehouseRepository) Create(ctx context.Context, warehouse *Warehouse) 
 func (r *WarehouseRepository) GetByID(ctx context.Context, id uuid.UUID) (*Warehouse, error) {
 	query := `
 		SELECT id, company_id, name, address, created_at, updated_at
-		FROM warehouses WHERE id = $1
+		FROM warehouses WHERE id = $1 AND archived_at IS NULL
 	`
 	var w Warehouse
 	err := r.pool.QueryRow(ctx, query, id).Scan(
@@ -46,14 +48,18 @@ func (r *WarehouseRepository) GetByID(ctx context.Context, id uuid.UUID) (*Wareh
 		&w.CreatedAt,
 		&w.UpdatedAt,
 	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
 	return &w, nil
 }
 
+// CountByCompanyID returns the number of non-archived warehouses for a company.
 func (r *WarehouseRepository) CountByCompanyID(ctx context.Context, companyID uuid.UUID) (int64, error) {
-	query := `SELECT COUNT(*) FROM warehouses WHERE company_id = $1`
+	query := `SELECT COUNT(*) FROM warehouses WHERE company_id = $1 AND archived_at IS NULL`
 	var n int64
 	err := r.pool.QueryRow(ctx, query, companyID).Scan(&n)
 	if err != nil {
@@ -62,10 +68,12 @@ func (r *WarehouseRepository) CountByCompanyID(ctx context.Context, companyID uu
 	return n, nil
 }
 
+// GetByCompanyID returns non-archived warehouses for a company.
 func (r *WarehouseRepository) GetByCompanyID(ctx context.Context, companyID uuid.UUID) ([]Warehouse, error) {
 	query := `
 		SELECT id, company_id, name, address, created_at, updated_at
-		FROM warehouses WHERE company_id = $1
+		FROM warehouses
+		WHERE company_id = $1 AND archived_at IS NULL
 		ORDER BY name ASC
 	`
 	rows, err := r.pool.Query(ctx, query, companyID)
@@ -83,6 +91,48 @@ func (r *WarehouseRepository) GetByCompanyID(ctx context.Context, companyID uuid
 		warehouses = append(warehouses, w)
 	}
 	return warehouses, nil
+}
+
+// Update renames a warehouse and/or changes its address. Returns false if the row was
+// not found or already archived.
+func (r *WarehouseRepository) Update(ctx context.Context, id, companyID uuid.UUID, name, address string) (bool, error) {
+	query := `
+		UPDATE warehouses
+		SET name = $3, address = $4, updated_at = NOW()
+		WHERE id = $1 AND company_id = $2 AND archived_at IS NULL
+	`
+	tag, err := r.pool.Exec(ctx, query, id, companyID, name, address)
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() > 0, nil
+}
+
+// Archive soft-deletes a warehouse. Returns false if the row was not found or was
+// already archived.
+func (r *WarehouseRepository) Archive(ctx context.Context, id, companyID uuid.UUID) (bool, error) {
+	query := `
+		UPDATE warehouses
+		SET archived_at = NOW(), updated_at = NOW()
+		WHERE id = $1 AND company_id = $2 AND archived_at IS NULL
+	`
+	tag, err := r.pool.Exec(ctx, query, id, companyID)
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() > 0, nil
+}
+
+// CountActiveDevicesByWarehouseID returns devices that are currently active for the warehouse
+// (used to refuse archiving a warehouse that still has live devices).
+func (r *WarehouseRepository) CountActiveDevicesByWarehouseID(ctx context.Context, warehouseID uuid.UUID) (int64, error) {
+	query := `SELECT COUNT(*) FROM devices WHERE warehouse_id = $1 AND status = 'active'`
+	var n int64
+	err := r.pool.QueryRow(ctx, query, warehouseID).Scan(&n)
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
 }
 
 type Warehouse struct {

@@ -2,8 +2,14 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import HeaderAuthNav from '../ui/components/website/HeaderAuthNav';
+import {
+  canManageOperators,
+  fetchProfile,
+  hasWebSession,
+} from '../lib/webAuth';
 import ActivateSubscriptionGate from './ActivateSubscriptionGate';
 
 function SidebarNavLink({
@@ -44,6 +50,21 @@ export default function DashboardShell({
 }: {
   children: React.ReactNode;
 }) {
+  const [showOperadoresNav, setShowOperadoresNav] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!hasWebSession()) return;
+    void (async () => {
+      const p = await fetchProfile();
+      if (cancelled || !p) return;
+      setShowOperadoresNav(canManageOperators(p.role));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <aside
@@ -67,6 +88,13 @@ export default function DashboardShell({
           <SidebarNavLink href="/panel" end>
             Panel
           </SidebarNavLink>
+          <SidebarNavLink href="/panel/depositos">Depósitos</SidebarNavLink>
+          <SidebarNavLink href="/panel/dispositivos">
+            Dispositivos
+          </SidebarNavLink>
+          {showOperadoresNav ? (
+            <SidebarNavLink href="/panel/operadores">Operadores</SidebarNavLink>
+          ) : null}
           <SidebarNavLink href="/panel/facturacion">Facturación</SidebarNavLink>
           <SidebarNavLink href="/panel/aplicacion">Aplicación</SidebarNavLink>
           <SidebarNavLink href="/panel/cambiar-clave" end>

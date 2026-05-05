@@ -16,17 +16,33 @@ import (
 	"server/internal/validation"
 )
 
-type AdminHandler struct {
-	userRepo   *repository.UserRepository
-	deviceRepo *repository.DeviceRepository
-	jwtSvc     *jwt.Service
+// reachedUserCap returns true when the company has reached its plan-defined max_users.
+// Returns false when max is nil (unlimited / unset).
+func reachedUserCap(currentCount int64, max *int) bool {
+	if max == nil {
+		return false
+	}
+	return currentCount >= int64(*max)
 }
 
-func NewAdminHandler(userRepo *repository.UserRepository, deviceRepo *repository.DeviceRepository, jwtSvc *jwt.Service) *AdminHandler {
+type AdminHandler struct {
+	userRepo    *repository.UserRepository
+	companyRepo *repository.CompanyRepository
+	deviceRepo  *repository.DeviceRepository
+	jwtSvc      *jwt.Service
+}
+
+func NewAdminHandler(
+	userRepo *repository.UserRepository,
+	companyRepo *repository.CompanyRepository,
+	deviceRepo *repository.DeviceRepository,
+	jwtSvc *jwt.Service,
+) *AdminHandler {
 	return &AdminHandler{
-		userRepo:   userRepo,
-		deviceRepo: deviceRepo,
-		jwtSvc:     jwtSvc,
+		userRepo:    userRepo,
+		companyRepo: companyRepo,
+		deviceRepo:  deviceRepo,
+		jwtSvc:      jwtSvc,
 	}
 }
 
@@ -66,16 +82,47 @@ func (h *AdminHandler) CreateOperator(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	companyID, err := uuid.Parse(adminClaims.CompanyID)
+	if err != nil {
+		RespondWithError(w, ErrCodeInvalidRequest, "ID de empresa inválido", http.StatusBadRequest)
+		return
+	}
+
+	// Enforce max_users when the company has a plan-defined limit.
+	if h.companyRepo != nil {
+		company, cerr := h.companyRepo.GetByIDForBilling(ctx, companyID)
+		if cerr != nil {
+			logger.Log.Error().Err(cerr).Msg("CreateOperator: company")
+			RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+		if company == nil {
+			RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+			return
+		}
+		if company.MaxUsers != nil {
+			count, ucerr := h.userRepo.CountByCompanyID(ctx, companyID)
+			if ucerr != nil {
+				logger.Log.Error().Err(ucerr).Msg("CreateOperator: user count")
+				RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+				return
+			}
+			if reachedUserCap(count, company.MaxUsers) {
+				RespondWithError(
+					w,
+					ErrCodeForbidden,
+					"Alcanzaste el límite de usuarios de tu plan.",
+					http.StatusForbidden,
+				)
+				return
+			}
+		}
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("Error hashing password")
 		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
-		return
-	}
-
-	companyID, err := uuid.Parse(adminClaims.CompanyID)
-	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de empresa inválido", http.StatusBadRequest)
 		return
 	}
 

@@ -10,12 +10,13 @@ import (
 type ErrorCode string
 
 const (
-	ErrCodeInvalidRequest ErrorCode = "INVALID_REQUEST"
-	ErrCodeUnauthorized   ErrorCode = "UNAUTHORIZED"
-	ErrCodeForbidden      ErrorCode = "FORBIDDEN"
-	ErrCodeConflict       ErrorCode = "CONFLICT"
-	ErrCodeNotFound       ErrorCode = "NOT_FOUND"
-	ErrCodeInternalError  ErrorCode = "INTERNAL_ERROR"
+	ErrCodeInvalidRequest    ErrorCode = "INVALID_REQUEST"
+	ErrCodeUnauthorized      ErrorCode = "UNAUTHORIZED"
+	ErrCodeForbidden         ErrorCode = "FORBIDDEN"
+	ErrCodeConflict          ErrorCode = "CONFLICT"
+	ErrCodeNotFound          ErrorCode = "NOT_FOUND"
+	ErrCodeInternalError     ErrorCode = "INTERNAL_ERROR"
+	ErrCodePaymentRequired   ErrorCode = "PAYMENT_REQUIRED"
 )
 
 type ErrorResponse struct {

@@ -24,7 +24,7 @@ export const PLAN_CATALOG: PlanCatalogItem[] = [
     perks: [
       '7 días de prueba incluidos',
       'Hasta 2 depósitos',
-      '1 dispositivo por depósito',
+      'Dispositivos sin límite por depósito',
       'Hasta 500 documentos/mes',
       'Soporte por email',
     ],

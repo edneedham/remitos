@@ -2,12 +2,16 @@
 export type Entitlement = {
   can_download_app: boolean;
   subscription_plan?: string;
+  pending_plan?: string;
   trial_ends_at?: string;
   subscription_expires_at?: string;
   company_status?: string;
   archived_at?: string;
   warehouse_count?: number;
+  max_warehouses?: number;
   device_count?: number;
+  user_count?: number;
+  max_users?: number;
   remitos_processed_last_30_days?: number;
   warehouse_usage_last_30_days?: Array<{
     warehouse_id: string;

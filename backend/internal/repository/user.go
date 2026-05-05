@@ -203,6 +203,22 @@ func (r *UserRepository) GetByCompanyID(ctx context.Context, companyID uuid.UUID
 	return users, nil
 }
 
+// CountByCompanyID returns the total number of users for a company.
+func (r *UserRepository) CountByCompanyID(ctx context.Context, companyID uuid.UUID) (int64, error) {
+	var n int64
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM users WHERE company_id = $1`, companyID).Scan(&n)
+	return n, err
+}
+
+// CountActiveByCompanyID returns the number of active (non-suspended) users for a company.
+func (r *UserRepository) CountActiveByCompanyID(ctx context.Context, companyID uuid.UUID) (int64, error) {
+	var n int64
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM users WHERE company_id = $1 AND status = 'active'
+	`, companyID).Scan(&n)
+	return n, err
+}
+
 func (r *UserRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status string) error {
 	query := `UPDATE users SET status = $1, updated_at = NOW() WHERE id = $2`
 	_, err := r.pool.Exec(ctx, query, status, id)

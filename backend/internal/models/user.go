@@ -21,6 +21,7 @@ type Company struct {
 	MaxWarehouses         *int       `json:"max_warehouses,omitempty"`
 	MaxUsers              *int       `json:"max_users,omitempty"`
 	DocumentsMonthlyLimit *int       `json:"documents_monthly_limit,omitempty"`
+	PendingPlan           *string    `json:"pending_plan,omitempty"`
 	MpCustomerID          *string    `json:"-"`
 	MpCardID              *string    `json:"-"`
 

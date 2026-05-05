@@ -207,6 +207,11 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 		_ = tx2.Rollback(ctx)
 		return nil, err
 	}
+	// Consume any user-scheduled downgrade for the new period.
+	if _, err := s.Companies.ApplyPendingPlanIfAny(ctx, tx2, in.CompanyID, PlanLimitsByID); err != nil {
+		_ = tx2.Rollback(ctx)
+		return nil, err
+	}
 	if err := tx2.Commit(ctx); err != nil {
 		return nil, err
 	}

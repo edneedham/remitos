@@ -44,6 +44,24 @@ func MonthlyListUSD(plan string) (float64, bool) {
 	return v, ok
 }
 
+// PlanLimitsByID returns the cached caps for a catalog plan id. Returns nils for plans
+// without enforced caps (e.g. corporativo / unknown). Keep in sync with the website plan
+// catalog so panel and server agree.
+func PlanLimitsByID(planID string) (maxWarehouses, maxUsers, documentsMonthlyLimit *int) {
+	switch strings.ToLower(strings.TrimSpace(planID)) {
+	case "pyme":
+		w, u, d := 2, 3, 500
+		return &w, &u, &d
+	case "empresa":
+		w, u, d := 3, 10, 10000
+		return &w, &u, &d
+	case "corporativo":
+		return nil, nil, nil
+	default:
+		return nil, nil, nil
+	}
+}
+
 // InvoiceAmountMinorARS converts a USD list price to ARS centavos using chargedARSPerUSD (ARS per 1 USD
 // after buffer on the reference rate). The ARS total is rounded to whole pesos, then expressed as centavos
 // (multiples of 100) for Mercado Pago and billing_invoices.

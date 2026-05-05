@@ -24,6 +24,20 @@ export function canAccessWebManagement(role: string): boolean {
   return (WEB_ALLOWED_ROLES as readonly string[]).includes(role);
 }
 
+/** Roles that may charge cards, change plans, manage operators (/admin), etc. */
+export function canManageBillingSubscriptions(role: string): boolean {
+  return (
+    role === 'company_owner' ||
+    role === 'warehouse_admin' ||
+    role === 'admin'
+  );
+}
+
+/** Roles that may call GET/POST /admin (operators). Same as billing managers for now. */
+export function canManageOperators(role: string): boolean {
+  return canManageBillingSubscriptions(role);
+}
+
 export function saveWebSession(accessToken: string, refreshToken: string): void {
   if (typeof window === 'undefined') return;
   sessionStorage.setItem(ACCESS_KEY, accessToken);
@@ -125,6 +139,35 @@ export async function postWithWebAuth(
   path: string,
   body: unknown,
 ): Promise<Response> {
+  return jsonRequestWithWebAuth('POST', path, body);
+}
+
+/** PATCH JSON with Bearer; retries once after token refresh when the API returns 401. */
+export async function patchWithWebAuth(
+  path: string,
+  body: unknown,
+): Promise<Response> {
+  return jsonRequestWithWebAuth('PATCH', path, body);
+}
+
+/** PUT JSON with Bearer; retries once after token refresh when the API returns 401. */
+export async function putWithWebAuth(
+  path: string,
+  body: unknown,
+): Promise<Response> {
+  return jsonRequestWithWebAuth('PUT', path, body);
+}
+
+/** DELETE with Bearer; retries once after token refresh when the API returns 401. */
+export async function deleteWithWebAuth(path: string): Promise<Response> {
+  return jsonRequestWithWebAuth('DELETE', path, null);
+}
+
+async function jsonRequestWithWebAuth(
+  method: 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+  path: string,
+  body: unknown,
+): Promise<Response> {
   const api = getApiBaseUrl();
   if (!api) {
     return new Response(null, { status: 500 });
@@ -135,25 +178,26 @@ export async function postWithWebAuth(
     return new Response(null, { status: 401 });
   }
 
-  const post = (t: string) =>
-    fetch(`${api}${path}`, {
-      method: 'POST',
+  const send = (t: string) => {
+    const init: RequestInit = {
+      method,
       headers: {
         Authorization: `Bearer ${t}`,
-        'Content-Type': 'application/json',
+        ...(body !== null ? { 'Content-Type': 'application/json' } : {}),
       },
-      body: JSON.stringify(body),
-    });
+      ...(body !== null ? { body: JSON.stringify(body) } : {}),
+    };
+    return fetch(`${api}${path}`, init);
+  };
 
-  let res = await post(token);
+  let res = await send(token);
   if (res.status === 401) {
     const ok = await refreshWebSession();
     token = getWebAccessToken();
     if (ok && token) {
-      res = await post(token);
+      res = await send(token);
     }
   }
-
   return res;
 }
 
