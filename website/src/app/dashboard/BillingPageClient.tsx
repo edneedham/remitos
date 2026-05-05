@@ -39,6 +39,8 @@ export default function BillingPageClient() {
   const [error, setError] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<BillingInvoiceRow[]>([]);
   const [invoicesError, setInvoicesError] = useState<string | null>(null);
+  const [nextBillingEstimateMinor, setNextBillingEstimateMinor] = useState<number | null>(null);
+  const [nextBillingEstimateCurrency, setNextBillingEstimateCurrency] = useState<string>('ARS');
 
   useEffect(() => {
     if (!hasWebSession()) {
@@ -91,6 +93,35 @@ export default function BillingPageClient() {
 
       const data = (await res.json()) as Entitlement;
       setEntitlement(data);
+
+      const normalizedPlan = (data.subscription_plan ?? '').toLowerCase().trim();
+      const expiresAtMs = data.subscription_expires_at
+        ? Date.parse(data.subscription_expires_at)
+        : Number.NaN;
+      const inThreeDayWindow =
+        Number.isFinite(expiresAtMs) &&
+        expiresAtMs > Date.now() &&
+        expiresAtMs - Date.now() <= 3 * 24 * 60 * 60 * 1000;
+      const supportsPricingPreview = normalizedPlan === 'pyme' || normalizedPlan === 'empresa';
+      if (inThreeDayWindow && supportsPricingPreview) {
+        const pricingRes = await fetchWithWebAuth(`/auth/me/plan-pricing?plan_id=${normalizedPlan}`);
+        if (!cancelled && pricingRes.ok) {
+          const pricing = (await pricingRes.json()) as {
+            amount_minor?: number;
+            currency?: string;
+          };
+          if (typeof pricing.amount_minor === 'number' && Number.isFinite(pricing.amount_minor)) {
+            setNextBillingEstimateMinor(pricing.amount_minor);
+            setNextBillingEstimateCurrency((pricing.currency ?? 'ARS').toUpperCase());
+          } else {
+            setNextBillingEstimateMinor(null);
+          }
+        } else if (!cancelled) {
+          setNextBillingEstimateMinor(null);
+        }
+      } else {
+        setNextBillingEstimateMinor(null);
+      }
 
       const invRes = await fetchWithWebAuth('/auth/me/invoices');
       if (cancelled) return;
@@ -165,6 +196,15 @@ export default function BillingPageClient() {
     subscriptionTierId,
     billing.hasActivePaymentPeriod,
   );
+  const paymentEndMs = entitlement?.subscription_expires_at
+    ? Date.parse(entitlement.subscription_expires_at)
+    : Number.NaN;
+  const showNextBillingEstimate =
+    billing.hasActivePaymentPeriod &&
+    Number.isFinite(paymentEndMs) &&
+    paymentEndMs > now &&
+    paymentEndMs - now <= 3 * 24 * 60 * 60 * 1000 &&
+    nextBillingEstimateMinor !== null;
 
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6">
@@ -303,6 +343,14 @@ export default function BillingPageClient() {
                   {billing.nextBillingMilestone}
                 </dd>
               </div>
+              {showNextBillingEstimate ? (
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <dt className="text-gray-600">Próximo cobro estimado</dt>
+                  <dd className="max-w-[min(100%,20rem)] text-right font-medium text-gray-900">
+                    {formatInvoiceMoney(nextBillingEstimateMinor, nextBillingEstimateCurrency)}
+                  </dd>
+                </div>
+              ) : null}
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <dt className="text-gray-600">Estado pago (acceso a app)</dt>
                 <dd className="font-medium text-gray-900">
@@ -334,6 +382,13 @@ export default function BillingPageClient() {
                 </dd>
               </div>
             </dl>
+            {showNextBillingEstimate ? (
+              <p className="mt-4 text-xs leading-relaxed text-gray-500">
+                Este importe es una estimación calculada 3 días antes del vencimiento usando la
+                cotización vigente. Al vencer, el sistema intenta cobrar automáticamente mediante
+                Mercado Pago.
+              </p>
+            ) : null}
 
             <div className="mt-8 border-t border-gray-100 pt-6">
               <h3 className="text-sm font-semibold text-gray-900">
