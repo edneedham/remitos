@@ -137,16 +137,16 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
         </h3>
       </header>
 
-      <div
-        className={`grid grid-cols-1 items-center gap-8 md:gap-14 ${stepGridCols}`}
-      >
+      <div className={`grid grid-cols-1 items-center gap-8 md:gap-14 ${stepGridCols}`}>
         <div
           ref={visualRef}
-          className={`min-w-0 ${visualGridPlacement} ${isPdfStep ? 'order-2' : ''}`}
+          className={`min-w-0 ${visualGridPlacement} ${
+            isPdfStep ? 'order-2 mt-8 md:mt-10' : ''
+          }`}
         >
           {isPdfStep ? (
             <div className="relative ml-0 mr-auto w-full">
-              <div className="w-[76.8%]">
+              <div className="ml-auto w-[68%]">
                 <Image
                   src={step.imageSrc}
                   alt={step.imageAlt}
@@ -160,7 +160,7 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
                 alt="Pantalla de historial de repartos en la app"
                 width={286}
                 height={611}
-                className="absolute bottom-0 right-0 h-auto w-[240px] rounded-[28px] shadow-[0_10px_24px_rgba(0,0,0,0.22)]"
+                className="absolute left-0 top-1/2 h-auto w-[286px] -translate-y-1/2 rounded-[28px] shadow-[0_10px_24px_rgba(0,0,0,0.22)]"
               />
             </div>
           ) : (
