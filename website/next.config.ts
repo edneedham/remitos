@@ -10,19 +10,7 @@ const nextConfig: NextConfig = {
   },
   devIndicators: false,
   async redirects() {
-    return [
-      { source: '/account', destination: '/dashboard', permanent: true },
-      {
-        source: '/account/:path*',
-        destination: '/dashboard/:path*',
-        permanent: true,
-      },
-      {
-        source: '/download',
-        destination: '/dashboard/app',
-        permanent: true,
-      },
-    ];
+    return [];
   },
   async rewrites() {
     const apiUrl = process.env.API_URL || 'http://localhost:8080';

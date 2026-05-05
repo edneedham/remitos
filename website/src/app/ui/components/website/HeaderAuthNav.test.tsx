@@ -36,7 +36,7 @@ describe('HeaderAuthNav', () => {
   });
 
   it('on dashboard, dropdown nav links use md:hidden (sidebar on desktop)', async () => {
-    mockPathname = '/dashboard/billing';
+    mockPathname = '/panel/facturacion';
     mockHasWebSession.mockReturnValue(true);
     mockFetchWebProfile.mockResolvedValue({
       username: 'owner_user',

@@ -68,17 +68,17 @@ export default function HeaderAuthNav() {
   }, [accountMenuOpen]);
 
   const signupActive =
-    pathname === '/signup' || pathname.startsWith('/signup/');
-  const loginActive = pathname === '/login';
-  const dashboardHomeActive = pathname === '/dashboard';
-  const billingNavActive = pathname.startsWith('/dashboard/billing');
-  const applicationNavActive = pathname.startsWith('/dashboard/app');
+    pathname === '/registro' || pathname.startsWith('/registro/');
+  const loginActive = pathname === '/ingresar';
+  const dashboardHomeActive = pathname === '/panel';
+  const billingNavActive = pathname.startsWith('/panel/facturacion');
+  const applicationNavActive = pathname.startsWith('/panel/aplicacion');
   const changePasswordNavActive = pathname.startsWith(
-    '/dashboard/change-password',
+    '/panel/cambiar-clave',
   );
   /** Sidebar replaces these links on desktop; hide them in the dropdown only there. */
   const navLinksMobileOnlyInDropdown =
-    pathname.startsWith('/dashboard');
+    pathname.startsWith('/panel');
 
   async function handleLogout() {
     await logoutWebSession();
@@ -132,7 +132,7 @@ export default function HeaderAuthNav() {
                 }
               >
                 <Link
-                  href="/dashboard"
+                  href="/panel"
                   className={`block w-full rounded-md px-3 py-2 text-left text-sm font-semibold ${
                     dashboardHomeActive
                       ? 'text-blue-700'
@@ -143,7 +143,7 @@ export default function HeaderAuthNav() {
                   Panel
                 </Link>
                 <Link
-                  href="/dashboard/billing"
+                  href="/panel/facturacion"
                   className={`block w-full rounded-md px-3 py-2 text-left text-sm font-semibold ${
                     billingNavActive
                       ? 'text-blue-700'
@@ -154,7 +154,7 @@ export default function HeaderAuthNav() {
                   Facturación
                 </Link>
                 <Link
-                  href="/dashboard/app"
+                  href="/panel/aplicacion"
                   className={`block w-full rounded-md px-3 py-2 text-left text-sm font-semibold ${
                     applicationNavActive
                       ? 'text-blue-700'
@@ -165,7 +165,7 @@ export default function HeaderAuthNav() {
                   Aplicación
                 </Link>
                 <Link
-                  href="/dashboard/change-password"
+                  href="/panel/cambiar-clave"
                   className={`block w-full rounded-md px-3 py-2 text-left text-sm font-semibold ${
                     changePasswordNavActive
                       ? 'text-blue-700'
@@ -190,7 +190,7 @@ export default function HeaderAuthNav() {
       ) : (
         <>
           <Link
-            href="/signup"
+            href="/registro"
             className={`inline-flex items-center rounded-lg px-3 py-2 text-sm font-semibold transition-colors sm:px-4 ${
               signupActive
                 ? 'bg-blue-700 text-white'
@@ -200,7 +200,7 @@ export default function HeaderAuthNav() {
             Registro
           </Link>
           <Link
-            href="/login"
+            href="/ingresar"
             className={`inline-flex items-center rounded-lg border px-3 py-2 text-sm font-semibold transition-colors sm:px-4 ${
               loginActive
                 ? 'border-blue-600 text-blue-700'

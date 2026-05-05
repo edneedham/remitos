@@ -42,7 +42,7 @@ export default async function PlataformaPage() {
               {/* Primary CTA */}
               <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <Link
-                  href="/contact?subject=plataforma"
+                  href="/contacto?subject=plataforma"
                   className="inline-flex items-center justify-center px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors duration-200 text-lg shadow-lg hover:shadow-xl"
                 >
                   Contactanos para Recibir Actualizaciones
@@ -157,7 +157,7 @@ export default async function PlataformaPage() {
             {/* Single CTA Button */}
             <div className="text-center mt-10">
               <Link
-                href="/contact?subject=plataforma"
+                href="/contacto?subject=plataforma"
                 className="inline-flex items-center px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 text-lg"
               >
                 Contactanos
@@ -368,7 +368,7 @@ export default async function PlataformaPage() {
               Regístrate para recibir actualizaciones cuando lancemos
             </p>
             <Link
-              href="/contact?subject=plataforma"
+              href="/contacto?subject=plataforma"
               className="inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors duration-200 text-lg shadow-lg hover:shadow-xl"
             >
               Contactanos

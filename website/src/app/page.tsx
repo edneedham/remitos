@@ -113,7 +113,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Link
-                  href="/signup"
+                  href="/registro"
                   className="inline-flex items-center rounded-lg bg-white px-8 py-4 text-base font-semibold text-gray-900 transition-colors duration-200 hover:bg-gray-100 sm:text-lg"
                 >
                   Probar en{' '}

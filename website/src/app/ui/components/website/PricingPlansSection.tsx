@@ -118,8 +118,8 @@ export default function PricingPlansSection({
                 <Link
                   href={
                     plan.customPricing
-                      ? '/contact'
-                      : `/signup?plan=${encodeURIComponent(plan.id)}`
+                      ? '/contacto'
+                      : `/registro?plan=${encodeURIComponent(plan.id)}`
                   }
                   className={`mt-6 inline-flex w-full items-center justify-center gap-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors sm:text-base sm:py-3 ${
                     plan.featured

@@ -46,8 +46,8 @@ describe('Header', () => {
     mockFetchWebProfile.mockResolvedValue(null);
   });
 
-  it('renders nothing on /dashboard (dashboard supplies its own chrome)', async () => {
-    mockPathname = '/dashboard';
+  it('renders nothing on /panel (dashboard supplies its own chrome)', async () => {
+    mockPathname = '/panel';
 
     const { container } = await renderHeader();
 
@@ -55,7 +55,7 @@ describe('Header', () => {
   });
 
   it('renders nothing for nested dashboard routes', async () => {
-    mockPathname = '/dashboard/billing';
+    mockPathname = '/panel/facturacion';
 
     const { container } = await renderHeader();
 

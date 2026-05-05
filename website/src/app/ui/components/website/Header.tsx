@@ -7,7 +7,7 @@ import HeaderAuthNav from './HeaderAuthNav';
 
 export default function Header() {
   const pathname = usePathname();
-  if (pathname.startsWith('/dashboard')) {
+  if (pathname.startsWith('/panel')) {
     return null;
   }
 
@@ -32,7 +32,7 @@ export default function Header() {
               />
             </Link>
             <Link
-              href="/pricing"
+              href="/precios"
               className="text-sm font-semibold text-gray-700 transition-colors hover:text-gray-900"
             >
               Precios

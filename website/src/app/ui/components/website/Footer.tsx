@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 
 export default function Footer() {
   const pathname = usePathname();
-  if (pathname.startsWith('/dashboard')) {
+  if (pathname.startsWith('/panel')) {
     return null;
   }
 
@@ -20,19 +20,19 @@ export default function Footer() {
 
         <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 text-sm">
           <Link
-            href="/contact"
+            href="/contacto"
             className="text-gray-300 hover:text-white transition-colors"
           >
             Contacto
           </Link>
           <Link
-            href="/privacy"
+            href="/privacidad"
             className="text-gray-300 hover:text-white transition-colors"
           >
             Política de privacidad
           </Link>
           <Link
-            href="/terms"
+            href="/terminos"
             className="text-gray-300 hover:text-white transition-colors"
           >
             Términos y condiciones
@@ -44,7 +44,7 @@ export default function Footer() {
             Cookies
           </Link>
           <Link
-            href="/licenses"
+            href="/licencias"
             className="text-gray-300 hover:text-white transition-colors"
           >
             Licencias

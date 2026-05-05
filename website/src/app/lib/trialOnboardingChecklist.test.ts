@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildTrialOnboardingChecklist } from './trialOnboardingChecklist';
-import type { Entitlement } from '../dashboard/lib/entitlementTypes';
+import type { Entitlement } from '../panel/lib/entitlementTypes';
 
 function ent(partial: Partial<Entitlement>): Entitlement {
   return {

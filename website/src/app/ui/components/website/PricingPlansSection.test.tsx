@@ -22,11 +22,11 @@ describe('PricingPlansSection', () => {
       name: /comenzar prueba gratis/i,
     });
     expect(trialButtons).toHaveLength(2);
-    expect(trialButtons[0]).toHaveAttribute('href', '/signup?plan=pyme');
-    expect(trialButtons[1]).toHaveAttribute('href', '/signup?plan=empresa');
+    expect(trialButtons[0]).toHaveAttribute('href', '/registro?plan=pyme');
+    expect(trialButtons[1]).toHaveAttribute('href', '/registro?plan=empresa');
     expect(
       screen.getByRole('link', { name: /hablar con ventas/i }),
-    ).toHaveAttribute('href', '/contact');
+    ).toHaveAttribute('href', '/contacto');
   });
 
   it('does not render CTA links in summary mode', async () => {

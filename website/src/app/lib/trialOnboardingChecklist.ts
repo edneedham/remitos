@@ -1,6 +1,6 @@
-import type { Entitlement } from '../dashboard/lib/entitlementTypes';
+import type { Entitlement } from '../panel/lib/entitlementTypes';
 
-/** Set when the user opens la página de descarga de la app (`/dashboard/app`). */
+/** Set when the user opens la página de descarga de la app (`/panel/aplicacion`). */
 export const CHECKLIST_DOWNLOAD_PAGE_VISITED_KEY =
   'remitos_checklist_download_page_visited';
 
