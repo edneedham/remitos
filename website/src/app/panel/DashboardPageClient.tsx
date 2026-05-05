@@ -224,7 +224,7 @@ export default function DashboardPageClient() {
 
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6">
-      <div className="mx-auto max-w-7xl space-y-8">
+      <div className="mx-auto max-w-[92rem] space-y-8">
         {checklistModel ? (
           <TrialOnboardingChecklist model={checklistModel} />
         ) : null}

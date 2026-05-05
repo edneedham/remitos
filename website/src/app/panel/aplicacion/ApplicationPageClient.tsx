@@ -237,7 +237,7 @@ export default function ApplicationPageClient() {
 
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6">
-      <div className="mx-auto max-w-7xl space-y-8 text-left">
+      <div className="mx-auto max-w-[92rem] space-y-8 text-left">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">
           Aplicación
         </h1>
@@ -261,96 +261,94 @@ export default function ApplicationPageClient() {
         ) : null}
 
         <div className="max-w-xl space-y-8">
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            {!canDownload ? (
-              <div className="space-y-4 text-sm text-gray-600">
-                <p>
-                  Plan:{' '}
-                  <span className="font-medium text-gray-900">
-                    {entitlement?.subscription_plan ?? '—'}
-                  </span>
-                </p>
-                <p>La descarga no está disponible con el plan actual.</p>
-                <Link
-                  href="/panel"
-                  className="inline-block font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-                >
-                  Volver al panel
-                </Link>
-              </div>
-            ) : isMobile === null ? (
-              <div className="flex min-h-[8rem] flex-col items-center justify-center gap-2 py-10 text-sm text-gray-600">
-                <Loader2 className="h-5 w-5 animate-spin text-blue-600" aria-hidden />
-                <span className="text-center">Preparando…</span>
-              </div>
-            ) : isMobile ? (
-              <button
-                type="button"
-                disabled={downloadBusy}
-                onClick={() => void handleDownload()}
-                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+          {!canDownload ? (
+            <div className="space-y-4 text-sm text-gray-600">
+              <p>
+                Plan:{' '}
+                <span className="font-medium text-gray-900">
+                  {entitlement?.subscription_plan ?? '—'}
+                </span>
+              </p>
+              <p>La descarga no está disponible con el plan actual.</p>
+              <Link
+                href="/panel"
+                className="inline-block font-semibold text-blue-600 hover:text-blue-700 hover:underline"
               >
-                {downloadBusy ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-                    Preparando…
-                  </>
-                ) : (
-                  'Descargar APK'
-                )}
-              </button>
-            ) : (
-              <div className="space-y-4 text-center">
-                <p className="sr-only">
-                  Código QR para abrir la sesión en el teléfono
+                Volver al panel
+              </Link>
+            </div>
+          ) : isMobile === null ? (
+            <div className="flex min-h-[8rem] flex-col items-center justify-center gap-2 py-10 text-sm text-gray-600">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" aria-hidden />
+              <span className="text-center">Preparando…</span>
+            </div>
+          ) : isMobile ? (
+            <button
+              type="button"
+              disabled={downloadBusy}
+              onClick={() => void handleDownload()}
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+            >
+              {downloadBusy ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                  Preparando…
+                </>
+              ) : (
+                'Descargar APK'
+              )}
+            </button>
+          ) : (
+            <div className="space-y-4 text-center">
+              <p className="sr-only">
+                Código QR para abrir la sesión en el teléfono
+              </p>
+              {transferError ? (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                  {transferError}
                 </p>
-                {transferError ? (
-                  <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                    {transferError}
-                  </p>
-                ) : null}
-                <div className="mx-auto flex w-fit flex-col items-start rounded-lg border border-gray-100 p-2">
-                  {transferUrl ? (
-                    <div className="relative h-[220px] w-[220px]">
-                      <QRCodeSVG
-                        value={transferUrl}
-                        size={220}
-                        // Logo overlay needs higher resilience; H keeps scans reliable.
-                        level="H"
-                        includeMargin={false}
-                      />
-                      <div
-                        className="absolute inset-0 flex items-center justify-center"
-                        aria-hidden
-                      >
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white">
-                          <img
-                            src="/enpunto-simple.svg"
-                            alt=""
-                            className="h-7 w-7"
-                            aria-hidden
-                          />
-                        </div>
+              ) : null}
+              <div className="mx-auto flex w-fit flex-col items-start">
+                {transferUrl ? (
+                  <div className="relative h-[220px] w-[220px]">
+                    <QRCodeSVG
+                      value={transferUrl}
+                      size={220}
+                      // Logo overlay needs higher resilience; H keeps scans reliable.
+                      level="H"
+                      includeMargin={false}
+                    />
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                      aria-hidden
+                    >
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white">
+                        <img
+                          src="/enpunto-simple.svg"
+                          alt=""
+                          className="h-7 w-7"
+                          aria-hidden
+                        />
                       </div>
                     </div>
-                  ) : (
-                    <div className="flex h-[220px] w-[220px] items-center gap-2 text-sm text-gray-600">
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden />
-                      Generando QR…
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  disabled={transferBusy}
-                  onClick={() => void handleStartTransfer()}
-                  className="mx-auto inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-60"
-                >
-                  Generar nuevo QR
-                </button>
+                  </div>
+                ) : (
+                  <div className="flex h-[220px] w-[220px] flex-col items-center justify-center gap-2 text-center text-sm text-gray-600">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden />
+                    Generando QR…
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+              <button
+                type="button"
+                disabled={transferBusy}
+                onClick={() => void handleStartTransfer()}
+                className="mx-auto inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-60"
+              >
+                Generar nuevo QR
+              </button>
+            </div>
+          )}
 
           {canDownload ? (
             <section aria-labelledby="install-mobile-heading">

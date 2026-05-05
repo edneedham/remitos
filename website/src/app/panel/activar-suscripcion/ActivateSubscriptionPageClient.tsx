@@ -182,8 +182,10 @@ export default function ActivateSubscriptionPageClient() {
 
   if (!ready) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center text-sm text-gray-600">
-        Cargando…
+      <div className="bg-gray-50 px-4 pb-12 pt-6">
+        <div className="mx-auto max-w-[92rem] py-10 text-center text-sm text-gray-600">
+          Cargando…
+        </div>
       </div>
     );
   }
@@ -195,16 +197,18 @@ export default function ActivateSubscriptionPageClient() {
     !useMockPayment && Boolean(publicKey) && brickAmountArs == null && !pricingError;
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-        Activar suscripción
-      </h1>
-      <p className="mt-3 text-sm leading-relaxed text-gray-600">
-        Tu prueba terminó o el acceso pago no está vigente. Elegí un plan y
-        cargá un medio de pago para seguir usando la aplicación y el panel.
-      </p>
+    <div className="bg-gray-50 px-4 pb-12 pt-6">
+      <div className="mx-auto max-w-[92rem]">
+        <div className="max-w-xl">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            Activar suscripción
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-gray-600">
+            Tu prueba terminó o el acceso pago no está vigente. Elegí un plan y
+            cargá un medio de pago para seguir usando la aplicación y el panel.
+          </p>
 
-      <fieldset className="mt-8 space-y-3">
+          <fieldset className="mt-8 space-y-3">
         <legend className="text-sm font-semibold text-gray-900">Plan</legend>
         <div className="space-y-2">
           {SELECTABLE_PLANS.map((p) => (
@@ -233,12 +237,12 @@ export default function ActivateSubscriptionPageClient() {
             </label>
           ))}
         </div>
-      </fieldset>
+          </fieldset>
 
-      <p className="mt-6 text-sm leading-relaxed text-gray-600">
-        {pricingMeta?.legal_notice_ar ?? BILLING_LEGAL_NOTICE_AR}
-      </p>
-      {pricingMeta && !pricingError && !useMockPayment ? (
+          <p className="mt-6 text-sm leading-relaxed text-gray-600">
+            {pricingMeta?.legal_notice_ar ?? BILLING_LEGAL_NOTICE_AR}
+          </p>
+          {pricingMeta && !pricingError && !useMockPayment ? (
         <p className="mt-2 text-xs text-gray-500">
           Tipo de cambio al cobro (MEP + margen):{' '}
           <span className="font-medium text-gray-700">
@@ -263,9 +267,9 @@ export default function ActivateSubscriptionPageClient() {
             : null}
           {pricingMeta.fx_source ? ` · Fuente: ${pricingMeta.fx_source}` : null}
         </p>
-      ) : null}
+          ) : null}
 
-      <p className="mt-6 text-sm text-gray-600">
+          <p className="mt-6 text-sm text-gray-600">
         ¿Necesitás plan{' '}
         <span className="font-medium text-gray-800">Corporativo</span>? Escribinos
         a{' '}
@@ -273,9 +277,9 @@ export default function ActivateSubscriptionPageClient() {
           soporte@enpunto.app
         </a>
         .
-      </p>
+          </p>
 
-      <div className="mt-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+          <div className="mt-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
         {showMpConfigError ? (
           <p className="text-sm text-red-700" role="alert">
             Falta configurar{' '}
@@ -387,18 +391,18 @@ export default function ActivateSubscriptionPageClient() {
             soporte para activar la cuenta.
           </p>
         ) : null}
-      </div>
+          </div>
 
-      {error ? (
+          {error ? (
         <div
           className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
           role="alert"
         >
           {error}
         </div>
-      ) : null}
+          ) : null}
 
-      <p className="mt-8 text-center text-sm text-gray-500">
+          <p className="mt-8 text-center text-sm text-gray-500">
         <Link href="/panel/facturacion" className="text-blue-700 underline">
           Ver facturación
         </Link>
@@ -406,7 +410,9 @@ export default function ActivateSubscriptionPageClient() {
         <Link href="/panel" className="text-blue-700 underline">
           Volver al panel
         </Link>
-      </p>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

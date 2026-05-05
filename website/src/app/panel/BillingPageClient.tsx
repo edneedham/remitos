@@ -208,8 +208,8 @@ export default function BillingPageClient() {
 
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <header className="mx-auto max-w-2xl space-y-2 xl:mx-0">
+      <div className="mx-auto max-w-[92rem] space-y-8">
+        <header className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             Facturación
           </h1>
@@ -277,7 +277,7 @@ export default function BillingPageClient() {
         !billing.isArchived &&
         !billing.companyBillingInactive ? (
           <div
-            className="mx-auto max-w-2xl rounded-xl border border-amber-200 bg-amber-50 p-5 shadow-sm xl:mx-0 xl:max-w-none"
+            className="rounded-xl border border-amber-200 bg-amber-50 p-5 shadow-sm"
             role="region"
             aria-labelledby="usage-upgrade-heading"
           >
@@ -310,7 +310,7 @@ export default function BillingPageClient() {
 
         {entitlement ? (
           <section
-            className="mx-auto max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm xl:mx-0 xl:max-w-none"
+            className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
             aria-labelledby="billing-heading"
           >
             <h2

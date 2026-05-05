@@ -90,20 +90,22 @@ export default function ChangePasswordFormClient() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 px-4 py-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Cambiar contraseña</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Al guardar, cerramos tu sesión en el navegador y en todos los
-          dispositivos. Volvé a iniciar sesión con la nueva clave.
-        </p>
-      </div>
+    <div className="bg-gray-50 px-4 pb-12 pt-6">
+      <div className="mx-auto max-w-[92rem]">
+        <div className="max-w-lg space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Cambiar contraseña</h1>
+            <p className="mt-2 text-sm text-gray-600">
+              Al guardar, cerramos tu sesión en el navegador y en todos los
+              dispositivos. Volvé a iniciar sesión con la nueva clave.
+            </p>
+          </div>
 
-      <form
-        onSubmit={(e) => void handleSubmit(e)}
-        className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
-        noValidate
-      >
+          <form
+            onSubmit={(e) => void handleSubmit(e)}
+            className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+            noValidate
+          >
         {error && (
           <p
             className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700"
@@ -202,7 +204,9 @@ export default function ChangePasswordFormClient() {
             'Actualizar contraseña'
           )}
         </button>
-      </form>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

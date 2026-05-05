@@ -77,7 +77,7 @@ export default function DashboardShell({
 
       <div className="flex min-h-screen w-full min-w-0 flex-1 flex-col md:pl-64">
         <header className="sticky top-0 z-30 h-24 shrink-0 border-b border-gray-200 bg-white shadow-sm">
-          <div className="mx-auto h-full w-full max-w-[80vw] px-4 sm:px-6 md:max-w-[calc(80vw-16rem)] lg:px-8">
+          <div className="mx-auto h-full w-full max-w-[90vw] px-4 sm:px-6 md:max-w-[calc(90vw-16rem)] lg:px-8">
             <div className="flex h-full items-center justify-between gap-3">
               <div className="flex min-w-0 flex-1 items-center md:hidden">
                 <Link href="/" className="flex shrink-0 items-center" prefetch={false}>

@@ -146,21 +146,23 @@ export default function UpgradePlanPageClient() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-12">
-        <div
-          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-          role="alert"
-        >
-          {error}
-        </div>
-        <p className="mt-6">
-          <Link
-            href="/panel/facturacion"
-            className="text-sm font-semibold text-blue-700 underline"
+      <div className="bg-gray-50 px-4 pb-14 pt-8">
+        <div className="mx-auto max-w-[92rem] space-y-6">
+          <div
+            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            role="alert"
           >
-            Volver a Facturación
-          </Link>
-        </p>
+            {error}
+          </div>
+          <p>
+            <Link
+              href="/panel/facturacion"
+              className="text-sm font-semibold text-blue-700 underline"
+            >
+              Volver a Facturación
+            </Link>
+          </p>
+        </div>
       </div>
     );
   }
@@ -208,7 +210,7 @@ export default function UpgradePlanPageClient() {
 
   return (
     <div className="bg-gray-50 px-4 pb-14 pt-8">
-      <div className="mx-auto max-w-2xl space-y-8">
+      <div className="mx-auto max-w-[92rem] space-y-8">
         <header className="space-y-2">
           <p>
             <Link
