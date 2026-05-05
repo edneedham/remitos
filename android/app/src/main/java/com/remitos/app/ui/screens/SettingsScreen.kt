@@ -23,6 +23,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -62,6 +63,7 @@ import java.io.File
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenDebug: () -> Unit,
+    onChangePassword: () -> Unit = {},
     onLogout: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -124,6 +126,12 @@ fun SettingsScreen(
                         }
                     },
                 )
+                OutlinedButton(
+                    onClick = onChangePassword,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Cambiar contraseña")
+                }
             }
 
             SettingsCard(

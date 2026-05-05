@@ -125,6 +125,25 @@ data class UpdateOperatorPasswordRequest(
     val password: String
 )
 
+data class ForgotPasswordRequest(
+    @SerializedName("company_code")
+    val companyCode: String,
+    val username: String,
+)
+
+data class ChangePasswordRequest(
+    @SerializedName("current_password")
+    val currentPassword: String,
+    @SerializedName("new_password")
+    val newPassword: String,
+)
+
+data class ResetPasswordRequest(
+    val token: String,
+    @SerializedName("new_password")
+    val newPassword: String,
+)
+
 // Inbound Note Models
 
 data class InboundNoteDto(

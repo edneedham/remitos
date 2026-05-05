@@ -13,3 +13,9 @@ func NormalizeLoginRequest(req *models.LoginRequest) {
 	req.Username = strings.TrimSpace(req.Username)
 	req.DeviceName = strings.TrimSpace(req.DeviceName)
 }
+
+// NormalizeForgotPasswordRequest trims the same fields as login (no password).
+func NormalizeForgotPasswordRequest(req *models.ForgotPasswordRequest) {
+	req.CompanyCode = strings.TrimSpace(strings.ToUpper(req.CompanyCode))
+	req.Username = strings.TrimSpace(req.Username)
+}

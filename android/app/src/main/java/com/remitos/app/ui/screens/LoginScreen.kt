@@ -92,6 +92,7 @@ import kotlinx.coroutines.withContext
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onContinueOffline: () -> Unit,
+    onForgotPassword: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as RemitosApplication
@@ -289,6 +290,7 @@ fun LoginScreen(
                 }
             },
             onContinueOffline = onContinueOffline,
+            onForgotPassword = onForgotPassword,
         )
     }
 }
@@ -302,6 +304,7 @@ private fun LoginContent(
     onLogin: (String, String, String, Boolean) -> Unit,
     onSwitchAccount: (String) -> Unit,
     onContinueOffline: () -> Unit,
+    onForgotPassword: () -> Unit,
 ) {
     var companyCode by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
@@ -601,6 +604,20 @@ private fun LoginContent(
             isLoading = isLoading,
             modifier = Modifier.fillMaxWidth(),
         )
+
+        if (!isOperatorMode) {
+            Spacer(modifier = Modifier.height(Spacing.ItemSpacing))
+            TextButton(
+                onClick = onForgotPassword,
+                enabled = !isLoading,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = "¿Olvidaste tu contraseña?",
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
         
         Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
         

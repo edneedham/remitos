@@ -55,9 +55,10 @@ type AuthHandler struct {
 	publicSiteURL           string
 	billingRateQuoter       billing.USDARSQuoter
 	billingFXBufferFraction float64
+	passwordResetTokenRepo  *repository.PasswordResetTokenRepository
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, passwordResetTokenRepo *repository.PasswordResetTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64) *AuthHandler {
 	return &AuthHandler{
 		userRepo:                userRepo,
 		companyRepo:             companyRepo,
@@ -66,6 +67,7 @@ func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository
 		invoiceRepo:             invoiceRepo,
 		deviceRepo:              deviceRepo,
 		refreshTokenRepo:        refreshTokenRepo,
+		passwordResetTokenRepo:  passwordResetTokenRepo,
 		transferRepo:            transferRepo,
 		subscriptionRepo:        subscriptionRepo,
 		db:                      db,
@@ -1091,12 +1093,15 @@ func (h *AuthHandler) Routes() *chi.Mux {
 	r.Post("/signup", h.SignupTrial)
 	r.Post("/signup/trial", h.SignupTrial)
 	r.Post("/login", h.Login)
+	r.Post("/forgot-password", h.ForgotPassword)
+	r.Post("/reset-password", h.ResetPassword)
 	r.Post("/device", h.RegisterDevice)
 	r.Post("/refresh", h.Refresh)
 	r.Post("/transfer/claim", h.ClaimSessionTransfer)
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: h.jwtSvc, DeviceRepo: h.deviceRepo}))
 		r.Post("/logout", h.Logout)
+		r.Post("/change-password", h.ChangePassword)
 		r.Post("/me/plan", h.SelectMyPlan)
 		r.Post("/me/activate-subscription", h.PostMeActivateSubscription)
 		r.Post("/transfer/start", h.StartSessionTransfer)

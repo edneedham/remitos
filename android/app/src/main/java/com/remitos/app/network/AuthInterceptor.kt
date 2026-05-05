@@ -95,7 +95,9 @@ class AuthInterceptor(
             "/auth/register",
             "/auth/login",
             "/auth/device",
-            "/auth/refresh"
+            "/auth/refresh",
+            "/auth/forgot-password",
+            "/auth/reset-password",
         )
         return publicEndpoints.none { path.endsWith(it) }
     }

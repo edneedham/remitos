@@ -17,6 +17,7 @@ import (
 	"github.com/joho/godotenv"
 	"server/config"
 	"server/db"
+	"server/internal/models"
 	"server/internal/billing"
 	"server/internal/handlers"
 	"server/internal/jobs"
@@ -62,6 +63,7 @@ func main() {
 	warehouseRepo := repository.NewWarehouseRepository(db.Pool)
 	deviceRepo := repository.NewDeviceRepository(db.Pool)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
+	passwordResetTokenRepo := repository.NewPasswordResetTokenRepository(db.Pool)
 	transferRepo := repository.NewWebSessionTransferRepository(db.Pool)
 	subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
 	imageRepo := repository.NewImageRepository(db.Pool)
@@ -128,7 +130,7 @@ func main() {
 		}()
 		logger.Log.Info().Msg("Subscription lapse notice emails enabled (1h ticker)")
 	}
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction)
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, passwordResetTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction)
 	mpWebhookHandler := handlers.NewMercadoPagoWebhookHandler(
 		db.Pool,
 		invoiceRepo,
@@ -213,7 +215,7 @@ func main() {
 	}
 	h.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo}))
-		r.Use(middleware.RequireRole("admin"))
+		r.Use(middleware.RequireRoles(models.RoleCompanyOwner, models.RoleWarehouseAdmin))
 		r.Mount("/admin", adminHandler.Routes())
 	})
 	if imageHandler != nil {
