@@ -1,11 +1,30 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import {
+  allowContactoSubmission,
+  getContactoClientIP,
+} from '../../lib/contactoRateLimit';
 import { ContactFormSchema } from '../../lib/validations/contacto';
 import { sendContactAckEmail } from '../../lib/sendContactAck';
 
 const FORMSPREE_FORM_ID = process.env.FORMSPREE_FORM_ID;
 
 export async function POST(request: NextRequest) {
+  const clientIp = getContactoClientIP(request);
+  if (!allowContactoSubmission(clientIp)) {
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          'Demasiados intentos desde esta conexión. Probá de nuevo en unos minutos.',
+      },
+      {
+        status: 429,
+        headers: { 'Retry-After': '60' },
+      }
+    );
+  }
+
   if (!FORMSPREE_FORM_ID) {
     return NextResponse.json(
       { success: false, message: 'Form not configured' },
