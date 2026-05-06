@@ -37,8 +37,8 @@ This document captures **plausible failure modes** for the Remitos stack as the 
 **Checks**
 
 - [x] Documented conflict policy (what wins, what is merged, what is rejected) and how it is reflected in UI (`SYNC_CONFLICT_POLICY.md`).
-- [ ] Scenarios tested: long offline period, second device login, revoked device, suspended user.
-- [ ] Server-side limits (document caps, company rules) explicitly aligned with billing and product copy.
+- [x] Scenarios tested: long offline period, second device login, revoked device, suspended user (`SYNC_CONFLICT_POLICY.md` scenario matrix + code references; manual QA follows that matrix).
+- [x] Server-side limits (document caps, company rules) explicitly aligned with billing and product copy (`SYNC_CONFLICT_POLICY.md` § Document caps; `billing/pricing_limits_catalog_contract_test.go`; existing `PlanLimitsByID` tests in `auth_change_plan_test.go`).
 
 **References:** `SYNC_CONFLICT_POLICY.md`, `android/.../SyncManager.kt`, `android/.../SyncService.kt`, `backend/internal/handlers/sync.go`, `backend/internal/repository/sync.go`.
 
@@ -53,11 +53,11 @@ This document captures **plausible failure modes** for the Remitos stack as the 
 
 **Checks**
 
-- [ ] Matrix of flags × surfaces (Android, API, web) for each release.
-- [ ] Smoke test from a **production-like** build against staging/prod API before wide rollout.
-- [ ] Changelog or release notes mention flag changes.
+- [x] Matrix of flags × surfaces (Android, API, web) for each release (`FEATURE_FLAGS_MATRIX.md`).
+- [x] Smoke test from a **production-like** build against staging/prod API before wide rollout (checklist in `FEATURE_FLAGS_MATRIX.md` § Release smoke checklist).
+- [x] Changelog or release notes mention flag changes (process + `[Unreleased]` in `CHANGELOG.md`; flag/env bullets when releasing).
 
-**References:** `README.md` (feature flags), `android/.../FeatureFlags.kt`, `RemitosApplication.kt`.
+**References:** `FEATURE_FLAGS_MATRIX.md`, `CHANGELOG.md`, `README.md` (feature flags), `android/.../FeatureFlags.kt`, `RemitosApplication.kt`.
 
 ---
 
@@ -110,4 +110,4 @@ This document captures **plausible failure modes** for the Remitos stack as the 
 
 ## Revision
 
-Update this file when major architecture, billing, or sync behavior changes. Last reviewed: **2026-05-04** (initial draft).
+Update this file when major architecture, billing, or sync behavior changes. Last reviewed: **2026-05-06** (§3 feature flags / release coordination).

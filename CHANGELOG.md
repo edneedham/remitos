@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Release coordination
+
+- Documented **flags × surfaces** (Android / API / web), env alignment, and **pre-release smoke checklist** in `FEATURE_FLAGS_MATRIX.md`.
+- **Process:** When changing `FeatureFlags` wiring, `BACKEND_BASE_URL` per build type, or website `NEXT_PUBLIC_API_URL` expectations, add a bullet under the release version below.
+
 ## [0.2.0-alpha04] - 2026-03-14
 
 ### Android App UI Styling Unification

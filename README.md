@@ -117,6 +117,8 @@ Flags disponibles:
 - `enableImageUpload` - Subir imágenes al backend
 - `enableCloudSync` - Sincronizar auditoría con backend
 
+Para releases: ver **`FEATURE_FLAGS_MATRIX.md`** (matriz Android / API / web, checklist de smoke y disciplina de changelog).
+
 ## Licencia
 
 Proyecto privado - Todos los derechos reservados
