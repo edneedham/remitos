@@ -40,14 +40,18 @@ type AuthDeps struct {
 func Auth(deps AuthDeps) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
+			var tokenString string
+			if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+				if t := strings.TrimPrefix(authHeader, "Bearer "); t != authHeader {
+					tokenString = strings.TrimSpace(t)
+				}
 			}
-
-			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-			if tokenString == authHeader {
+			if tokenString == "" {
+				if c, err := r.Cookie(CookieWebAccess); err == nil {
+					tokenString = strings.TrimSpace(c.Value)
+				}
+			}
+			if tokenString == "" {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -108,17 +112,20 @@ func Auth(deps AuthDeps) func(http.Handler) http.Handler {
 						}
 
 						if deps.UserWarehouseRepo != nil {
-							hasAccess, errAccess := deps.UserWarehouseRepo.HasWarehouseAccess(ctx, claims.UserID, device.WarehouseID)
-							if errAccess != nil {
-								logger.Log.Error().Err(errAccess).Msg("Error checking warehouse access")
-							} else if !hasAccess {
-								logger.Log.Warn().
-									Str("user_id", claims.UserID.String()).
-									Str("device_id", deviceID.String()).
-									Str("warehouse_id", device.WarehouseID.String()).
-									Msg("User does not have access to device warehouse")
-								http.Error(w, "No tienes acceso a este depósito", http.StatusForbidden)
-								return
+							skipWarehouseACL := claims.Role == models.RoleCompanyOwner || claims.Role == models.RoleWarehouseAdmin
+							if !skipWarehouseACL {
+								hasAccess, errAccess := deps.UserWarehouseRepo.HasWarehouseAccess(ctx, claims.UserID, device.WarehouseID)
+								if errAccess != nil {
+									logger.Log.Error().Err(errAccess).Msg("Error checking warehouse access")
+								} else if !hasAccess {
+									logger.Log.Warn().
+										Str("user_id", claims.UserID.String()).
+										Str("device_id", deviceID.String()).
+										Str("warehouse_id", device.WarehouseID.String()).
+										Msg("User does not have access to device warehouse")
+									http.Error(w, "No tienes acceso a este depósito", http.StatusForbidden)
+									return
+								}
 							}
 						}
 

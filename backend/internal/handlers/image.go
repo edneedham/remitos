@@ -159,6 +159,11 @@ func (h *ImageHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateImageMagicBytes(contentType, data); err != nil {
+		RespondWithError(w, r, ErrCodeInvalidRequest, "El archivo no coincide con una imagen válida (JPEG, PNG o WEBP)", http.StatusBadRequest)
+		return
+	}
+
 	// Get warehouse ID from device
 	warehouseID := device.WarehouseID
 	userID, _ := uuid.Parse(claims.UserID)
@@ -318,6 +323,33 @@ func (h *ImageHandler) generateSignedURL(ctx context.Context, gcsPath string) (s
 }
 
 // isValidImageType checks if the content type is a valid image type
+func validateImageMagicBytes(contentType string, data []byte) error {
+	ct := strings.ToLower(strings.TrimSpace(contentType))
+	switch ct {
+	case "image/jpeg", "image/jpg":
+		if len(data) < 3 || data[0] != 0xFF || data[1] != 0xD8 || data[2] != 0xFF {
+			return fmt.Errorf("invalid jpeg")
+		}
+	case "image/png":
+		hdr := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
+		if len(data) < len(hdr) {
+			return fmt.Errorf("invalid png")
+		}
+		for i := range hdr {
+			if data[i] != hdr[i] {
+				return fmt.Errorf("invalid png")
+			}
+		}
+	case "image/webp":
+		if len(data) < 12 || string(data[0:4]) != "RIFF" || string(data[8:12]) != "WEBP" {
+			return fmt.Errorf("invalid webp")
+		}
+	default:
+		return fmt.Errorf("unsupported content type")
+	}
+	return nil
+}
+
 func isValidImageType(contentType string) bool {
 	validTypes := []string{
 		"image/jpeg",

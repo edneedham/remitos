@@ -11,7 +11,11 @@ import {
   type SignupTrialAccountErrors,
   type SignupTrialAccountField,
 } from '../lib/validations/signupTrial';
-import { saveWebSession } from '../lib/webAuth';
+import {
+  saveWebSession,
+  useWebCookieSession,
+  webCookieFetchInit,
+} from '../lib/webAuth';
 
 export type SignupTrialFormVariant = 'card' | 'embedded';
 
@@ -248,7 +252,7 @@ export default function SignupTrialForm({
       try {
         const res = await fetch(`${api}/auth/signup`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          ...webCookieFetchInit({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({
             email: email.trim(),
             password,
@@ -262,6 +266,7 @@ export default function SignupTrialForm({
           fields?: Record<string, string>;
           token?: string;
           refresh_token?: string;
+          session?: string;
         };
         if (!res.ok) {
           if (data.fields && typeof data.fields === 'object') {
@@ -286,11 +291,18 @@ export default function SignupTrialForm({
           );
           return;
         }
-        if (!data.token || !data.refresh_token) {
+        const cookieSession =
+          useWebCookieSession() && data.session === 'cookie';
+        if (
+          !cookieSession &&
+          (!data.token || !data.refresh_token)
+        ) {
           setError('Respuesta inválida del servidor.');
           return;
         }
-        saveWebSession(data.token, data.refresh_token);
+        if (!cookieSession) {
+          saveWebSession(data.token!, data.refresh_token!);
+        }
         if (onSignupSuccess) {
           onSignupSuccess();
           return;

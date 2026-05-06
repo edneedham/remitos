@@ -72,11 +72,10 @@ interface RemitosApiService {
     suspend fun registerDevice(@Body request: RegisterDeviceRequest): Response<DeviceRegistrationResponse>
 
     /**
-     * Get warehouses for the current user's company.
-     * @param companyCode Optional company code to get warehouses without auth
+     * List warehouses for the authenticated user's company (requires Authorization: Bearer).
      */
     @GET("warehouses")
-    suspend fun getWarehouses(@Query("company_code") companyCode: String? = null): Response<List<WarehouseDto>>
+    suspend fun getWarehouses(): Response<List<WarehouseDto>>
 
     // ==================== ADMIN / USERS ====================
 

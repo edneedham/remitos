@@ -17,9 +17,14 @@ vi.mock('../lib/apiUrl', () => ({
   getApiBaseUrl: () => mockGetApiBaseUrl(),
 }));
 
-vi.mock('../lib/webAuth', () => ({
-  saveWebSession: (...args: unknown[]) => mockSaveWebSession(...args),
-}));
+vi.mock('../lib/webAuth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/webAuth')>();
+  return {
+    ...actual,
+    useWebCookieSession: () => false,
+    saveWebSession: (...args: unknown[]) => mockSaveWebSession(...args),
+  };
+});
 
 async function renderTransferClient(token: string) {
   const mod = await import('./TransferPageClient');

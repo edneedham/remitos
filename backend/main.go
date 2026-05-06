@@ -37,6 +37,13 @@ func main() {
 	logger.Init(cfg.LogLevel)
 	logger.Log.Info().Str("version", Version).Msg("Starting server")
 
+	if strings.TrimSpace(cfg.JWTSecret) == "" {
+		logger.Log.Fatal().Msg("JWT_SECRET must be set to a non-empty value")
+	}
+	if strings.TrimSpace(cfg.MercadoPagoAccessToken) != "" && strings.TrimSpace(cfg.MercadoPagoWebhookSecret) == "" {
+		logger.Log.Warn().Msg("MERCADOPAGO_WEBHOOK_SECRET is empty; webhook x-signature verification is disabled. Set the secret from Mercado Pago → Your integrations → Webhooks.")
+	}
+
 	if err := db.Connect(cfg); err != nil {
 		logger.Log.Fatal().Err(err).Msg("Failed to connect to database")
 	}
@@ -59,6 +66,7 @@ func main() {
 	userRepo := repository.NewUserRepository(db.Pool)
 	companyRepo := repository.NewCompanyRepository(db.Pool)
 	warehouseRepo := repository.NewWarehouseRepository(db.Pool)
+	userWarehouseRepo := repository.NewUserWarehouseRepository(db.Pool)
 	deviceRepo := repository.NewDeviceRepository(db.Pool)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
 	passwordResetTokenRepo := repository.NewPasswordResetTokenRepository(db.Pool)
@@ -128,7 +136,7 @@ func main() {
 		}()
 		logger.Log.Info().Msg("Subscription lapse notice emails enabled (1h ticker)")
 	}
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, refreshTokenRepo, passwordResetTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction)
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, userWarehouseRepo, refreshTokenRepo, passwordResetTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction)
 	mpWebhookHandler := handlers.NewMercadoPagoWebhookHandler(
 		db.Pool,
 		invoiceRepo,
@@ -138,9 +146,10 @@ func main() {
 		mailSender,
 		cfg.PublicSiteURL,
 		cfg.BillingFXBufferFraction,
+		cfg.MercadoPagoWebhookSecret,
 	)
-	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo, companyRepo, deviceRepo, jwtSvc)
-	deviceHandler := handlers.NewDeviceHandler(deviceRepo, jwtSvc)
+	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo, companyRepo, deviceRepo, userWarehouseRepo, jwtSvc)
+	deviceHandler := handlers.NewDeviceHandler(deviceRepo, userWarehouseRepo, jwtSvc)
 	adminHandler := handlers.NewAdminHandler(userRepo, companyRepo, deviceRepo, jwtSvc)
 	scanHandler, err := handlers.NewScanHandler()
 	if err != nil {
@@ -223,24 +232,24 @@ func main() {
 	h.Mount("/devices", deviceHandler.Routes())
 	if scanHandler != nil {
 		h.Group(func(r chi.Router) {
-			r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo}))
+			r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo, UserWarehouseRepo: userWarehouseRepo}))
 			r.Mount("/scan", scanHandler.Routes())
 		})
 	}
 	h.Group(func(r chi.Router) {
-		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo}))
+		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo, UserWarehouseRepo: userWarehouseRepo}))
 		r.Use(middleware.RequireRoles(models.RoleCompanyOwner, models.RoleWarehouseAdmin))
 		r.Mount("/admin", adminHandler.Routes())
 	})
 	if imageHandler != nil {
 		h.Group(func(r chi.Router) {
-			r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo}))
+			r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo, UserWarehouseRepo: userWarehouseRepo}))
 			r.Mount("/images", imageHandler.Routes())
 		})
 		logger.Log.Info().Msg("Image upload endpoint registered at /images")
 	}
 	h.Group(func(r chi.Router) {
-		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo}))
+		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo, UserWarehouseRepo: userWarehouseRepo}))
 		r.Mount("/sync", syncHandler.Routes())
 	})
 	logger.Log.Info().Msg("Sync endpoint registered at /sync")

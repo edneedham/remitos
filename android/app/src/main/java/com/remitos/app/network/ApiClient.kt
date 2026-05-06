@@ -68,6 +68,35 @@ object ApiClient {
                 .also { apiService = it }
         }
     }
+
+    /**
+     * Short-lived API client with a Bearer token (e.g. after login before AuthManager persists tokens).
+     */
+    fun createBearerApiService(accessToken: String): RemitosApiService {
+        val baseUrl = FeatureFlags.backendBaseUrl
+            ?: throw IllegalStateException("Backend base URL not configured. Call FeatureFlags.configureBackendMode() first.")
+        val gson = GsonBuilder()
+            .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+            .create()
+        val client = OkHttpClient.Builder()
+            .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header("Authorization", "Bearer $accessToken")
+                        .build(),
+                )
+            }
+            .build()
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+            .create(RemitosApiService::class.java)
+    }
     
     private fun createUnauthenticatedRetrofit(): Retrofit {
         val baseUrl = FeatureFlags.backendBaseUrl

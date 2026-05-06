@@ -5,7 +5,8 @@ const mockPush = vi.fn();
 const mockReplace = vi.fn();
 const mockSearchParamGet = vi.fn();
 const mockGetApiBaseUrl = vi.fn();
-const mockGetWebAccessToken = vi.fn();
+const mockHasWebSession = vi.fn();
+const mockPostWithWebAuth = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -30,7 +31,8 @@ vi.mock('../lib/apiUrl', () => ({
 }));
 
 vi.mock('../lib/webAuth', () => ({
-  getWebAccessToken: () => mockGetWebAccessToken(),
+  hasWebSession: () => mockHasWebSession(),
+  postWithWebAuth: (...args: unknown[]) => mockPostWithWebAuth(...args),
 }));
 
 vi.mock('qrcode.react', () => ({
@@ -68,27 +70,23 @@ describe('SignupGate', () => {
     vi.clearAllMocks();
     mockSearchParamGet.mockReturnValue(null);
     mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
-    mockGetWebAccessToken.mockReturnValue('access-token');
-    vi.stubGlobal('fetch', vi.fn());
+    mockHasWebSession.mockReturnValue(true);
+    mockPostWithWebAuth.mockResolvedValue(new Response(null, { status: 200 }));
   });
 
   it('auto-applies preselected plan and redirects to trial onboarding', async () => {
     mockSearchParamGet.mockImplementation((k: string) =>
       k === 'plan' ? 'pyme' : null,
     );
-    const fetchMock = vi.fn(async () => ({ ok: true }));
-    vi.stubGlobal('fetch', fetchMock);
 
     await renderSignupGate();
     fireEvent.click(screen.getByRole('button', { name: 'Completar registro' }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    const [url, req] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('http://localhost:8080/auth/me/plan');
-    expect(req.method).toBe('POST');
-    expect(req.headers).toEqual(
+    await waitFor(() => expect(mockPostWithWebAuth).toHaveBeenCalledTimes(1));
+    expect(mockPostWithWebAuth).toHaveBeenCalledWith(
+      '/auth/me/plan',
       expect.objectContaining({
-        Authorization: 'Bearer access-token',
+        plan_id: 'pyme',
       }),
     );
     expect(mockPush).toHaveBeenCalledWith('/prueba-iniciada');
@@ -98,8 +96,7 @@ describe('SignupGate', () => {
     mockSearchParamGet.mockImplementation((k: string) =>
       k === 'plan' ? 'empresa' : null,
     );
-    const fetchMock = vi.fn(async () => ({ ok: false }));
-    vi.stubGlobal('fetch', fetchMock);
+    mockPostWithWebAuth.mockResolvedValue(new Response(null, { status: 500 }));
 
     await renderSignupGate();
     fireEvent.click(screen.getByRole('button', { name: 'Completar registro' }));

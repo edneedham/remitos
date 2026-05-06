@@ -17,7 +17,9 @@ import {
   getWebAccessToken,
   getWebRefreshToken,
   hasWebSession,
+  postWithWebAuth,
   refreshWebSession,
+  useWebCookieSession,
 } from '../../lib/webAuth';
 import { CHECKLIST_DOWNLOAD_PAGE_VISITED_KEY } from '../../lib/trialOnboardingChecklist';
 import type { Entitlement } from '../lib/entitlementTypes';
@@ -122,22 +124,23 @@ export default function ApplicationPageClient() {
       }
 
       await refreshWebSession();
-      const accessToken = getWebAccessToken();
-      const refreshToken = getWebRefreshToken();
-      if (!accessToken || !refreshToken) {
-        clearWebSession();
-        router.replace('/ingresar');
-        return;
+
+      if (!useWebCookieSession()) {
+        const accessToken = getWebAccessToken();
+        const refreshToken = getWebRefreshToken();
+        if (!accessToken || !refreshToken) {
+          clearWebSession();
+          router.replace('/ingresar');
+          return;
+        }
       }
 
-      const res = await fetch(`${api}/auth/transfer/start`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
+      const res = await postWithWebAuth(
+        '/auth/transfer/start',
+        useWebCookieSession()
+          ? {}
+          : { refresh_token: getWebRefreshToken()! },
+      );
 
       const body = (await res.json().catch(() => ({}))) as {
         token?: string;

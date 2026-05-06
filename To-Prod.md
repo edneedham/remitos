@@ -67,9 +67,10 @@ Set these in Cloud Run (values from your accounts — not committed):
 | Variable | Purpose |
 |----------|---------|
 | `MERCADOPAGO_ACCESS_TOKEN` | Production access token (MP dashboard, **production** credentials) |
-| `JWT_SECRET` | Long random string; signing web sessions |
+| `MERCADOPAGO_WEBHOOK_SECRET` | From Mercado Pago → Your integrations → Webhooks — validates **`x-signature`** on payment notifications (**recommended** for normal launch) |
+| `JWT_SECRET` | Long random string; signing web sessions (**required** — empty startup fails) |
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSLMODE=require` | Neon |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated origins, e.g. `https://www.yourdomain.com,https://yourdomain.com` |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated **exact** browser origins calling the API (must match **`Origin`**), e.g. `https://www.yourdomain.com,https://yourdomain.com` — **required** for browser cookie sessions (`credentials: 'include'`) |
 | `PUBLIC_SITE_URL` | Canonical marketing/site URL **no trailing slash**, e.g. `https://www.yourdomain.com` — used in emails |
 | `BILLING_USD_ARS_RATE` | Fallback FX if MEP API fails (**recommended** in prod) |
 | `BILLING_FX_BUFFER_FRACTION` | Default `0.07` unless you change pricing policy |
@@ -85,8 +86,7 @@ Mercado Pago **webhook** URL (configure in MP dashboard):
 
 - `POST https://<your-api-host>/webhooks/mercadopago`
 - Enable **`payment`** for payment notifications on charges created by the API.
-
-Also configure **webhook signature secret** in MP and plan to validate `x-signature` in the API when you harden (not yet required for first deploy, but do not skip long-term).
+- Copy the **webhook signing secret** from MP into **`MERCADOPAGO_WEBHOOK_SECRET`** on the API. When set, the API rejects unsigned / invalid **`x-signature`** headers (recommended before relying on webhooks for money movement).
 
 ---
 
@@ -105,6 +105,7 @@ Also configure **webhook signature secret** in MP and plan to validate `x-signat
 | `NEXT_PUBLIC_SITE_URL` | Public site URL (no trailing slash), same idea as `PUBLIC_SITE_URL` on the API |
 | `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` | **Production** public key from Mercado Pago (pairs with server token) |
 | `NEXT_PUBLIC_SIGNUP_USE_MOCK_PAYMENT` | Omit or **`false`** in production |
+| `NEXT_PUBLIC_WEB_COOKIE_SESSION` | Omit or leave **`true`** for httpOnly cookie sessions (recommended). Set **`false`** only to debug legacy sessionStorage tokens |
 | `FORMSPREE_FORM_ID` | If you use the contact form |
 | `API_URL` | Optional; used in `next.config.ts` for rewrites — align with your API if needed |
 
@@ -114,12 +115,19 @@ Redeploy after changing env vars.
 
 The API’s `CORS_ALLOWED_ORIGINS` must include your **exact** Vercel production origin(s), e.g. `https://your-app.vercel.app` and your custom domain.
 
+### Domains and cookie sessions
+
+If the site is on **Vercel** (`*.vercel.app`) and the API on **Cloud Run** (`*.run.app`), those are **different registrable domains** — browser cookie rules differ from using **`www.example.com`** + **`api.example.com`**. For predictable httpOnly sessions:
+
+- Prefer **custom domains** on both (e.g. site `https://www.yourdomain.com`, API `https://api.yourdomain.com`) under one registrable domain, **or**
+- Validate cookie + login flows carefully if you must keep default vendor hostnames.
+
 ---
 
 ## 5. Mercado Pago (single checklist)
 
 1. **Production** application + **production** access token (server) and **production** public key (browser).
-2. **Webhook** URL = `https://<api>/webhooks/mercadopago`, topic **`payment`**.
+2. **Webhook** URL = `https://<api>/webhooks/mercadopago`, topic **`payment`**, and copy the **webhook signing secret** to **`MERCADOPAGO_WEBHOOK_SECRET`** on the API.
 3. **Test** renewals and activation with **`BILLING_STUB_AUTO_CHARGE`** off only after sandbox validation; MP approval rules vary by card and region.
 4. **Test** in MP **sandbox** first if available for your account region.
 
@@ -145,9 +153,22 @@ The API’s `CORS_ALLOWED_ORIGINS` must include your **exact** Vercel production
 
 ## 8. Security reminders
 
-- Rotate **JWT_SECRET**, **Mercado Pago** tokens, and **DB password** if ever leaked.
+### Normal launch (do these)
+
+Small set that matches how the app is built today; everything else can wait until scale or abuse appears.
+
+1. **`JWT_SECRET`** — strong, unique value in Cloud Run (startup fails if unset).
+2. **`CORS_ALLOWED_ORIGINS`** — every production **and** preview/staging web origin that calls the API, **exact** scheme + host + port (comma-separated). Wrong/missing values break cookie-based login (`credentials: 'include'`).
+3. **`MERCADOPAGO_WEBHOOK_SECRET`** — copy from Mercado Pago **Your integrations → Webhooks** into the API env so payment notifications are **`x-signature`**-verified (recommended before relying on webhooks for billing).
+4. **HTTPS** on both site and API; **`DB_SSLMODE=require`** (or Neon-equivalent) for Postgres.
+
+Optional until you need them: shared rate limiting (Redis/edge), stricter CSP without `unsafe-eval`, lockfile + automated dependency audits — see code/security discussions in the repo.
+
+### Ongoing
+
+- Rotate **JWT_SECRET**, **Mercado Pago** tokens, **`MERCADOPAGO_WEBHOOK_SECRET`** (if MP rotates it), and **DB password** if ever leaked.
 - Restrict Neon IP allowlists if you use them; Cloud Run egress to Neon must be allowed.
-- Use **HTTPS** everywhere; never send tokens over HTTP in production.
+- Use **HTTPS** everywhere; never send secrets over HTTP in production.
 
 ---
 
@@ -163,13 +184,14 @@ Use this after **every production API deploy** (new Cloud Run revision) and when
 4. **Optional:** In the Mercado Pago dashboard, send a **test notification** for topic **`payment`** and confirm the API returns **200** in logs (payload may be ignored; avoid **5xx**).
 5. **Auth smoke:** Log in on the production site once (`NEXT_PUBLIC_API_URL` → same API). Confirms **`JWT_SECRET`** and DB connectivity end-to-end.
 
-**Note:** Long-term, validate Mercado Pago **`x-signature`** using the webhook signing secret configured in MP (see MP docs). That verification is not wired in this codebase yet; until then, smoke testing is **reachability + delivery logs**, not HMAC verification.
+**Note:** When **`MERCADOPAGO_WEBHOOK_SECRET`** is set on the API, POST bodies are **`x-signature`**-verified before processing. If the secret is unset, webhooks still reach the handler but signatures are not enforced — smoke testing then covers **reachability + logs**, not HMAC.
 
 ### When rotating secrets (each rotation event)
 
 | Secret | What to verify |
 |--------|----------------|
 | **`MERCADOPAGO_ACCESS_TOKEN`** | Card attach/save, renewal charges, webhook processing; MP dashboard shows successful webhook deliveries if applicable. |
+| **`MERCADOPAGO_WEBHOOK_SECRET`** | Update Cloud Run when MP rotates the signing secret; send a test webhook or trigger a sandbox payment and confirm **401** on bad signatures if you test manually. |
 | **`JWT_SECRET`** | Existing JWTs invalidate — users must log in again. Smoke: login, panel, `/auth/me`-equivalent flows. |
 | **DB password** (`DB_*`) | API starts; **`/health/ready`** returns **200**; no migration connection errors in logs. |
 | **`BILLING_RENEWAL_SECRET`** | `POST /internal/billing/trigger-renewal` with header **`X-Billing-Secret`** succeeds only with the **new** secret; the old secret must fail with **401** (or equivalent). |

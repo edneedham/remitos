@@ -16,10 +16,12 @@ type Config struct {
 	DBSSLMode  string
 	// DBPoolMaxConns caps PostgreSQL pool size (pgx). Zero means derive from CPU count (4–32).
 	DBPoolMaxConns int
-	JWTSecret      string
+	JWTSecret string
 
 	// Mercado Pago (server-side). Public key is only for the website (NEXT_PUBLIC_*).
 	MercadoPagoAccessToken string
+	// Webhook signing secret from Mercado Pago "Your integrations" (validates x-signature on POST notifications).
+	MercadoPagoWebhookSecret string
 	// Comma-separated origins for browser signup (e.g. http://localhost:3000).
 	CorsAllowedOrigins []string
 	// If true, signup accepts trial without a real card token (development only).
@@ -69,9 +71,10 @@ func Load() *Config {
 		DBName:     getEnv("DB_NAME", "server"),
 		DBSSLMode:      getEnv("DB_SSLMODE", "disable"),
 		DBPoolMaxConns: getEnvAsInt("DB_POOL_MAX_CONNS", 0),
-		JWTSecret:      getEnv("JWT_SECRET", "change-me-in-production"),
+		JWTSecret: strings.TrimSpace(getEnv("JWT_SECRET", "")),
 
 		MercadoPagoAccessToken:         getEnv("MERCADOPAGO_ACCESS_TOKEN", ""),
+		MercadoPagoWebhookSecret:       strings.TrimSpace(getEnv("MERCADOPAGO_WEBHOOK_SECRET", "")),
 		CorsAllowedOrigins:             splitCommaTrim(getEnv("CORS_ALLOWED_ORIGINS", "")),
 		SignupAllowMockPayment:         getEnv("SIGNUP_ALLOW_MOCK_PAYMENT", "") == "true",
 		BillingRenewalSecret:           strings.TrimSpace(getEnv("BILLING_RENEWAL_SECRET", "")),
