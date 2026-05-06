@@ -171,7 +171,7 @@ Use this after **every production API deploy** (new Cloud Run revision) and when
 |--------|----------------|
 | **`MERCADOPAGO_ACCESS_TOKEN`** | Card attach/save, renewal charges, webhook processing; MP dashboard shows successful webhook deliveries if applicable. |
 | **`JWT_SECRET`** | Existing JWTs invalidate — users must log in again. Smoke: login, panel, `/auth/me`-equivalent flows. |
-| **DB password** (`DB_*`) | API starts; `/health`; no migration connection errors in logs. |
+| **DB password** (`DB_*`) | API starts; **`/health/ready`** returns **200**; no migration connection errors in logs. |
 | **`BILLING_RENEWAL_SECRET`** | `POST /internal/billing/trigger-renewal` with header **`X-Billing-Secret`** succeeds only with the **new** secret; the old secret must fail with **401** (or equivalent). |
 
 Keep rotation steps in runbooks or tickets so each event leaves an audit trail.
