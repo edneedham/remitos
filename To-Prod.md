@@ -41,7 +41,7 @@ You can also use a single `DATABASE_URL` if you later add a small wrapper; this 
 
 ### After the database exists
 
-1. Point your **local** or **CI** environment at Neon (or a branch database) and run migrations (see `backend/db` and your usual migrate command).
+1. Point your **local** or **CI** environment at Neon (or a branch database) and run migrations (see **`OPERATIONS.md`** for how migrations run on deploy and rollback stance).
 2. **Never** run `SEED_LOCAL_DEV_USERS=true` in production.
 3. Store the connection values in **GCP Secret Manager** (or Cloud Run env from secrets) and/or Neon’s **Vercel integration** only if you use a DB client from Vercel (this app’s API uses the DB from **GCP**, not Vercel).
 
@@ -157,10 +157,11 @@ Use this after **every production API deploy** (new Cloud Run revision) and when
 
 ### After each API deploy
 
-1. **`GET /health`** on the public API URL → **200** and body `ok`.
-2. **Mercado Pago webhook reachability** — **`GET`** `https://<your-api-host>/webhooks/mercadopago` → **200** (Mercado Pago uses this when validating the webhook URL).
-3. **Optional:** In the Mercado Pago dashboard, send a **test notification** for topic **`payment`** and confirm the API returns **200** in logs (payload may be ignored; avoid **5xx**).
-4. **Auth smoke:** Log in on the production site once (`NEXT_PUBLIC_API_URL` → same API). Confirms **`JWT_SECRET`** and DB connectivity end-to-end.
+1. **`GET /health`** on the public API URL → **200** and body `ok` (process up).
+2. **`GET /health/ready`** → **200** `ok` if Postgres is reachable; **503** if not (use this for production uptime monitors—see **`OPERATIONS.md`**).
+3. **Mercado Pago webhook reachability** — **`GET`** `https://<your-api-host>/webhooks/mercadopago` → **200** (Mercado Pago uses this when validating the webhook URL).
+4. **Optional:** In the Mercado Pago dashboard, send a **test notification** for topic **`payment`** and confirm the API returns **200** in logs (payload may be ignored; avoid **5xx**).
+5. **Auth smoke:** Log in on the production site once (`NEXT_PUBLIC_API_URL` → same API). Confirms **`JWT_SECRET`** and DB connectivity end-to-end.
 
 **Note:** Long-term, validate Mercado Pago **`x-signature`** using the webhook signing secret configured in MP (see MP docs). That verification is not wired in this codebase yet; until then, smoke testing is **reachability + delivery logs**, not HMAC verification.
 
@@ -177,8 +178,8 @@ Keep rotation steps in runbooks or tickets so each event leaves an audit trail.
 
 ### Optional automation
 
-- **CI/post-deploy:** After deploy, `curl` **`/health`** and **`GET /webhooks/mercadopago`** (store production base URL in CI vars; no secrets in logs).
-- **Monitoring:** Uptime or synthetic checks on `/health` weekly; alert on non-200.
+- **CI/post-deploy:** After deploy, `curl` **`/health`**, **`/health/ready`**, and **`GET /webhooks/mercadopago`** (store production base URL in CI vars; no secrets in logs).
+- **Monitoring:** Prefer synthetic checks on **`/health/ready`** (includes DB); alert on non-200.
 
 ---
 

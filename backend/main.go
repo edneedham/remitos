@@ -165,6 +165,20 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
+	// Readiness: includes Postgres ping. Use for load balancers / uptime checks that should fail when DB is down.
+	h.Get("/health/ready", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := db.Pool.Ping(ctx); err != nil {
+			logger.Log.Warn().Err(err).Msg("health ready: database ping failed")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("db unavailable"))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+
 	// Mercado Pago may POST with a trailing slash or via proxies that add /api; aliases avoid false 404s.
 	for _, p := range []string{
 		"/webhooks/mercadopago",

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Operations
+
+- **`OPERATIONS.md`:** production migration path, **`GET /health` vs `GET /health/ready`** (DB ping), alerting guidance, production forbid-list env vars.
+- **API:** **`GET /health/ready`** returns **503** when Postgres is unreachable.
+
 ### Activation / trial funnel
 
 - **Authoritative first scan:** `GET /auth/me/entitlement` includes `first_scan_completed` and `first_scan_completed_at` (from synced inbound notes). Website checklist and analytics use this; legacy fallback remains `remitos_processed_last_30_days`.

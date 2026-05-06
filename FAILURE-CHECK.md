@@ -88,11 +88,11 @@ This document captures **plausible failure modes** for the Remitos stack as the 
 
 **Checks**
 
-- [ ] One documented migration path for production (who runs migrations, from where, rollback stance).
-- [ ] Health checks and alerting on API, DB connectivity, webhook receipt, and renewal job outcomes.
-- [ ] `SEED_LOCAL_DEV_USERS` and mock payment flags confirmed **never** enabled in production (`To-Prod.md`).
+- [x] One documented migration path for production (who runs migrations, from where, rollback stance) (`OPERATIONS.md` §1).
+- [x] Health checks and alerting on API, DB connectivity, webhook receipt, and renewal job outcomes (`OPERATIONS.md` §§2–3; **`GET /health/ready`** DB readiness; To-Prod §9 webhook smoke).
+- [x] `SEED_LOCAL_DEV_USERS` and mock payment flags documented **never** enabled in production (`OPERATIONS.md` §4; `To-Prod.md`).
 
-**References:** `To-Prod.md`, `backend/main.go` (migrations, seed), `.github/workflows/`.
+**References:** `OPERATIONS.md`, `To-Prod.md`, `backend/main.go`, `.github/workflows/backend.yml`.
 
 ---
 
@@ -110,4 +110,4 @@ This document captures **plausible failure modes** for the Remitos stack as the 
 
 ## Revision
 
-Update this file when major architecture, billing, or sync behavior changes. Last reviewed: **2026-05-06** (§3 feature flags; §4 activation funnel doc + API `first_scan_completed`).
+Update this file when major architecture, billing, or sync behavior changes. Last reviewed: **2026-05-06** (§5 operations: `OPERATIONS.md`, `/health/ready`).
