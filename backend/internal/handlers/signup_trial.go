@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"server/internal/logger"
+	"server/internal/middleware"
 	"server/internal/models"
 	notifymail "server/internal/notifications/email"
 	"server/internal/payments/mercadopago"
@@ -209,13 +210,31 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		TrialEndsAt   string `json:"trial_ends_at"`
 		MaxWarehouses int    `json:"max_warehouses"`
 		MaxUsers      int    `json:"max_users"`
-		Token         string `json:"token"`
-		RefreshToken  string `json:"refresh_token"`
+		Token         string `json:"token,omitempty"`
+		RefreshToken  string `json:"refresh_token,omitempty"`
 		ExpiresIn     int    `json:"expires_in"`
 		Role          string `json:"role"`
+		Session       string `json:"session,omitempty"`
 	}
 
 	h.queueSignupWelcomeEmail(email, companyName, companyCode, trialEnd)
+
+	if wantsWebCookies(r) {
+		middleware.SetWebSessionCookies(w, token, refreshToken, middleware.RequestIsHTTPS(r))
+		RespondWithJSON(w, http.StatusCreated, signupTrialResponse{
+			Message:       fmt.Sprintf("Cuenta creada. Tenés %d días de prueba.", signupTrialDays),
+			UserID:        user.ID.String(),
+			CompanyID:     companyID.String(),
+			CompanyCode:   companyCode,
+			TrialEndsAt:   trialEnd.Format(time.RFC3339),
+			MaxWarehouses: maxWarehouses,
+			MaxUsers:      maxUsers,
+			ExpiresIn:     900,
+			Role:          user.Role,
+			Session:       "cookie",
+		})
+		return
+	}
 
 	RespondWithJSON(w, http.StatusCreated, signupTrialResponse{
 		Message:       fmt.Sprintf("Cuenta creada. Tenés %d días de prueba.", signupTrialDays),

@@ -13,6 +13,8 @@ import {
   fetchWithWebAuth,
   hasWebSession,
   saveWebSession,
+  useWebCookieSession,
+  webCookieFetchInit,
 } from '../lib/webAuth';
 
 export default function LoginForm() {
@@ -78,7 +80,7 @@ export default function LoginForm() {
     try {
       const res = await fetch(`${api}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        ...webCookieFetchInit({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           company_code: companyCode.trim().toUpperCase(),
           username: username.trim(),
@@ -89,6 +91,7 @@ export default function LoginForm() {
       const data = (await res.json().catch(() => ({}))) as {
         token?: string;
         refresh_token?: string;
+        session?: string;
         message?: string;
         error?: string;
         fields?: Record<string, string>;
@@ -118,12 +121,19 @@ export default function LoginForm() {
         return;
       }
 
-      if (!data.token || !data.refresh_token) {
+      const cookieSession =
+        useWebCookieSession() && data.session === 'cookie';
+      if (
+        !cookieSession &&
+        (!data.token || !data.refresh_token)
+      ) {
         setError('Respuesta inválida del servidor.');
         return;
       }
 
-      saveWebSession(data.token, data.refresh_token);
+      if (!cookieSession) {
+        saveWebSession(data.token!, data.refresh_token!);
+      }
 
       const profile = await fetchProfile();
       if (!profile || !canAccessWebManagement(profile.role)) {

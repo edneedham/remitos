@@ -3,6 +3,9 @@ import { getApiBaseUrl } from './apiUrl';
 const ACCESS_KEY = 'enpunto_web_access_token';
 const REFRESH_KEY = 'enpunto_web_refresh_token';
 
+/** Matches backend middleware.CookieWebHint — non-secret session indicator. */
+const COOKIE_HINT_NAME = 'enpunto_web_hint';
+
 export type WebProfile = {
   id: string;
   username: string;
@@ -20,11 +23,31 @@ export const WEB_ALLOWED_ROLES = [
   'admin',
 ] as const;
 
+/** When false (env NEXT_PUBLIC_WEB_COOKIE_SESSION=false), legacy sessionStorage tokens are used. */
+export function useWebCookieSession(): boolean {
+  return process.env.NEXT_PUBLIC_WEB_COOKIE_SESSION !== 'false';
+}
+
+/** Extra fetch options for browser sessions (httpOnly cookies + CSRF-oriented header). */
+export function webCookieFetchInit(
+  headers: Record<string, string> = {},
+): Pick<RequestInit, 'credentials' | 'headers'> {
+  if (!useWebCookieSession()) {
+    return { headers };
+  }
+  return {
+    credentials: 'include',
+    headers: {
+      ...headers,
+      'X-Enpunto-Web': '1',
+    },
+  };
+}
+
 export function canAccessWebManagement(role: string): boolean {
   return (WEB_ALLOWED_ROLES as readonly string[]).includes(role);
 }
 
-/** Roles that may charge cards, change plans, manage operators (/admin), etc. */
 export function canManageBillingSubscriptions(role: string): boolean {
   return (
     role === 'company_owner' ||
@@ -33,13 +56,22 @@ export function canManageBillingSubscriptions(role: string): boolean {
   );
 }
 
-/** Roles that may call GET/POST /admin (operators). Same as billing managers for now. */
 export function canManageOperators(role: string): boolean {
   return canManageBillingSubscriptions(role);
 }
 
+function hasSessionHintCookie(): boolean {
+  if (typeof document === 'undefined') return false;
+  return document.cookie.split(';').some((part) => {
+    const name = part.trim().split('=')[0];
+    return name === COOKIE_HINT_NAME;
+  });
+}
+
+/** Legacy: store Bearer tokens (avoid when useWebCookieSession() is true). */
 export function saveWebSession(accessToken: string, refreshToken: string): void {
   if (typeof window === 'undefined') return;
+  if (useWebCookieSession()) return;
   sessionStorage.setItem(ACCESS_KEY, accessToken);
   sessionStorage.setItem(REFRESH_KEY, refreshToken);
 }
@@ -48,42 +80,68 @@ export function clearWebSession(): void {
   if (typeof window === 'undefined') return;
   sessionStorage.removeItem(ACCESS_KEY);
   sessionStorage.removeItem(REFRESH_KEY);
+  if (useWebCookieSession()) {
+    const secure =
+      typeof window !== 'undefined' && window.location.protocol === 'https:';
+    document.cookie = `${COOKIE_HINT_NAME}=; Path=/; Max-Age=0; SameSite=Lax${
+      secure ? '; Secure' : ''
+    }`;
+  }
 }
 
 export function getWebAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
+  if (useWebCookieSession()) return null;
   return sessionStorage.getItem(ACCESS_KEY);
 }
 
 export function getWebRefreshToken(): string | null {
   if (typeof window === 'undefined') return null;
+  if (useWebCookieSession()) return null;
   return sessionStorage.getItem(REFRESH_KEY);
 }
 
 export function hasWebSession(): boolean {
+  if (useWebCookieSession()) {
+    return hasSessionHintCookie();
+  }
   return Boolean(getWebAccessToken());
 }
 
 export async function logoutWebSession(): Promise<void> {
   const api = getApiBaseUrl();
-  const token = getWebAccessToken();
   try {
-    if (api && token) {
-      await fetch(`${api}/auth/logout`, {
+    if (api) {
+      const token = getWebAccessToken();
+      const init: RequestInit = {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+        ...webCookieFetchInit(
+          token ? { Authorization: `Bearer ${token}` } : {},
+        ),
+      };
+      await fetch(`${api}/auth/logout`, init);
     }
   } finally {
     clearWebSession();
   }
 }
 
-/** Returns false if refresh fails (session invalid). Updates sessionStorage on success. */
 export async function refreshWebSession(): Promise<boolean> {
   const api = getApiBaseUrl();
+  if (!api) {
+    return false;
+  }
+  if (useWebCookieSession()) {
+    const res = await fetch(`${api}/auth/refresh`, {
+      method: 'POST',
+      ...webCookieFetchInit({ 'Content-Type': 'application/json' }),
+      body: '{}',
+    });
+    return res.ok;
+  }
+
   const refreshToken = getWebRefreshToken();
-  if (!api || !refreshToken) {
+  if (!refreshToken) {
     return false;
   }
   const res = await fetch(`${api}/auth/refresh`, {
@@ -105,11 +163,25 @@ export async function refreshWebSession(): Promise<boolean> {
   return true;
 }
 
-/** GET with Bearer token; retries once after token refresh when the API returns 401. */
 export async function fetchWithWebAuth(path: string): Promise<Response> {
   const api = getApiBaseUrl();
   if (!api) {
     return new Response(null, { status: 500 });
+  }
+
+  if (useWebCookieSession()) {
+    let res = await fetch(`${api}${path}`, {
+      ...webCookieFetchInit(),
+    });
+    if (res.status === 401) {
+      const ok = await refreshWebSession();
+      if (ok) {
+        res = await fetch(`${api}${path}`, {
+          ...webCookieFetchInit(),
+        });
+      }
+    }
+    return res;
   }
 
   let token = getWebAccessToken();
@@ -134,7 +206,6 @@ export async function fetchWithWebAuth(path: string): Promise<Response> {
   return res;
 }
 
-/** POST JSON with Bearer; retries once after token refresh when the API returns 401. */
 export async function postWithWebAuth(
   path: string,
   body: unknown,
@@ -142,7 +213,6 @@ export async function postWithWebAuth(
   return jsonRequestWithWebAuth('POST', path, body);
 }
 
-/** PATCH JSON with Bearer; retries once after token refresh when the API returns 401. */
 export async function patchWithWebAuth(
   path: string,
   body: unknown,
@@ -150,7 +220,6 @@ export async function patchWithWebAuth(
   return jsonRequestWithWebAuth('PATCH', path, body);
 }
 
-/** PUT JSON with Bearer; retries once after token refresh when the API returns 401. */
 export async function putWithWebAuth(
   path: string,
   body: unknown,
@@ -158,7 +227,6 @@ export async function putWithWebAuth(
   return jsonRequestWithWebAuth('PUT', path, body);
 }
 
-/** DELETE with Bearer; retries once after token refresh when the API returns 401. */
 export async function deleteWithWebAuth(path: string): Promise<Response> {
   return jsonRequestWithWebAuth('DELETE', path, null);
 }
@@ -171,6 +239,26 @@ async function jsonRequestWithWebAuth(
   const api = getApiBaseUrl();
   if (!api) {
     return new Response(null, { status: 500 });
+  }
+
+  if (useWebCookieSession()) {
+    const send = () =>
+      fetch(`${api}${path}`, {
+        method,
+        ...webCookieFetchInit(
+          body !== null ? { 'Content-Type': 'application/json' } : {},
+        ),
+        ...(body !== null ? { body: JSON.stringify(body) } : {}),
+      });
+
+    let res = await send();
+    if (res.status === 401) {
+      const ok = await refreshWebSession();
+      if (ok) {
+        res = await send();
+      }
+    }
+    return res;
   }
 
   let token = getWebAccessToken();
@@ -201,7 +289,6 @@ async function jsonRequestWithWebAuth(
   return res;
 }
 
-/** Returns null when session is invalid or profile cannot be loaded. */
 export async function fetchProfile(): Promise<WebProfile | null> {
   const res = await fetchWithWebAuth('/auth/me');
   if (!res.ok) {

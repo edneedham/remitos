@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import { getPublicSiteOrigin } from '../lib/siteUrl';
-import { getWebAccessToken } from '../lib/webAuth';
+import { hasWebSession, postWithWebAuth } from '../lib/webAuth';
 import { trackTrialOnboardingEvent } from '../lib/trialOnboardingAnalytics';
 import LoadingSpinner from '../ui/components/shared/LoadingSpinner';
 import SignupMarketingAside from './SignupMarketingAside';
@@ -64,24 +64,16 @@ export default function SignupGate() {
                 }
 
                 const api = getApiBaseUrl();
-                const token = getWebAccessToken();
-                if (!api || !token) {
+                if (!api || !hasWebSession()) {
                   throw new Error('missing auth session');
                 }
 
-                const res = await fetch(`${api}/auth/me/plan`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({
-                    plan_id: plan.id,
-                    plan_name: plan.name,
-                    monthly_price: plan.monthlyPrice,
-                    billing_cycle: plan.customPricing ? 'custom' : 'monthly',
-                    trial_days: 7,
-                  }),
+                const res = await postWithWebAuth('/auth/me/plan', {
+                  plan_id: plan.id,
+                  plan_name: plan.name,
+                  monthly_price: plan.monthlyPrice,
+                  billing_cycle: plan.customPricing ? 'custom' : 'monthly',
+                  trial_days: 7,
                 });
                 if (!res.ok) {
                   throw new Error('failed to save selected plan');
@@ -165,26 +157,18 @@ export default function SignupGate() {
                     };
 
                     const api = getApiBaseUrl();
-                    const token = getWebAccessToken();
-                    if (!api || !token) {
+                    if (!api || !hasWebSession()) {
                       setShowPlanStep(true);
                       return;
                     }
 
                     setApplyingPreselectedPlan(true);
-                    const res = await fetch(`${api}/auth/me/plan`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify({
-                        plan_id: selectedPlan.id,
-                        plan_name: selectedPlan.name,
-                        monthly_price: selectedPlan.monthlyPrice,
-                        billing_cycle: 'monthly',
-                        trial_days: 7,
-                      }),
+                    const res = await postWithWebAuth('/auth/me/plan', {
+                      plan_id: selectedPlan.id,
+                      plan_name: selectedPlan.name,
+                      monthly_price: selectedPlan.monthlyPrice,
+                      billing_cycle: 'monthly',
+                      trial_days: 7,
                     });
 
                     if (!res.ok) {

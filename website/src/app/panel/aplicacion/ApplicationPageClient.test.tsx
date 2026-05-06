@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockReplace = vi.fn();
 const mockFetchWithWebAuth = vi.fn();
+const mockPostWithWebAuth = vi.fn();
 const mockHasWebSession = vi.fn();
 const mockRefreshWebSession = vi.fn();
 const mockGetApiBaseUrl = vi.fn();
@@ -21,6 +22,8 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('../../lib/webAuth', () => ({
   fetchWithWebAuth: (...args: unknown[]) => mockFetchWithWebAuth(...args),
+  postWithWebAuth: (...args: unknown[]) => mockPostWithWebAuth(...args),
+  useWebCookieSession: () => false,
   hasWebSession: () => mockHasWebSession(),
   refreshWebSession: () => mockRefreshWebSession(),
   getWebAccessToken: () => mockGetWebAccessToken(),
@@ -87,6 +90,15 @@ describe('ApplicationPageClient desktop QR transfer', () => {
     mockRefreshWebSession.mockResolvedValue(true);
     mockGetWebAccessToken.mockReturnValue('access-token');
     mockGetWebRefreshToken.mockReturnValue('refresh-token');
+    mockPostWithWebAuth.mockImplementation(
+      async (path: string, body: unknown) => {
+        return fetch(`http://localhost:8080${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      },
+    );
     mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
     mockIsLikelyMobileDevice.mockReturnValue(false);
     mockGetPublicSiteOrigin.mockReturnValue('https://enpunto.com.ar');

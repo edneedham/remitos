@@ -40,14 +40,18 @@ type AuthDeps struct {
 func Auth(deps AuthDeps) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
+			var tokenString string
+			if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+				if t := strings.TrimPrefix(authHeader, "Bearer "); t != authHeader {
+					tokenString = strings.TrimSpace(t)
+				}
 			}
-
-			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-			if tokenString == authHeader {
+			if tokenString == "" {
+				if c, err := r.Cookie(CookieWebAccess); err == nil {
+					tokenString = strings.TrimSpace(c.Value)
+				}
+			}
+			if tokenString == "" {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}

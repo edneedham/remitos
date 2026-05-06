@@ -4,11 +4,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/apiUrl';
-import { saveWebSession } from '../lib/webAuth';
+import {
+  saveWebSession,
+  useWebCookieSession,
+  webCookieFetchInit,
+} from '../lib/webAuth';
 
 type TransferClaimResponse = {
   token?: string;
   refresh_token?: string;
+  session?: string;
   message?: string;
 };
 
@@ -35,13 +40,18 @@ export default function TransferPageClient({ token }: { token: string }) {
       try {
         const res = await fetch(`${api}/auth/transfer/claim`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          ...webCookieFetchInit({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ token: normalizedToken }),
         });
         if (cancelled) return;
 
         const body = (await res.json().catch(() => ({}))) as TransferClaimResponse;
-        if (!res.ok || !body.token || !body.refresh_token) {
+        const cookieOk =
+          useWebCookieSession() && body.session === 'cookie';
+        if (
+          !res.ok ||
+          (!cookieOk && (!body.token || !body.refresh_token))
+        ) {
           setError(
             body.message ||
               'No se pudo completar la transferencia de sesión. Volvé a escanear el código QR.',
@@ -49,7 +59,9 @@ export default function TransferPageClient({ token }: { token: string }) {
           return;
         }
 
-        saveWebSession(body.token, body.refresh_token);
+        if (!cookieOk) {
+          saveWebSession(body.token!, body.refresh_token!);
+        }
         router.replace('/panel/aplicacion');
         router.refresh();
       } catch {

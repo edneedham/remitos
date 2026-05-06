@@ -104,18 +104,20 @@ type DeviceRegistrationResponse struct {
 }
 
 type LoginResponse struct {
-	Token        string `json:"token"`
-	RefreshToken string `json:"refresh_token"`
+	Token        string `json:"token,omitempty"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 	ExpiresIn    int    `json:"expires_in"`
 	Role         string `json:"role,omitempty"`
+	// Session is "cookie" when tokens were issued only as httpOnly cookies (browser clients).
+	Session string `json:"session,omitempty"`
 }
 
 type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token" validate:"required"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type TransferStartRequest struct {
-	RefreshToken string `json:"refresh_token" validate:"required"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type TransferClaimRequest struct {
@@ -358,6 +360,17 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	logger.Log.Info().Str("user_id", user.ID.String()).Msg("User logged in")
 
+	secure := middleware.RequestIsHTTPS(r)
+	if wantsWebCookies(r) {
+		middleware.SetWebSessionCookies(w, token, refreshToken, secure)
+		RespondWithJSON(w, http.StatusOK, LoginResponse{
+			ExpiresIn: 900,
+			Role:      user.Role,
+			Session:   "cookie",
+		})
+		return
+	}
+
 	RespondWithJSON(w, http.StatusOK, LoginResponse{
 		Token:        token,
 		RefreshToken: refreshToken,
@@ -374,9 +387,13 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.RefreshToken = strings.TrimSpace(req.RefreshToken)
-
-	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+	if req.RefreshToken == "" {
+		if c, err := r.Cookie(middleware.CookieWebRefresh); err == nil {
+			req.RefreshToken = strings.TrimSpace(c.Value)
+		}
+	}
+	if req.RefreshToken == "" {
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Token de refresh requerido", http.StatusBadRequest)
 		return
 	}
 
@@ -432,6 +449,16 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	logger.Log.Info().Str("user_id", user.ID.String()).Msg("Token refreshed")
 
+	secure := middleware.RequestIsHTTPS(r)
+	if wantsWebCookies(r) {
+		middleware.SetWebSessionCookies(w, newToken, newRefreshToken, secure)
+		RespondWithJSON(w, http.StatusOK, LoginResponse{
+			ExpiresIn: 900,
+			Session:   "cookie",
+		})
+		return
+	}
+
 	RespondWithJSON(w, http.StatusOK, LoginResponse{
 		Token:        newToken,
 		RefreshToken: newRefreshToken,
@@ -457,8 +484,13 @@ func (h *AuthHandler) StartSessionTransfer(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	req.RefreshToken = strings.TrimSpace(req.RefreshToken)
-	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+	if req.RefreshToken == "" {
+		if c, err := r.Cookie(middleware.CookieWebRefresh); err == nil {
+			req.RefreshToken = strings.TrimSpace(c.Value)
+		}
+	}
+	if req.RefreshToken == "" {
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Token de refresh requerido", http.StatusBadRequest)
 		return
 	}
 
@@ -559,6 +591,17 @@ func (h *AuthHandler) ClaimSessionTransfer(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	secure := middleware.RequestIsHTTPS(r)
+	if wantsWebCookies(r) {
+		middleware.SetWebSessionCookies(w, token, refreshToken, secure)
+		RespondWithJSON(w, http.StatusOK, LoginResponse{
+			ExpiresIn: 900,
+			Role:      user.Role,
+			Session:   "cookie",
+		})
+		return
+	}
+
 	RespondWithJSON(w, http.StatusOK, LoginResponse{
 		Token:        token,
 		RefreshToken: refreshToken,
@@ -591,9 +634,17 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	userClaims := middleware.GetUserClaims(r)
 	logger.Log.Info().Str("user_id", userClaims.UserID).Msg("User logged out")
 
+	if wantsWebCookies(r) {
+		middleware.ClearWebSessionCookies(w, middleware.RequestIsHTTPS(r))
+	}
+
 	RespondWithJSON(w, http.StatusOK, map[string]string{
 		"message": "Logout exitoso",
 	})
+}
+
+func wantsWebCookies(r *http.Request) bool {
+	return r.Header.Get("X-Enpunto-Web") == "1"
 }
 
 type meEntitlementResponse struct {
