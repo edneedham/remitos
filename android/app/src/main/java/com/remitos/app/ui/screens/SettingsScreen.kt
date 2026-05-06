@@ -43,6 +43,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.remitos.app.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.remitos.app.BuildConfig
@@ -231,6 +233,19 @@ fun SettingsScreen(
                             description = "Esperar WiFi",
                         )
                     }
+                }
+            }
+
+            if (FeatureFlags.enableCloudSync) {
+                SettingsCard(
+                    title = stringResource(R.string.settings_sync_title),
+                    icon = Icons.Outlined.Cloud,
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_sync_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 

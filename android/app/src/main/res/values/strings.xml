@@ -101,4 +101,8 @@
     <string name="first_run_scan_banner_title">Primer remito</string>
     <string name="first_run_scan_banner_body">Elegí una foto del remito o usá la cámara. Podés corregir los datos antes de guardar.</string>
     <string name="snackbar_first_remito_saved">¡Listo! Tu primer remito quedó guardado. Vas a verlo en Historial cuando sincronice.</string>
+    <string name="sync_error_dialog_title">No se pudo sincronizar</string>
+    <string name="sync_uploads_blocked_entitlement">Se bajaron datos del servidor, pero no se pudieron enviar tus cambios (plan o suscripción sin acceso a la app). Los datos siguen en el dispositivo. El administrador puede regularizarla en el panel web.</string>
+    <string name="settings_sync_title">Sincronización con la nube</string>
+    <string name="settings_sync_body">Con conexión, la app sube cambios y luego descarga lo nuevo del servidor. Si dos dispositivos editan el mismo remito sin conexión, prevalece la última subida que llegue al servidor. Si no tenés acceso activo, podés seguir trabajando en el teléfono y los cambios quedan pendientes hasta que el administrador regularice la suscripción.</string>
 </resources>

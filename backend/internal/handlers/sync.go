@@ -178,7 +178,8 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 			OutboundLists: outboundListMappings,
 			OutboundLines: outboundLineMappings,
 		},
-		Conflicts: []interface{}{},
+		Conflicts:       []interface{}{},
+		UploadsApplied:  uploadsAllowed,
 	}
 
 	RespondWithJSON(w, http.StatusOK, response)

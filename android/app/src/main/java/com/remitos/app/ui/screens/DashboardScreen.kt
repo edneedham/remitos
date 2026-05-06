@@ -37,6 +37,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -155,6 +157,14 @@ fun DashboardScreen(
     val syncState by syncManager.syncState.collectAsState()
     val isSyncing by syncManager.isSyncing.collectAsState()
     val syncMessage by syncManager.syncMessage.collectAsState()
+    val syncSnackbarNotice by syncManager.syncSnackbarNotice.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(syncSnackbarNotice, snackbarHostState) {
+        val msg = syncSnackbarNotice ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = msg)
+        syncManager.consumeSyncSnackbarNotice()
+    }
     
     // Load role from local database if AuthManager doesn't have it
     var role by remember {
@@ -262,6 +272,21 @@ fun DashboardScreen(
             )
         }
         else -> { }
+    }
+
+    val syncErr = syncState as? SyncState.Error
+    if (syncErr != null) {
+        AlertDialog(
+            onDismissRequest = { syncManager.resetState() },
+            containerColor = Color.White,
+            title = { Text(stringResource(R.string.sync_error_dialog_title)) },
+            text = { Text(syncErr.message) },
+            confirmButton = {
+                TextButton(onClick = { syncManager.resetState() }) {
+                    Text(stringResource(R.string.aceptar))
+                }
+            },
+        )
     }
     
     if (showUnlockDialog) {
@@ -373,7 +398,9 @@ fun DashboardScreen(
         )
     }
     
-    Scaffold { padding ->
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

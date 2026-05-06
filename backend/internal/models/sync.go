@@ -91,4 +91,6 @@ type SyncResponse struct {
 	OutboundLists   []SyncOutboundList `json:"outbound_lists"`
 	IdMappings      SyncIdMappings     `json:"id_mappings"`
 	Conflicts       []interface{}      `json:"conflicts"`
+	// UploadsApplied is false when uploads were gated (billing/entitlement) so clients can explain partial sync.
+	UploadsApplied bool `json:"uploads_applied"`
 }

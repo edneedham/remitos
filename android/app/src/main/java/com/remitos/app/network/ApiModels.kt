@@ -478,7 +478,11 @@ data class SyncResponse(
     val idMappings: SyncIdMappings,
     
     @SerializedName("conflicts")
-    val conflicts: List<ConflictDto> = emptyList()
+    val conflicts: List<ConflictDto> = emptyList(),
+
+    /** False when API skipped upserts due to entitlement; omit/null on older backends (treat as unknown). */
+    @SerializedName("uploads_applied")
+    val uploadsApplied: Boolean? = null,
 )
 
 data class SyncIdMappings(
@@ -524,16 +528,12 @@ data class ConflictDto(
     val conflictField: String? = null
 )
 
-// Error Response
-
+/** Matches backend `handlers.ErrorResponse` (POST /sync and other APIs). */
 data class ErrorResponse(
-    @SerializedName("error_code")
-    val errorCode: String,
-    
-    val message: String,
-    
-    @SerializedName("field_errors")
-    val fieldErrors: Map<String, String>? = null
+    /** Error code enum as string (e.g. FORBIDDEN). */
+    val error: String? = null,
+    val message: String? = null,
+    val fields: Map<String, String>? = null,
 )
 
 // Pagination

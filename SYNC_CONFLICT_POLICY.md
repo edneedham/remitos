@@ -40,8 +40,39 @@ So **server state after step 2 is what gets replicated** to other clients on the
 ## Upload gating (billing / entitlement)
 
 - Server applies upserts **only if** `billing.CompanyHasAppDownloadAccess` is true for the company at sync time (`backend/internal/handlers/sync.go`).
-- If uploads are **blocked**, **no inbound/outbound upserts** run, but the handler **still returns** server-side rows since `last_sync_timestamp` so the device can **receive** updates.
+- If uploads are **blocked**, **no inbound/outbound upserts** run, but the handler **still returns** server-side rows since `last_sync_timestamp` so the device can **receive** updates. The JSON body includes **`uploads_applied`: false** when upserts were skipped (true when they ran); the Android app surfaces a **Snackbar** if local changes were pending while uploads were gated.
 - Document limits: if `documents_monthly_limit` is set and would be exceeded by the incoming batch, sync responds **403** with a Spanish limit message.
+
+---
+
+## Document caps (catalog ↔ billing ↔ sync)
+
+Enforced caps for self-serve catalog plans are defined once in **`billing.PlanLimitsByID`** (`backend/internal/billing/pricing.go`). They are copied onto **`companies.documents_monthly_limit`** (and warehouse/user caps) when a company’s plan is applied (signup, upgrades, renewal sweep).
+
+| Surface | Role |
+|--------|------|
+| Public marketing | `website/src/app/lib/planCatalog.ts` perk strings (must match `PlanLimitsByID`; **`pricing_limits_catalog_contract_test.go`**) |
+| Panel / app entitlement | `GET /auth/me` and related handlers expose `documents_monthly_limit`; dashboard usage (`DocumentUsageSection`, billing UI) |
+| Sync | `POST /sync` compares MTD inbound note count + projected **new** notes in the batch against `documents_monthly_limit`; overage → **403** with body `Límite de documentos de tu plan alcanzado para este mes.` (`sync.go`) |
+| Android | Failed sync surfaces API error text via **`SyncState.Error(message)`** (same handler message for limit errors) |
+
+**Company rules** (warehouses, users) use the same plan caps when provisioning or changing plans; those checks live outside this sync handler (e.g. warehouse and operator endpoints). Corporativo uses **nil** limits in `PlanLimitsByID` (negotiated / manual).
+
+---
+
+## Scenario matrix (failure-check §2)
+
+Support and QA can trace these behaviors to code paths:
+
+| Scenario | Expected behavior | Primary code |
+|----------|-------------------|----------------|
+| Long offline then reconnect | Pending uploads run on next sync; server applies **last writer wins** for conflicting `cloud_id`; other devices receive updates on **pull** (`updated_at` > `last_sync_timestamp`). | `SyncManager.kt`, `SyncService.kt`, `sync.go`, `repository/sync.go` |
+| Second device / same account | Same company: concurrent edits converge on **last successful upsert** to the API; no merge UI. | Same as § concurrent edits above |
+| Device revoked | Before posting `/sync`, **`getUserStatus`**: `deviceStatus == "revoked"` → **`SyncState.DeviceRevoked`** → blocking dialog and re-registration flow (no merge of uploads). | `SyncManager.kt` (lines ~76–88), `DashboardScreen.kt`, `AuthInterceptor.kt` |
+| User suspended | **`userStatus != "active"`** → **`SyncState.UserSuspended`** → blocking dialog and logout-style handling. | `SyncManager.kt`, `DashboardScreen.kt` |
+| Monthly document cap exceeded | If the batch would exceed the cap, the **entire** `POST /sync` returns **403** (Spanish limit message) and no sync response body; a later sync with fewer new documents or after MTD window moves can succeed. | `sync.go` |
+
+**Automated checks:** plan tier limits vs handler (`auth_change_plan_test.go`); USD catalog vs web (`pricing_catalog_contract_test.go`); marketing perk lines vs `PlanLimitsByID` (`pricing_limits_catalog_contract_test.go`).
 
 ---
 

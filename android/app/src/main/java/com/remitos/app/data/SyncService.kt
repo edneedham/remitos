@@ -14,9 +14,15 @@ import com.remitos.app.network.SyncEditHistoryDto
 import com.remitos.app.network.SyncInboundNoteDto
 import com.remitos.app.network.SyncOutboundLineDto
 import com.remitos.app.network.SyncOutboundListDto
+import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
+import com.remitos.app.network.ErrorResponse
 import com.remitos.app.network.SyncRequest
 import com.remitos.app.network.SyncResponse
 import com.remitos.app.network.SyncStatusHistoryDto
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import javax.net.ssl.SSLException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -27,11 +33,15 @@ class SyncService(
 ) {
     companion object {
         private const val TAG = "SyncService"
+        private val gson = Gson()
     }
 
     suspend fun performFullSync(lastSyncTimestamp: Long): SyncResult = withContext(Dispatchers.IO) {
         try {
-            val apiService = getApiService() ?: return@withContext SyncResult.Error("Not authenticated")
+            val apiService = getApiService() ?: return@withContext SyncResult.Error(
+                "No autenticado. Iniciá sesión para sincronizar.",
+                isTransient = false,
+            )
 
             val inboundDao = db.inboundDao()
             val outboundDao = db.outboundDao()
@@ -73,6 +83,12 @@ class SyncService(
             val syncStatusHistory = unsyncedStatusHistory.map { it.toSyncDto() }
             val syncEditHistory = unsyncedEditHistory.map { it.toSyncDto() }
 
+            val hadWorkToUpload =
+                syncInboundNotes.isNotEmpty() ||
+                    syncOutboundLists.isNotEmpty() ||
+                    syncStatusHistory.isNotEmpty() ||
+                    syncEditHistory.isNotEmpty()
+
             val request = SyncRequest(
                 lastSyncTimestamp = lastSyncTimestamp,
                 inboundNotes = syncInboundNotes,
@@ -84,21 +100,90 @@ class SyncService(
             val response = apiService.sync(request)
 
             if (!response.isSuccessful) {
-                val errorBody = response.errorBody()?.string() ?: "Unknown error"
-                Log.e(TAG, "Sync failed: HTTP ${response.code()} - $errorBody")
-                return@withContext SyncResult.Error("HTTP ${response.code()}: $errorBody")
+                val errorBody = response.errorBody()?.string().orEmpty()
+                Log.e(TAG, "Sync failed: HTTP ${response.code()} — $errorBody")
+                val (userMessage, transient) = humanizeSyncHttpFailure(response.code(), errorBody)
+                return@withContext SyncResult.Error(userMessage, transient)
             }
 
-            val syncResponse = response.body() ?: return@withContext SyncResult.Error("Empty response body")
+            val syncResponse = response.body() ?: return@withContext SyncResult.Error(
+                "Respuesta vacía del servidor.",
+                isTransient = true,
+            )
 
             applyServerChanges(syncResponse)
             markLocalAsSynced(syncResponse)
 
-            SyncResult.Success(syncResponse.serverTimestamp)
+            val uploadsWereBlocked =
+                hadWorkToUpload && syncResponse.uploadsApplied == false
+
+            SyncResult.Success(
+                serverTimestamp = syncResponse.serverTimestamp,
+                uploadsWereBlockedByEntitlement = uploadsWereBlocked,
+            )
+        } catch (e: SocketTimeoutException) {
+            Log.e(TAG, "Sync timed out", e)
+            SyncResult.Error("Tiempo de espera agotado. Reintentamos automáticamente si la red está inestable.", true)
+        } catch (e: UnknownHostException) {
+            Log.e(TAG, "Sync host unknown", e)
+            SyncResult.Error("Sin conexión o no se pudo alcanzar el servidor.", true)
+        } catch (e: SSLException) {
+            Log.e(TAG, "Sync TLS error", e)
+            SyncResult.Error("Falló la conexión segura. Verificá la fecha del dispositivo o la red.", true)
         } catch (e: Exception) {
             Log.e(TAG, "Sync failed", e)
-            SyncResult.Error(e.message ?: "Unknown sync error")
+            val transient = isLikelyTransientIOException(e)
+            SyncResult.Error(e.message ?: "Error de sincronización", transient)
         }
+    }
+
+    /** Best-effort: treat broken pipe / resets as retryable without listing every JDK type. */
+    private fun isLikelyTransientIOException(e: Exception): Boolean {
+        val name = e.javaClass.simpleName.lowercase()
+        return name.contains("timeout") ||
+            name.contains("unavailable") ||
+            name.contains("connection") ||
+            name.contains("broken") ||
+            name.contains("reset") ||
+            name.contains("eof")
+    }
+
+    private fun humanizeSyncHttpFailure(httpCode: Int, errorBody: String): Pair<String, Boolean> {
+        val parsedMsg = extractApiErrorMessage(errorBody)
+        val userMessage =
+            parsedMsg?.takeIf { it.isNotBlank() }
+                ?: defaultMessageForHttpCode(httpCode)
+
+        val transient = when (httpCode) {
+            408,
+            425,
+            429,
+            502,
+            503,
+            504,
+                -> true
+            in 500..599 -> true
+            else -> false
+        }
+        return Pair(userMessage, transient)
+    }
+
+    private fun extractApiErrorMessage(errorBody: String): String? {
+        if (errorBody.isBlank()) return null
+        return try {
+            gson.fromJson(errorBody.trim(), ErrorResponse::class.java)?.message?.trim()?.takeIf { it.isNotEmpty() }
+        } catch (_: JsonSyntaxException) {
+            errorBody.trim().takeIf { it.length < 500 }
+        }
+    }
+
+    private fun defaultMessageForHttpCode(code: Int): String = when (code) {
+        401 -> "Sesión caducada. Volvé a iniciar sesión."
+        403 -> "No está permitido sincronizar ahora."
+        404 -> "Empresa o recurso no encontrado."
+        429 -> "Demasiadas solicitudes. Probá dentro de unos minutos."
+        in 500..599 -> "El servidor respondió un error. Reintentamos automáticamente."
+        else -> "Error de sincronización (HTTP $code)."
     }
 
     private suspend fun applyServerChanges(response: SyncResponse) {
@@ -244,8 +329,13 @@ class SyncService(
     }
 
     sealed class SyncResult {
-        data class Success(val serverTimestamp: Long) : SyncResult()
-        data class Error(val message: String) : SyncResult()
+        data class Success(
+            val serverTimestamp: Long,
+            /** True when uploads were gated by entitlement; local outbound rows stayed pending. */
+            val uploadsWereBlockedByEntitlement: Boolean,
+        ) : SyncResult()
+
+        data class Error(val message: String, val isTransient: Boolean) : SyncResult()
     }
 }
 

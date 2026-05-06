@@ -3,17 +3,15 @@ package com.remitos.app.data
 import android.content.Context
 import android.util.Log
 import com.remitos.app.network.ApiClient
-import com.remitos.app.network.RemitosApiService
 import com.remitos.app.network.UserStatusResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import com.remitos.app.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-
 sealed class SyncState {
     data object Idle : SyncState()
     data object Syncing : SyncState()
@@ -32,12 +30,18 @@ class SyncManager(
         private const val TAG = "SyncManager"
         private const val PREFS_NAME = "sync_prefs"
         private const val KEY_LAST_SYNC_TIMESTAMP = "last_sync_timestamp"
+        private const val MAX_SYNC_ATTEMPTS = 3
+        private const val SYNC_RETRY_BASE_DELAY_MS = 1200L
     }
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _syncState = MutableStateFlow<SyncState>(SyncState.Idle)
     val syncState: StateFlow<SyncState> = _syncState.asStateFlow()
+
+    /** One-shot informational message (e.g. uploads gated); UI shows as Snackbar then calls [consumeSyncSnackbarNotice]. */
+    private val _syncSnackbarNotice = MutableStateFlow<String?>(null)
+    val syncSnackbarNotice: StateFlow<String?> = _syncSnackbarNotice.asStateFlow()
 
     private val _syncMessage = MutableStateFlow<String?>(null)
     val syncMessage: StateFlow<String?> = _syncMessage.asStateFlow()
@@ -91,12 +95,16 @@ class SyncManager(
                 }
 
                 _syncMessage.value = "Sincronizando datos..."
-                val result = performFullSync()
+                val result = performFullSyncWithRetries()
 
                 when (result) {
                     is SyncService.SyncResult.Success -> {
                         saveLastSyncTimestamp(result.serverTimestamp)
                         _syncState.value = SyncState.Success
+                        if (result.uploadsWereBlockedByEntitlement) {
+                            _syncSnackbarNotice.value =
+                                context.getString(R.string.sync_uploads_blocked_entitlement)
+                        }
                     }
                     is SyncService.SyncResult.Error -> {
                         _syncState.value = SyncState.Error(result.message)
@@ -112,15 +120,43 @@ class SyncManager(
         }
     }
 
-    private suspend fun performFullSync(): SyncService.SyncResult {
+    private suspend fun performFullSyncWithRetries(): SyncService.SyncResult {
+        var lastError: SyncService.SyncResult.Error? = null
+        repeat(MAX_SYNC_ATTEMPTS) { attempt ->
+            when (val r = performFullSyncOnce()) {
+                is SyncService.SyncResult.Success -> return r
+                is SyncService.SyncResult.Error -> {
+                    lastError = r
+                    if (r.isTransient && attempt < MAX_SYNC_ATTEMPTS - 1) {
+                        delay(SYNC_RETRY_BASE_DELAY_MS * (attempt + 1))
+                    } else {
+                        return r
+                    }
+                }
+            }
+        }
+        return lastError ?: SyncService.SyncResult.Error(
+            "Error de sincronización.",
+            isTransient = false,
+        )
+    }
+
+    private suspend fun performFullSyncOnce(): SyncService.SyncResult {
         val userId = authManager.getCurrentUser()
-            ?: return SyncService.SyncResult.Error("Not authenticated")
+            ?: return SyncService.SyncResult.Error(
+                "No autenticado. Iniciá sesión para sincronizar.",
+                isTransient = false,
+            )
 
         val db = DatabaseManager.getDatabase(context, userId)
         val syncService = SyncService(context, authManager, db)
         val lastSyncTimestamp = getLastSyncTimestamp()
 
         return syncService.performFullSync(lastSyncTimestamp)
+    }
+
+    fun consumeSyncSnackbarNotice() {
+        _syncSnackbarNotice.value = null
     }
 
     private suspend fun checkUserStatus(): UserStatusResponse? {
@@ -152,5 +188,6 @@ class SyncManager(
 
     fun resetState() {
         _syncState.value = SyncState.Idle
+        _syncSnackbarNotice.value = null
     }
 }
