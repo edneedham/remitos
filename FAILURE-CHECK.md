@@ -36,11 +36,11 @@ This document captures **plausible failure modes** for the Remitos stack as the 
 
 **Checks**
 
-- [ ] Documented conflict policy (what wins, what is merged, what is rejected) and how it is reflected in UI.
+- [x] Documented conflict policy (what wins, what is merged, what is rejected) and how it is reflected in UI (`SYNC_CONFLICT_POLICY.md`).
 - [ ] Scenarios tested: long offline period, second device login, revoked device, suspended user.
 - [ ] Server-side limits (document caps, company rules) explicitly aligned with billing and product copy.
 
-**References:** `android/.../SyncManager.kt`, `android/.../SyncService.kt`, `backend/internal/handlers/sync.go`, `backend/internal/repository/sync.go`.
+**References:** `SYNC_CONFLICT_POLICY.md`, `android/.../SyncManager.kt`, `android/.../SyncService.kt`, `backend/internal/handlers/sync.go`, `backend/internal/repository/sync.go`.
 
 ---
 
