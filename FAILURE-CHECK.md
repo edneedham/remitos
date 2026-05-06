@@ -70,11 +70,11 @@ This document captures **plausible failure modes** for the Remitos stack as the 
 
 **Checks**
 
-- [ ] Funnel events verified end-to-end in production with a real trial account.
-- [ ] Platform CTAs match **shipping** clients; placeholders removed or gated.
-- [ ] Deep links and “send link to phone” (if implemented) monitored for failure rates.
+- [ ] Funnel events verified end-to-end in production with a real trial account (owner verifies).
+- [x] Platform CTAs match **shipping** clients (`/prueba-iniciada` Android-only copy; `TRIAL_ONBOARDING_ACTIVATION_PLAN.md`; no iOS/desktop CTAs).
+- [x] Deep links and email links aligned (`/trial-started` → `/prueba-iniciada`; nudge emails → `/panel/aplicacion`). Clipboard copy-link instrumented; SMS/WhatsApp TBD.
 
-**References:** `TRIAL_ONBOARDING_ACTIVATION_PLAN.md`, website dashboard and signup flows.
+**References:** `TRIAL_ONBOARDING_ACTIVATION_PLAN.md`, `GET /auth/me/entitlement` (`first_scan_completed`), website dashboard and signup flows.
 
 ---
 
@@ -110,4 +110,4 @@ This document captures **plausible failure modes** for the Remitos stack as the 
 
 ## Revision
 
-Update this file when major architecture, billing, or sync behavior changes. Last reviewed: **2026-05-06** (§3 feature flags / release coordination).
+Update this file when major architecture, billing, or sync behavior changes. Last reviewed: **2026-05-06** (§3 feature flags; §4 activation funnel doc + API `first_scan_completed`).

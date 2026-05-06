@@ -634,6 +634,8 @@ type meEntitlementResponse struct {
 	UserCount                    int64                                 `json:"user_count"`
 	MaxUsers                     *int                                  `json:"max_users,omitempty"`
 	RemitosProcessedLast30Days   int64                                 `json:"remitos_processed_last_30_days"`
+	FirstScanCompleted           bool                                  `json:"first_scan_completed"`
+	FirstScanCompletedAt         *time.Time                            `json:"first_scan_completed_at,omitempty"`
 	WarehouseUsageLast30Days     []repository.WarehouseInboundUsageRow `json:"warehouse_usage_last_30_days"`
 	DocumentsMonthlyLimit        *int                                  `json:"documents_monthly_limit,omitempty"`
 	DocumentsUsageMTD            int64                                 `json:"documents_usage_mtd"`
@@ -767,12 +769,13 @@ func (h *AuthHandler) GetMeEntitlement(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
 		return
 	}
-	remitos30d, err := h.syncRepo.CountInboundNotesCreatedInLast30Days(r.Context(), companyID)
+	remitos30d, _, firstScanAt, err := h.syncRepo.InboundNoteEntitlementMetrics(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetMeEntitlement: remitos last 30d count")
+		logger.Log.Error().Err(err).Msg("GetMeEntitlement: inbound note metrics")
 		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
 		return
 	}
+	firstScanDone := firstScanAt != nil
 	warehouseUsage, err := h.syncRepo.ListInboundNotesByWarehouseLast30Days(r.Context(), companyID)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("GetMeEntitlement: warehouse usage last 30d")
@@ -818,6 +821,8 @@ func (h *AuthHandler) GetMeEntitlement(w http.ResponseWriter, r *http.Request) {
 		UserCount:                    userCount,
 		MaxUsers:                     company.MaxUsers,
 		RemitosProcessedLast30Days:   remitos30d,
+		FirstScanCompleted:           firstScanDone,
+		FirstScanCompletedAt:         firstScanAt,
 		WarehouseUsageLast30Days:     warehouseUsage,
 		DocumentsMonthlyLimit:        company.DocumentsMonthlyLimit,
 		DocumentsUsageMTD:            mtdTotal,

@@ -52,9 +52,9 @@ func onboardingNudgeMessage(toEmail, companyCode, companyName, publicSiteURL, su
 		links.WriteString(fmt.Sprintf(`
 <p><strong>Enlaces útiles:</strong></p>
 <ul>
-  <li><a href="%s/trial-started">Guía de inicio</a></li>
-  <li><a href="%s/dashboard/app">Descargar la app (Android)</a></li>
-  <li><a href="%s/dashboard">Panel web</a></li>
+  <li><a href="%s/prueba-iniciada">Guía de inicio (Android)</a></li>
+  <li><a href="%s/panel/aplicacion">Descargar la app (APK)</a></li>
+  <li><a href="%s/panel">Panel web</a></li>
 </ul>
 `, base, base, base))
 	}
@@ -109,8 +109,8 @@ func textLinksOnboarding(base string) string {
 		return ""
 	}
 	return fmt.Sprintf(`Enlaces:
-- Guía: %s/trial-started
-- App Android: %s/dashboard/app
-- Panel: %s/dashboard
+- Guía: %s/prueba-iniciada
+- App Android (APK): %s/panel/aplicacion
+- Panel: %s/panel
 `, base, base, base)
 }

@@ -29,7 +29,7 @@ const STEPS = [
   },
 ] as const;
 
-const LOGIN_WITH_RETURN = '/ingresar?next=%2Ftrial-started';
+const LOGIN_WITH_RETURN = '/ingresar?next=%2Fprueba-iniciada';
 
 export default function TrialStartedClient() {
   const router = useRouter();

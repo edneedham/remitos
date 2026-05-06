@@ -13,6 +13,10 @@ export type Entitlement = {
   user_count?: number;
   max_users?: number;
   remitos_processed_last_30_days?: number;
+  /** Server truth: at least one inbound note stored for the company (lifetime). */
+  first_scan_completed?: boolean;
+  /** UTC ISO timestamp of oldest inbound note when first_scan_completed. */
+  first_scan_completed_at?: string;
   warehouse_usage_last_30_days?: Array<{
     warehouse_id: string;
     name: string;

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -371,16 +372,31 @@ func (r *SyncRepository) CountInboundNotesByCloudIDs(
 	return n, err
 }
 
-// CountInboundNotesCreatedInLast30Days returns how many inbound remitos were first recorded
-// (created_at) within the trailing 30-day window. Uses the database clock (UTC).
-func (r *SyncRepository) CountInboundNotesCreatedInLast30Days(ctx context.Context, companyID uuid.UUID) (int64, error) {
-	var count int64
-	err := r.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM inbound_notes
+// InboundNoteEntitlementMetrics returns trailing-30d inbound count, lifetime count, and the oldest
+// note’s created_at (first synced scan / activation signal). Used by dashboard entitlement.
+func (r *SyncRepository) InboundNoteEntitlementMetrics(ctx context.Context, companyID uuid.UUID) (
+	last30Days int64,
+	lifetime int64,
+	firstCreatedAt *time.Time,
+	err error,
+) {
+	var minAt sql.NullTime
+	err = r.pool.QueryRow(ctx, `
+		SELECT
+			COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days')::bigint,
+			COUNT(*)::bigint,
+			MIN(created_at)
+		FROM inbound_notes
 		WHERE company_id = $1
-		  AND created_at >= NOW() - INTERVAL '30 days'
-	`, companyID).Scan(&count)
-	return count, err
+	`, companyID).Scan(&last30Days, &lifetime, &minAt)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+	if minAt.Valid {
+		t := minAt.Time.UTC()
+		firstCreatedAt = &t
+	}
+	return last30Days, lifetime, firstCreatedAt, nil
 }
 
 // DocumentUsageSeriesPoint is one calendar day in the month-to-date cumulative series (UTC).

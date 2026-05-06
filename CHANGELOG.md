@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Activation / trial funnel
+
+- **Authoritative first scan:** `GET /auth/me/entitlement` includes `first_scan_completed` and `first_scan_completed_at` (from synced inbound notes). Website checklist and analytics use this; legacy fallback remains `remitos_processed_last_30_days`.
+- **URLs:** `/trial-started` redirects to `/prueba-iniciada`; onboarding emails link to `/prueba-iniciada`, `/panel/aplicacion`, `/panel`.
+
 ### Release coordination
 
 - Documented **flags × surfaces** (Android / API / web), env alignment, and **pre-release smoke checklist** in `FEATURE_FLAGS_MATRIX.md`.

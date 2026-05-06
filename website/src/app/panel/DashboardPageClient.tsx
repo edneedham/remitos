@@ -44,17 +44,20 @@ import {
 
 function maybeEmitFirstScanCompleted(data: Entitlement): void {
   try {
-    const n = data.remitos_processed_last_30_days;
-    if (typeof n === 'number' && n >= 1) {
-      if (
-        typeof window !== 'undefined' &&
-        window.localStorage.getItem(FIRST_SCAN_ANALYTICS_SENT_KEY) !== '1'
-      ) {
-        window.localStorage.setItem(FIRST_SCAN_ANALYTICS_SENT_KEY, '1');
-        trackTrialOnboardingEvent('first_scan_completed', {
-          remitos_processed_last_30_days: n,
-        });
-      }
+    const done =
+      data.first_scan_completed === true ||
+      (data.remitos_processed_last_30_days ?? 0) >= 1;
+    if (!done) return;
+    if (
+      typeof window !== 'undefined' &&
+      window.localStorage.getItem(FIRST_SCAN_ANALYTICS_SENT_KEY) !== '1'
+    ) {
+      window.localStorage.setItem(FIRST_SCAN_ANALYTICS_SENT_KEY, '1');
+      trackTrialOnboardingEvent('first_scan_completed', {
+        first_scan_completed: data.first_scan_completed === true,
+        first_scan_completed_at: data.first_scan_completed_at,
+        remitos_processed_last_30_days: data.remitos_processed_last_30_days,
+      });
     }
   } catch {
     /* ignore localStorage / analytics */

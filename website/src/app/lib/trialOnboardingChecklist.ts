@@ -19,6 +19,14 @@ export type TrialChecklistModel = {
   total: number;
 };
 
+/** True once the API reports a synced inbound note (preferred) or legacy 30d proxy. */
+export function isFirstScanCompleted(entitlement: Entitlement): boolean {
+  if (typeof entitlement.first_scan_completed === 'boolean') {
+    return entitlement.first_scan_completed;
+  }
+  return (entitlement.remitos_processed_last_30_days ?? 0) >= 1;
+}
+
 /**
  * Returns null when the checklist should be hidden (first scan already synced).
  */
@@ -28,7 +36,7 @@ export function buildTrialOnboardingChecklist(
 ): TrialChecklistModel | null {
   if (!entitlement) return null;
 
-  const scanDone = (entitlement.remitos_processed_last_30_days ?? 0) >= 1;
+  const scanDone = isFirstScanCompleted(entitlement);
   if (scanDone) return null;
 
   const devices = entitlement.device_count ?? 0;
@@ -55,7 +63,7 @@ export function buildTrialOnboardingChecklist(
       title: 'Escaneá tu primer remito',
       description:
         'Procesá un remito en la app; el contador de documentos se actualiza en este panel.',
-      done: false,
+      done: scanDone,
     },
   ];
 

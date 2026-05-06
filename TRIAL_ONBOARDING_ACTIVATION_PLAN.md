@@ -4,7 +4,7 @@
 
 Reduce time-to-first-value after signup by guiding users from trial activation to their first scanned document.
 
-Primary success metric: users complete `first_scan_completed` within 10 minutes of `trial_started`.
+Primary success metric: users complete activation within 10 minutes of `trial_started`. **Authoritative completion** is `GET /auth/me/entitlement` → `first_scan_completed` (true when the company has at least one **synced** inbound note on the server) and optional `first_scan_completed_at`.
 
 ## Scope and Principles
 
@@ -30,16 +30,11 @@ User successfully completes signup and trial activation (`trial_started`).
   1. Download the app
   2. Log in with your credentials
   3. Scan your first document
-- Keep one clear primary CTA: `Download app`.
-- Include platform options:
-  - iOS download
-  - Android download
-  - Desktop app (if available)
-- Show a QR code for mobile app download from desktop flows.
-- Provide secondary helper action: `Send link to my phone` (email/SMS/WhatsApp, depending on available channels).
-- Keep copy outcome-based:
-  - Heading: "Your trial is active. Scan your first document now."
-  - Supporting text: "It takes about 2 minutes to get started."
+- Keep one clear primary CTA: open **Android APK** download (`/panel/aplicacion`).
+- **Shipping product is Android-only** for depot scanning (no iOS App Store / desktop client). Marketing must not imply unavailable platforms.
+- Show a **QR code** on desktop to open the same download page on the phone.
+- Secondary: **Copy download link** (clipboard) as the practical “send to phone” channel until SMS/WhatsApp exists.
+- Keep copy outcome-based (Spanish UI live on `/prueba-iniciada`).
 
 ### Functional Requirements
 
@@ -47,7 +42,7 @@ User successfully completes signup and trial activation (`trial_started`).
 - Persist a boolean or timestamp marker that success screen was displayed.
 - If user revisits before first scan, allow redisplay via dashboard checklist item.
 - Deep links should prefill account email in login flow where technically possible.
-- Add fallback action: `Use web upload instead` if app install is blocked.
+- Fallback: **Panel web** (`/panel`) for account management; scanning remains on the Android app once installed.
 
 ### Event Tracking (Required)
 
@@ -57,13 +52,13 @@ Track at minimum:
 - `trial_success_screen_viewed`
 - `trial_download_clicked` (with platform)
 - `trial_qr_viewed`
-- `trial_send_link_clicked` (with channel)
+- `trial_copy_link_clicked` (channel `clipboard`; replaces generic “send link” until SMS/WhatsApp)
 - `trial_fallback_web_upload_clicked`
 
 ### Acceptance Criteria
 
 - 100% of newly activated trial users land on success screen.
-- Success screen renders correct platform CTA set for device context.
+- Success screen shows Android + QR + copy-link; no non-shipping platform CTAs.
 - Event tracking is emitted for all primary and secondary actions.
 - Users can continue to product without dead-end states.
 
@@ -79,7 +74,7 @@ Keep activation momentum after first session with visible progress.
   - Install app
   - Log in
   - First scan
-- Mark steps complete using events/state sync.
+- Mark steps using **server state**: `device_count`, `GET /auth/me/entitlement` (`first_scan_completed`), plus local flag for “visited download page”.
 - Include "Resume setup" action that links back to success flow.
 - Dismiss checklist automatically on `first_scan_completed`.
 
@@ -125,7 +120,7 @@ Reduce friction between first login and first scan.
 
 - Time from `trial_started` to `first_scan_completed`.
 - Step-to-step conversion rates.
-- Drop-off by platform (iOS/Android/Desktop/Web fallback).
+- Drop-off by context (**Android app** vs **web panel only**).
 
 ## Rollout Plan
 
@@ -135,9 +130,13 @@ Reduce friction between first login and first scan.
 4. Add Phase 2 checklist.
 5. Add lifecycle nudges and in-app first-run improvements.
 
-## Open Questions
+## Resolved / open
 
-- Which channels are available now for `Send link to my phone`?
-- Do we already have app deep-link support for prefilled email?
-- What is our source of truth for `first_scan_completed` across platforms?
-- Should web upload count as activation equivalent to scan for trial success metrics?
+- **Source of truth for `first_scan_completed`:** API (`first_scan_completed` / `first_scan_completed_at` on entitlement); web checklist and analytics consume it.
+- **Legacy URL:** `/trial-started` redirects to `/prueba-iniciada`; onboarding emails use `/prueba-iniciada`, `/panel/aplicacion`, `/panel`.
+
+### Open
+
+- SMS/WhatsApp “send link” vs clipboard-only.
+- Deep link prefilled email on app login.
+- Whether **web-only** upload counts as activation if added later.

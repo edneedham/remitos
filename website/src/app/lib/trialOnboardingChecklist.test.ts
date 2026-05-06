@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildTrialOnboardingChecklist } from './trialOnboardingChecklist';
+import {
+  buildTrialOnboardingChecklist,
+  isFirstScanCompleted,
+} from './trialOnboardingChecklist';
 import type { Entitlement } from '../panel/lib/entitlementTypes';
 
 function ent(partial: Partial<Entitlement>): Entitlement {
@@ -68,5 +71,23 @@ describe('buildTrialOnboardingChecklist', () => {
     expect(m!.completedCount).toBe(2);
     expect(m!.steps[0].done).toBe(true);
     expect(m!.steps[1].done).toBe(true);
+    expect(m!.steps[2].done).toBe(false);
+  });
+
+  it('hides checklist when API reports first_scan_completed even if last-30d count is zero', () => {
+    expect(
+      buildTrialOnboardingChecklist(
+        ent({
+          first_scan_completed: true,
+          remitos_processed_last_30_days: 0,
+        }),
+        false,
+      ),
+    ).toBeNull();
+    expect(
+      isFirstScanCompleted(
+        ent({ first_scan_completed: true, remitos_processed_last_30_days: 0 }),
+      ),
+    ).toBe(true);
   });
 });
