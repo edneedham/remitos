@@ -1,11 +1,11 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"server/internal/billing"
-	"server/internal/logger"
 	"server/internal/middleware"
 )
 
@@ -26,17 +26,18 @@ type planPricingResponse struct {
 func (h *AuthHandler) GetMePlanPricing(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" || claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	if !canAccessWebManagement(claims.Role) {
-		RespondWithError(w, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
+		RespondWithError(w, r, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
 		return
 	}
 
 	if h.billingRateQuoter == nil {
 		RespondWithError(
 			w,
+			r,
 			ErrCodeInternalError,
 			"Cotización MEP no disponible (configurá BILLING_USD_ARS_RATE como respaldo o revisá la conectividad).",
 			http.StatusServiceUnavailable,
@@ -46,25 +47,25 @@ func (h *AuthHandler) GetMePlanPricing(w http.ResponseWriter, r *http.Request) {
 
 	planID := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("plan_id")))
 	if planID != "pyme" && planID != "empresa" {
-		RespondWithError(w, ErrCodeInvalidRequest, "plan_id debe ser pyme o empresa", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "plan_id debe ser pyme o empresa", http.StatusBadRequest)
 		return
 	}
 
 	usd, ok := billing.MonthlyListUSD(planID)
 	if !ok {
-		logger.Log.Error().Str("plan_id", planID).Msg("plan pricing: unknown plan")
-		RespondWithError(w, ErrCodeInternalError, "Plan no facturable", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Plan no facturable", http.StatusInternalServerError, fmt.Errorf("no list USD for plan_id=%s", planID))
 		return
 	}
 
 	q, err := h.billingRateQuoter.Quote(r.Context())
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("plan pricing: fx quote")
 		RespondWithError(
 			w,
+			r,
 			ErrCodeInternalError,
 			"No se pudo obtener la cotización MEP. Probá más tarde o configurá BILLING_USD_ARS_RATE como respaldo.",
 			http.StatusServiceUnavailable,
+			err,
 		)
 		return
 	}
@@ -72,8 +73,7 @@ func (h *AuthHandler) GetMePlanPricing(w http.ResponseWriter, r *http.Request) {
 	charged := billing.ChargedARSPerUSD(q.SellPerUSD, h.billingFXBufferFraction)
 	minor, err := billing.PlanMonthlyAmountMinorARS(planID, charged)
 	if err != nil {
-		logger.Log.Error().Err(err).Str("plan_id", planID).Msg("plan pricing: compute")
-		RespondWithError(w, ErrCodeInternalError, "No se pudo calcular el importe", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "No se pudo calcular el importe", http.StatusInternalServerError, err)
 		return
 	}
 

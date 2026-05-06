@@ -55,12 +55,12 @@ type CreateOperatorRequest struct {
 func (h *AdminHandler) CreateOperator(w http.ResponseWriter, r *http.Request) {
 	var req CreateOperatorRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
@@ -72,19 +72,18 @@ func (h *AdminHandler) CreateOperator(w http.ResponseWriter, r *http.Request) {
 	if req.Email != nil && *req.Email != "" {
 		existing, err := h.userRepo.GetByEmail(ctx, *req.Email)
 		if err != nil {
-			logger.Log.Error().Err(err).Msg("Error checking user")
-			RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+			RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 			return
 		}
 		if existing != nil {
-			RespondWithError(w, ErrCodeConflict, "El usuario ya existe", http.StatusConflict)
+			RespondWithError(w, r, ErrCodeConflict, "El usuario ya existe", http.StatusConflict)
 			return
 		}
 	}
 
 	companyID, err := uuid.Parse(adminClaims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de empresa inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de empresa inválido", http.StatusBadRequest)
 		return
 	}
 
@@ -92,24 +91,23 @@ func (h *AdminHandler) CreateOperator(w http.ResponseWriter, r *http.Request) {
 	if h.companyRepo != nil {
 		company, cerr := h.companyRepo.GetByIDForBilling(ctx, companyID)
 		if cerr != nil {
-			logger.Log.Error().Err(cerr).Msg("CreateOperator: company")
-			RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+			RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, cerr)
 			return
 		}
 		if company == nil {
-			RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+			RespondWithError(w, r, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
 			return
 		}
 		if company.MaxUsers != nil {
 			count, ucerr := h.userRepo.CountByCompanyID(ctx, companyID)
 			if ucerr != nil {
-				logger.Log.Error().Err(ucerr).Msg("CreateOperator: user count")
-				RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+				RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, ucerr)
 				return
 			}
 			if reachedUserCap(count, company.MaxUsers) {
 				RespondWithError(
 					w,
+					r,
 					ErrCodeForbidden,
 					"Alcanzaste el límite de usuarios de tu plan.",
 					http.StatusForbidden,
@@ -121,8 +119,7 @@ func (h *AdminHandler) CreateOperator(w http.ResponseWriter, r *http.Request) {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error hashing password")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -137,8 +134,7 @@ func (h *AdminHandler) CreateOperator(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.userRepo.Create(ctx, user); err != nil {
-		logger.Log.Error().Err(err).Msg("Error creating operator")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -164,14 +160,13 @@ func (h *AdminHandler) GetOperators(w http.ResponseWriter, r *http.Request) {
 	adminClaims := middleware.GetUserClaims(r)
 	companyID, err := uuid.Parse(adminClaims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de empresa inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de empresa inválido", http.StatusBadRequest)
 		return
 	}
 
 	users, err := h.userRepo.GetByCompanyID(ctx, companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error fetching operators")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -205,18 +200,18 @@ func (h *AdminHandler) UpdateOperatorStatus(w http.ResponseWriter, r *http.Reque
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de operador inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de operador inválido", http.StatusBadRequest)
 		return
 	}
 
 	var req UpdateStatusRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
@@ -225,19 +220,18 @@ func (h *AdminHandler) UpdateOperatorStatus(w http.ResponseWriter, r *http.Reque
 	// Check if user exists and belongs to the same company
 	user, err := h.userRepo.GetByID(ctx, id)
 	if err != nil || user == nil {
-		RespondWithError(w, ErrCodeNotFound, "Operador no encontrado", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Operador no encontrado", http.StatusNotFound)
 		return
 	}
 
 	adminClaims := middleware.GetUserClaims(r)
 	if user.CompanyID.String() != adminClaims.CompanyID {
-		RespondWithError(w, ErrCodeForbidden, "No tienes permiso para modificar este operador", http.StatusForbidden)
+		RespondWithError(w, r, ErrCodeForbidden, "No tienes permiso para modificar este operador", http.StatusForbidden)
 		return
 	}
 
 	if err := h.userRepo.UpdateStatus(ctx, id, req.Status); err != nil {
-		logger.Log.Error().Err(err).Msg("Error updating operator status")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -254,18 +248,18 @@ func (h *AdminHandler) UpdateOperatorPassword(w http.ResponseWriter, r *http.Req
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de operador inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de operador inválido", http.StatusBadRequest)
 		return
 	}
 
 	var req UpdatePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
@@ -274,26 +268,24 @@ func (h *AdminHandler) UpdateOperatorPassword(w http.ResponseWriter, r *http.Req
 	// Check if user exists and belongs to the same company
 	user, err := h.userRepo.GetByID(ctx, id)
 	if err != nil || user == nil {
-		RespondWithError(w, ErrCodeNotFound, "Operador no encontrado", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Operador no encontrado", http.StatusNotFound)
 		return
 	}
 
 	adminClaims := middleware.GetUserClaims(r)
 	if user.CompanyID.String() != adminClaims.CompanyID {
-		RespondWithError(w, ErrCodeForbidden, "No tienes permiso para modificar este operador", http.StatusForbidden)
+		RespondWithError(w, r, ErrCodeForbidden, "No tienes permiso para modificar este operador", http.StatusForbidden)
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error hashing password")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := h.userRepo.UpdatePassword(ctx, id, string(hash)); err != nil {
-		logger.Log.Error().Err(err).Msg("Error updating operator password")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 

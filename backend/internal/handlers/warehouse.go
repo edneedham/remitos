@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"server/internal/jwt"
-	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/models"
 	"server/internal/repository"
@@ -48,7 +47,7 @@ func (h *WarehouseHandler) List(w http.ResponseWriter, r *http.Request) {
 		// Look up company by code
 		company, err := h.warehouseRepo.GetCompanyByCode(ctx, companyCode)
 		if err != nil || company == nil {
-			RespondWithError(w, ErrCodeInvalidRequest, "Company not found", http.StatusBadRequest)
+			RespondWithError(w, r, ErrCodeInvalidRequest, "Company not found", http.StatusBadRequest)
 			return
 		}
 		companyID = company.ID
@@ -56,19 +55,19 @@ func (h *WarehouseHandler) List(w http.ResponseWriter, r *http.Request) {
 		// Use auth context
 		userClaims := middleware.GetUserClaims(r)
 		if userClaims.UserID == "" {
-			RespondWithError(w, ErrCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
+			RespondWithError(w, r, ErrCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 		companyID, err = uuid.Parse(userClaims.CompanyID)
 		if err != nil {
-			RespondWithError(w, ErrCodeInvalidRequest, "Company ID inválido", http.StatusBadRequest)
+			RespondWithError(w, r, ErrCodeInvalidRequest, "Company ID inválido", http.StatusBadRequest)
 			return
 		}
 	}
 
 	warehouses, err := h.warehouseRepo.GetByCompanyID(ctx, companyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -122,47 +121,46 @@ func (h *WarehouseHandler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims := middleware.GetUserClaims(r)
 	if claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	companyID, err := uuid.Parse(claims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
 		return
 	}
 
 	var req warehouseWriteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 	normalizeWarehouseWriteRequest(&req)
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del depósito.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del depósito.", fields, http.StatusBadRequest)
 		return
 	}
 
 	company, err := h.companyRepo.GetByIDForBilling(ctx, companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("warehouse create: company")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if company == nil {
-		RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
 		return
 	}
 
 	if company.MaxWarehouses != nil {
 		count, cerr := h.warehouseRepo.CountByCompanyID(ctx, companyID)
 		if cerr != nil {
-			logger.Log.Error().Err(cerr).Msg("warehouse create: count")
-			RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+			RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, cerr)
 			return
 		}
 		if reachedWarehouseCap(count, company.MaxWarehouses) {
 			RespondWithError(
 				w,
+				r,
 				ErrCodeForbidden,
 				"Alcanzaste el límite de depósitos de tu plan.",
 				http.StatusForbidden,
@@ -181,8 +179,7 @@ func (h *WarehouseHandler) Create(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: now,
 	}
 	if err := h.warehouseRepo.Create(ctx, warehouse); err != nil {
-		logger.Log.Error().Err(err).Msg("warehouse create: insert")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -195,40 +192,39 @@ func (h *WarehouseHandler) Update(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims := middleware.GetUserClaims(r)
 	if claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	companyID, err := uuid.Parse(claims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
 		return
 	}
 
 	id, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de depósito inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de depósito inválido", http.StatusBadRequest)
 		return
 	}
 
 	var req warehouseWriteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 	normalizeWarehouseWriteRequest(&req)
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del depósito.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del depósito.", fields, http.StatusBadRequest)
 		return
 	}
 
 	updated, err := h.warehouseRepo.Update(ctx, id, companyID, req.Name, req.Address)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("warehouse update")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if !updated {
-		RespondWithError(w, ErrCodeNotFound, "Depósito no encontrado", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Depósito no encontrado", http.StatusNotFound)
 		return
 	}
 
@@ -243,31 +239,29 @@ func (h *WarehouseHandler) Archive(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims := middleware.GetUserClaims(r)
 	if claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	companyID, err := uuid.Parse(claims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
 		return
 	}
 
 	id, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de depósito inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de depósito inválido", http.StatusBadRequest)
 		return
 	}
 
 	count, err := h.warehouseRepo.CountByCompanyID(ctx, companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("warehouse archive: count")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	activeDevices, err := h.warehouseRepo.CountActiveDevicesByWarehouseID(ctx, id)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("warehouse archive: active devices")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if ok, reason := canArchiveWarehouse(archiveGuard{totalActive: count, activeDevices: activeDevices}); !ok {
@@ -275,6 +269,7 @@ func (h *WarehouseHandler) Archive(w http.ResponseWriter, r *http.Request) {
 		case "last_warehouse":
 			RespondWithError(
 				w,
+				r,
 				ErrCodeConflict,
 				"No podés archivar el último depósito activo. Crea otro depósito antes de archivar este.",
 				http.StatusConflict,
@@ -282,6 +277,7 @@ func (h *WarehouseHandler) Archive(w http.ResponseWriter, r *http.Request) {
 		default:
 			RespondWithError(
 				w,
+				r,
 				ErrCodeConflict,
 				"Este depósito tiene dispositivos activos. Revocá los dispositivos antes de archivar el depósito.",
 				http.StatusConflict,
@@ -292,12 +288,11 @@ func (h *WarehouseHandler) Archive(w http.ResponseWriter, r *http.Request) {
 
 	archived, err := h.warehouseRepo.Archive(ctx, id, companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("warehouse archive")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if !archived {
-		RespondWithError(w, ErrCodeNotFound, "Depósito no encontrado", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Depósito no encontrado", http.StatusNotFound)
 		return
 	}
 

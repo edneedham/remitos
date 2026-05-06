@@ -12,7 +12,7 @@ func TestRespondWithValidationError_JSONShape(t *testing.T) {
 	fields := map[string]string{
 		"email": "email debe ser un email válido",
 	}
-	RespondWithValidationError(w, "Revisá los datos.", fields, http.StatusBadRequest)
+	RespondWithValidationError(w, nil, "Revisá los datos.", fields, http.StatusBadRequest)
 
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("status: got %d", w.Code)

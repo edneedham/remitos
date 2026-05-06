@@ -33,12 +33,12 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 	var req models.ForgotPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 	validation.NormalizeForgotPasswordRequest(&req)
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
@@ -56,8 +56,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	company, err := h.companyRepo.GetByCode(ctx, req.CompanyCode)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("forgot-password: company")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if company == nil {
@@ -67,15 +66,13 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.userRepo.GetByEmailAndCompanyID(ctx, req.Username, company.ID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("forgot-password: user by email")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if user == nil {
 		user, err = h.userRepo.GetByUsernameAndCompanyID(ctx, req.Username, company.ID)
 		if err != nil {
-			logger.Log.Error().Err(err).Msg("forgot-password: user by username")
-			RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+			RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -100,31 +97,27 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.passwordResetTokenRepo.DeletePendingForUser(ctx, user.ID); err != nil {
-		logger.Log.Error().Err(err).Msg("forgot-password: delete pending tokens")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	raw := make([]byte, passwordResetTokenBytes)
 	if _, err := rand.Read(raw); err != nil {
-		logger.Log.Error().Err(err).Msg("forgot-password: rand")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	rawToken := base64.RawURLEncoding.EncodeToString(raw)
 	hash := hashResetToken(rawToken)
 	expires := time.Now().Add(passwordResetTTL)
 	if _, err := h.passwordResetTokenRepo.Insert(ctx, user.ID, hash, expires); err != nil {
-		logger.Log.Error().Err(err).Msg("forgot-password: insert token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	base := strings.TrimRight(strings.TrimSpace(h.publicSiteURL), "/")
 	u, err := url.Parse(base + "/reset-password")
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("forgot-password: parse public URL")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	q := u.Query()
@@ -134,8 +127,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 	msg := notifymail.PasswordReset(to, resetURL)
 	if err := h.mailer.Send(ctx, msg); err != nil {
-		logger.Log.Error().Err(err).Str("user_id", user.ID.String()).Msg("forgot-password: send email")
-		RespondWithError(w, ErrCodeInternalError, "No se pudo enviar el correo. Intentá más tarde.", http.StatusServiceUnavailable)
+		RespondWithError(w, r, ErrCodeInternalError, "No se pudo enviar el correo. Intentá más tarde.", http.StatusServiceUnavailable, err)
 		return
 	}
 
@@ -146,12 +138,12 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req models.ResetPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 	req.Token = strings.TrimSpace(req.Token)
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
@@ -159,12 +151,11 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	hash := hashResetToken(req.Token)
 	row, err := h.passwordResetTokenRepo.GetValidByTokenHash(ctx, hash)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("reset-password: load token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if row == nil {
-		RespondWithValidationError(w, "El enlace no es válido o expiró. Pedí un correo nuevo.", map[string]string{
+		RespondWithValidationError(w, r, "El enlace no es válido o expiró. Pedí un correo nuevo.", map[string]string{
 			"token": "Enlace inválido o vencido.",
 		}, http.StatusBadRequest)
 		return
@@ -172,12 +163,11 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.userRepo.GetByID(ctx, row.UserID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("reset-password: user")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if user == nil || user.Status != "active" {
-		RespondWithValidationError(w, "No se pudo restablecer la contraseña.", map[string]string{
+		RespondWithValidationError(w, r, "No se pudo restablecer la contraseña.", map[string]string{
 			"token": "Cuenta no disponible.",
 		}, http.StatusBadRequest)
 		return
@@ -185,13 +175,11 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	newHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("reset-password: hash")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if err := h.userRepo.UpdatePassword(ctx, user.ID, string(newHash)); err != nil {
-		logger.Log.Error().Err(err).Msg("reset-password: update user")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if err := h.passwordResetTokenRepo.MarkUsed(ctx, row.ID); err != nil {
@@ -210,34 +198,33 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	var req models.ChangePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
 	claims := middleware.GetUserClaims(r)
 	userID, err := uuid.Parse(claims.UserID)
 	if err != nil {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 
 	ctx := r.Context()
 	user, err := h.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("change-password: user")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if user == nil {
-		RespondWithError(w, ErrCodeNotFound, "Usuario no encontrado", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Usuario no encontrado", http.StatusNotFound)
 		return
 	}
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.CurrentPassword)) != nil {
-		RespondWithValidationError(w, "La contraseña actual no es correcta.", map[string]string{
+		RespondWithValidationError(w, r, "La contraseña actual no es correcta.", map[string]string{
 			"current_password": "Contraseña incorrecta.",
 		}, http.StatusBadRequest)
 		return
@@ -245,13 +232,11 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	newHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("change-password: hash")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if err := h.userRepo.UpdatePassword(ctx, user.ID, string(newHash)); err != nil {
-		logger.Log.Error().Err(err).Msg("change-password: update")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if err := h.refreshTokenRepo.RevokeUserTokens(ctx, user.ID); err != nil {

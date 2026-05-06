@@ -62,13 +62,13 @@ func TestAdminCreateOperator_MissingEmail(t *testing.T) {
 		json.NewDecoder(r.Body).Decode(&req)
 
 		if req.Email == "" || req.Password == "" {
-			RespondWithError(w, ErrCodeInvalidRequest, "El email y la contraseña son requeridos", http.StatusBadRequest)
+			RespondWithError(w, r, ErrCodeInvalidRequest, "El email y la contraseña son requeridos", http.StatusBadRequest)
 			return
 		}
 
 		existing, _ := repo.GetByEmail(req.Email)
 		if existing != nil {
-			RespondWithError(w, ErrCodeConflict, "El usuario ya existe", http.StatusConflict)
+			RespondWithError(w, r, ErrCodeConflict, "El usuario ya existe", http.StatusConflict)
 			return
 		}
 	})
@@ -100,7 +100,7 @@ func TestAdminCreateOperator_UserAlreadyExists(t *testing.T) {
 
 		existing, _ := repo.GetByEmail(req.Email)
 		if existing != nil {
-			RespondWithError(w, ErrCodeConflict, "El usuario ya existe", http.StatusConflict)
+			RespondWithError(w, r, ErrCodeConflict, "El usuario ya existe", http.StatusConflict)
 			return
 		}
 	})
@@ -129,7 +129,7 @@ func TestAdminCreateOperator_Success(t *testing.T) {
 
 		existing, _ := repo.GetByEmail(req.Email)
 		if existing != nil {
-			RespondWithError(w, ErrCodeConflict, "El usuario ya existe", http.StatusConflict)
+			RespondWithError(w, r, ErrCodeConflict, "El usuario ya existe", http.StatusConflict)
 			return
 		}
 

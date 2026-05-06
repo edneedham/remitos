@@ -17,7 +17,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	logger.Init()
+	logger.Init("info")
 	os.Exit(m.Run())
 }
 

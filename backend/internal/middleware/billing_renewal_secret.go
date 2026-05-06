@@ -3,6 +3,8 @@ package middleware
 import (
 	"crypto/subtle"
 	"net/http"
+
+	"server/internal/logger"
 )
 
 // BillingRenewalSecret gates cron/internal renewal endpoints (constant-time compare).
@@ -13,6 +15,11 @@ func BillingRenewalSecret(secret string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			got := []byte(r.Header.Get("X-Billing-Secret"))
 			if len(want) == 0 || len(got) != len(want) || subtle.ConstantTimeCompare(got, want) != 1 {
+				logger.Log.Warn().
+					Str("path", r.URL.Path).
+					Str("method", r.Method).
+					Str("request_id", GetRequestID(r)).
+					Msg("billing renewal: unauthorized (missing or invalid secret)")
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}

@@ -29,14 +29,14 @@ const (
 func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 	var req models.SignupTrialRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 
 	validation.NormalizeSignupTrialRequest(&req)
 
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
@@ -46,27 +46,24 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 	companyName := req.CompanyName
 
 	if existing, err := h.userRepo.GetByEmail(ctx, email); err != nil {
-		logger.Log.Error().Err(err).Msg("signup trial: email check")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	} else if existing != nil {
-		RespondWithError(w, ErrCodeConflict, "El correo ya está registrado", http.StatusConflict)
+		RespondWithError(w, r, ErrCodeConflict, "El correo ya está registrado", http.StatusConflict)
 		return
 	}
 
 	if taken, err := h.companyRepo.GetByCode(ctx, companyCode); err != nil {
-		logger.Log.Error().Err(err).Msg("signup trial: company code check")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	} else if taken != nil {
-		RespondWithError(w, ErrCodeConflict, "El código de empresa ya existe", http.StatusConflict)
+		RespondWithError(w, r, ErrCodeConflict, "El código de empresa ya existe", http.StatusConflict)
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("signup trial: hash password")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -77,8 +74,7 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 	if err := row.Scan(&foundRoleID); err == nil {
 		roleID = &foundRoleID
 	} else {
-		logger.Log.Error().Err(err).Msg("signup trial: role company_owner")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -132,8 +128,7 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		case h.mp.HasAccessToken():
 			custID, mpCardID, err := h.mp.SaveCard(ctx, email, cardTok)
 			if err != nil {
-				logger.Log.Error().Err(err).Msg("signup trial: save card")
-				RespondWithError(w, ErrCodeInvalidRequest, "No pudimos validar la tarjeta. Revisá los datos e intentá de nuevo.", http.StatusBadRequest)
+				RespondWithError(w, r, ErrCodeInvalidRequest, "No pudimos validar la tarjeta. Revisá los datos e intentá de nuevo.", http.StatusBadRequest, err)
 				return
 			}
 			company.MpCustomerID = &custID
@@ -144,7 +139,7 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 			company.MpCustomerID = &custID
 			company.MpCardID = &mpCardID
 		default:
-			RespondWithError(w, ErrCodeInternalError, "Medios de pago no configurados en el servidor.", http.StatusServiceUnavailable)
+			RespondWithError(w, r, ErrCodeInternalError, "Medios de pago no configurados en el servidor.", http.StatusServiceUnavailable)
 			return
 		}
 	}
@@ -164,38 +159,32 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.companyRepo.CreateTrial(ctx, company); err != nil {
-		logger.Log.Error().Err(err).Msg("signup trial: create company")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if err := h.warehouseRepo.Create(ctx, warehouse); err != nil {
-		logger.Log.Error().Err(err).Msg("signup trial: create warehouse")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if err := h.userRepo.Create(ctx, user); err != nil {
-		logger.Log.Error().Err(err).Msg("signup trial: create user")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if err := h.subscriptionRepo.Create(ctx, subscription); err != nil {
-		logger.Log.Error().Err(err).Msg("signup trial: subscription")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	token, err := h.jwtSvc.GenerateToken(user.ID, user.CompanyID, user.Role, 15*time.Minute)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("signup trial: jwt")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	refreshToken := generateRefreshToken()
 	refreshTokenHash, err := bcrypt.GenerateFromPassword([]byte(refreshToken), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("signup trial: refresh hash")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -208,8 +197,7 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:  time.Now(),
 	}
 	if err := h.refreshTokenRepo.Create(ctx, refreshTokenModel); err != nil {
-		logger.Log.Error().Err(err).Msg("signup trial: refresh token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 

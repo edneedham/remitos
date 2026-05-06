@@ -6,7 +6,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"server/internal/jwt"
-	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/models"
 	"server/internal/repository"
@@ -30,19 +29,18 @@ func NewDeviceHandler(deviceRepo *repository.DeviceRepository, jwtSvc *jwt.Servi
 func (h *DeviceHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	companyID, err := uuid.Parse(claims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
 		return
 	}
 
 	devices, err := h.deviceRepo.ListByCompanyWithWarehouseName(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("device list")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if devices == nil {
@@ -65,28 +63,27 @@ func (h *DeviceHandler) Reactivate(w http.ResponseWriter, r *http.Request) {
 func (h *DeviceHandler) setStatus(w http.ResponseWriter, r *http.Request, status, okMessage string) {
 	claims := middleware.GetUserClaims(r)
 	if claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	companyID, err := uuid.Parse(claims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
 		return
 	}
 	deviceID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de dispositivo inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de dispositivo inválido", http.StatusBadRequest)
 		return
 	}
 
 	updated, err := h.deviceRepo.SetDeviceStatusForCompany(r.Context(), companyID, deviceID, status)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("device status update")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if !updated {
-		RespondWithError(w, ErrCodeNotFound, "Dispositivo no encontrado", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Dispositivo no encontrado", http.StatusNotFound)
 		return
 	}
 	RespondWithJSON(w, http.StatusOK, map[string]string{

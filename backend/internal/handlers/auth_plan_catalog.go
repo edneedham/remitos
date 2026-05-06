@@ -18,11 +18,11 @@ type planLimitPayload struct {
 func (h *AuthHandler) GetMePlanCatalogLimits(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" || claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	if !canAccessWebManagement(claims.Role) {
-		RespondWithError(w, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
+		RespondWithError(w, r, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
 		return
 	}
 
