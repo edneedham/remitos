@@ -14,7 +14,9 @@ type Config struct {
 	DBPassword string
 	DBName     string
 	DBSSLMode  string
-	JWTSecret  string
+	// DBPoolMaxConns caps PostgreSQL pool size (pgx). Zero means derive from CPU count (4–32).
+	DBPoolMaxConns int
+	JWTSecret      string
 
 	// Mercado Pago (server-side). Public key is only for the website (NEXT_PUBLIC_*).
 	MercadoPagoAccessToken string
@@ -65,8 +67,9 @@ func Load() *Config {
 		DBUser:     getEnv("DB_USER", "postgres"),
 		DBPassword: getEnv("DB_PASSWORD", "postgres"),
 		DBName:     getEnv("DB_NAME", "server"),
-		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
-		JWTSecret:  getEnv("JWT_SECRET", "change-me-in-production"),
+		DBSSLMode:      getEnv("DB_SSLMODE", "disable"),
+		DBPoolMaxConns: getEnvAsInt("DB_POOL_MAX_CONNS", 0),
+		JWTSecret:      getEnv("JWT_SECRET", "change-me-in-production"),
 
 		MercadoPagoAccessToken:         getEnv("MERCADOPAGO_ACCESS_TOKEN", ""),
 		CorsAllowedOrigins:             splitCommaTrim(getEnv("CORS_ALLOWED_ORIGINS", "")),

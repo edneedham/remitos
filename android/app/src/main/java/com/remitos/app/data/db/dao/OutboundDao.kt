@@ -126,8 +126,14 @@ interface OutboundDao {
     @Query("SELECT * FROM outbound_lines WHERE needs_sync = 1")
     suspend fun getUnsyncedLines(): List<OutboundLineEntity>
 
-    @Query("SELECT * FROM outbound_lines WHERE outbound_list_id = :listId")
-    suspend fun getLinesForListSync(listId: Long): List<OutboundLineEntity>
+    @Query(
+        """
+        SELECT * FROM outbound_lines
+        WHERE outbound_list_id IN (:listIds)
+        ORDER BY outbound_list_id ASC, id ASC
+        """
+    )
+    suspend fun getLinesForListsSync(listIds: List<Long>): List<OutboundLineEntity>
 
     @Query("SELECT * FROM outbound_lists WHERE cloud_id = :cloudId")
     suspend fun getListByCloudId(cloudId: String): OutboundListEntity?

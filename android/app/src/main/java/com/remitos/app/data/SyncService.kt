@@ -54,11 +54,27 @@ class SyncService(
             val syncInboundNotes = unsyncedNotes.map { it.toSyncDto() }
             val syncOutboundLists = mutableListOf<SyncOutboundListDto>()
 
+            val listIds = unsyncedLists.map { it.id }
+            val allLines =
+                if (listIds.isEmpty()) {
+                    emptyList()
+                } else {
+                    outboundDao.getLinesForListsSync(listIds)
+                }
+            val linesByListId = allLines.groupBy { it.outboundListId }
+            val inboundIds = allLines.map { it.inboundNoteId }.distinct()
+            val inboundById =
+                if (inboundIds.isEmpty()) {
+                    emptyMap()
+                } else {
+                    inboundDao.getInboundNotesByIds(inboundIds).associateBy { it.id }
+                }
+
             for (list in unsyncedLists) {
-                val lines = outboundDao.getLinesForListSync(list.id)
+                val lines = linesByListId[list.id].orEmpty()
                 val syncLines = lines.map { line ->
                     val noteCloudId = line.cloudId
-                        ?: inboundDao.getInboundNote(line.inboundNoteId)?.cloudId
+                        ?: inboundById[line.inboundNoteId]?.cloudId
                     SyncOutboundLineDto(
                         localId = line.id,
                         cloudId = line.cloudId,
