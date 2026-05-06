@@ -47,6 +47,9 @@ type Config struct {
 	// Signed URL TTL for APK GET links (browser initiates download shortly after request).
 	ReleasesSignedURLExpiry time.Duration
 
+	// LogLevel is zerolog global level: trace, debug, info, warn, error, fatal, panic, disabled (default: info).
+	LogLevel string
+
 	// Transactional email (Resend).
 	EmailEnabled  bool
 	ResendAPIKey  string
@@ -81,6 +84,7 @@ func Load() *Config {
 		AndroidReleaseObject:    getEnv("ANDROID_RELEASE_OBJECT", ""),
 		ReleasesSignedURLExpiry: time.Duration(getEnvAsInt("GCS_RELEASES_SIGNED_URL_MINUTES", 15)) * time.Minute,
 
+		LogLevel:      strings.ToLower(strings.TrimSpace(getEnv("LOG_LEVEL", "info"))),
 		EmailEnabled:  getEnv("EMAIL_ENABLED", "") == "true",
 		ResendAPIKey:  getEnv("RESEND_API_KEY", ""),
 		EmailFrom:     getEnv("EMAIL_FROM", ""),

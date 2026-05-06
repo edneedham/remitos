@@ -128,12 +128,12 @@ type TransferStartResponse struct {
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
@@ -143,20 +143,18 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if req.Email != nil && *req.Email != "" {
 		existing, err := h.userRepo.GetByEmail(ctx, *req.Email)
 		if err != nil {
-			logger.Log.Error().Err(err).Msg("Error checking user")
-			RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+			RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 			return
 		}
 		if existing != nil {
-			RespondWithError(w, ErrCodeConflict, "El usuario ya existe", http.StatusConflict)
+			RespondWithError(w, r, ErrCodeConflict, "El usuario ya existe", http.StatusConflict)
 			return
 		}
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error hashing password")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -165,13 +163,13 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		role = "operator"
 	}
 	if role != "company_owner" && role != "warehouse_admin" && role != "operator" {
-		RespondWithError(w, ErrCodeInvalidRequest, "Rol inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Rol inválido", http.StatusBadRequest)
 		return
 	}
 
 	// Email required for company_owner and warehouse_admin roles
 	if (role == "company_owner" || role == "warehouse_admin") && (req.Email == nil || *req.Email == "") {
-		RespondWithError(w, ErrCodeInvalidRequest, "Email es requerido para este rol", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Email es requerido para este rol", http.StatusBadRequest)
 		return
 	}
 
@@ -181,8 +179,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	row := h.db.QueryRow(context.Background(), "SELECT id FROM roles WHERE name = $1", role)
 	err = row.Scan(&foundRoleID)
 	if err != nil && err.Error() != "no rows in result set" {
-		logger.Log.Error().Err(err).Msg("Error looking up role")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if err == nil {
@@ -213,8 +210,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := h.companyRepo.Create(ctx, company); err != nil {
-			logger.Log.Error().Err(err).Msg("Error creating company")
-			RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+			RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 			return
 		}
 		companyID = company.ID
@@ -227,8 +223,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt: time.Now(),
 		}
 		if err := h.warehouseRepo.Create(ctx, warehouse); err != nil {
-			logger.Log.Error().Err(err).Msg("Error creating warehouse")
-			RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+			RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 			return
 		}
 		warehouseID = warehouse.ID
@@ -250,8 +245,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.userRepo.Create(ctx, user); err != nil {
-		logger.Log.Error().Err(err).Msg("Error creating user")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -269,8 +263,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: time.Now(),
 	}
 	if err := h.subscriptionRepo.Create(ctx, subscription); err != nil {
-		logger.Log.Error().Err(err).Msg("Error creating subscription")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -289,14 +282,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req models.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 
 	validation.NormalizeLoginRequest(&req)
 
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
@@ -304,13 +297,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	company, err := h.companyRepo.GetByCode(ctx, req.CompanyCode)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error fetching company")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	if company == nil {
-		RespondWithError(w, ErrCodeUnauthorized, "Código de empresa inválido", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "Código de empresa inválido", http.StatusUnauthorized)
 		return
 	}
 
@@ -318,37 +310,33 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err = h.userRepo.GetByEmailAndCompanyID(ctx, req.Username, company.ID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error fetching user by email")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	if user == nil {
 		user, err = h.userRepo.GetByUsernameAndCompanyID(ctx, req.Username, company.ID)
 		if err != nil {
-			logger.Log.Error().Err(err).Msg("Error fetching user by username")
-			RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+			RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 			return
 		}
 	}
 
 	if user == nil || bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)) != nil {
-		RespondWithError(w, ErrCodeUnauthorized, "Credenciales inválidas", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "Credenciales inválidas", http.StatusUnauthorized)
 		return
 	}
 
 	token, err := h.jwtSvc.GenerateToken(user.ID, user.CompanyID, user.Role, 15*time.Minute)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error generating token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	refreshToken := generateRefreshToken()
 	refreshTokenHash, err := bcrypt.GenerateFromPassword([]byte(refreshToken), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error hashing refresh token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -362,8 +350,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.refreshTokenRepo.Create(ctx, refreshTokenModel); err != nil {
-		logger.Log.Error().Err(err).Msg("Error creating refresh token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -380,14 +367,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req RefreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 
 	req.RefreshToken = strings.TrimSpace(req.RefreshToken)
 
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
@@ -395,20 +382,18 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	refreshTokenModel, err := h.refreshTokenRepo.GetValidByRawToken(ctx, req.RefreshToken)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error fetching refresh token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	if refreshTokenModel == nil {
-		RespondWithError(w, ErrCodeUnauthorized, "Token de refresh inválido o expirado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "Token de refresh inválido o expirado", http.StatusUnauthorized)
 		return
 	}
 
 	user, err := h.userRepo.GetByID(ctx, refreshTokenModel.UserID)
 	if err != nil || user == nil {
-		logger.Log.Error().Err(err).Msg("Error fetching user")
-		RespondWithError(w, ErrCodeUnauthorized, "Usuario no encontrado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "Usuario no encontrado", http.StatusUnauthorized, err)
 		return
 	}
 
@@ -418,16 +403,14 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	newToken, err := h.jwtSvc.GenerateToken(user.ID, user.CompanyID, user.Role, 15*time.Minute)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error generating token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	newRefreshToken := generateRefreshToken()
 	newRefreshTokenHash, err := bcrypt.GenerateFromPassword([]byte(newRefreshToken), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error hashing refresh token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -441,8 +424,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.refreshTokenRepo.Create(ctx, newRefreshTokenModel); err != nil {
-		logger.Log.Error().Err(err).Msg("Error creating refresh token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -469,30 +451,29 @@ func hashTransferToken(raw string) string {
 func (h *AuthHandler) StartSessionTransfer(w http.ResponseWriter, r *http.Request) {
 	var req TransferStartRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 	req.RefreshToken = strings.TrimSpace(req.RefreshToken)
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
 	claims := middleware.GetUserClaims(r)
 	userID, err := uuid.Parse(claims.UserID)
 	if err != nil {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 
 	refreshTokenModel, err := h.refreshTokenRepo.GetValidByRawToken(r.Context(), req.RefreshToken)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("StartSessionTransfer: refresh token lookup")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if refreshTokenModel == nil || refreshTokenModel.UserID != userID {
-		RespondWithError(w, ErrCodeUnauthorized, "Token de refresh inválido", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "Token de refresh inválido", http.StatusUnauthorized)
 		return
 	}
 
@@ -508,8 +489,7 @@ func (h *AuthHandler) StartSessionTransfer(w http.ResponseWriter, r *http.Reques
 		CreatedAt:             now,
 	}
 	if err := h.transferRepo.Create(r.Context(), transfer); err != nil {
-		logger.Log.Error().Err(err).Msg("StartSessionTransfer: create transfer")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -522,45 +502,41 @@ func (h *AuthHandler) StartSessionTransfer(w http.ResponseWriter, r *http.Reques
 func (h *AuthHandler) ClaimSessionTransfer(w http.ResponseWriter, r *http.Request) {
 	var req TransferClaimRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 	req.Token = strings.TrimSpace(req.Token)
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
 	transfer, err := h.transferRepo.ConsumeByTokenHash(r.Context(), hashTransferToken(req.Token))
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("ClaimSessionTransfer: consume transfer")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if transfer == nil {
-		RespondWithError(w, ErrCodeUnauthorized, "Token de transferencia inválido o expirado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "Token de transferencia inválido o expirado", http.StatusUnauthorized)
 		return
 	}
 
 	user, err := h.userRepo.GetByID(r.Context(), transfer.UserID)
 	if err != nil || user == nil {
-		logger.Log.Error().Err(err).Msg("ClaimSessionTransfer: user not found")
-		RespondWithError(w, ErrCodeUnauthorized, "Usuario no encontrado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "Usuario no encontrado", http.StatusUnauthorized, err)
 		return
 	}
 
 	token, err := h.jwtSvc.GenerateToken(user.ID, user.CompanyID, user.Role, 15*time.Minute)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("ClaimSessionTransfer: generate access token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	refreshToken := generateRefreshToken()
 	refreshTokenHash, err := bcrypt.GenerateFromPassword([]byte(refreshToken), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("ClaimSessionTransfer: hash refresh token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -573,13 +549,11 @@ func (h *AuthHandler) ClaimSessionTransfer(w http.ResponseWriter, r *http.Reques
 		CreatedAt:  time.Now(),
 	}
 	if err := h.refreshTokenRepo.Create(r.Context(), refreshTokenModel); err != nil {
-		logger.Log.Error().Err(err).Msg("ClaimSessionTransfer: create refresh token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if err := h.transferRepo.AttachPhoneRefreshToken(r.Context(), transfer.ID, refreshTokenModel.ID); err != nil {
-		logger.Log.Error().Err(err).Msg("ClaimSessionTransfer: link phone refresh token")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -677,44 +651,42 @@ func canManageBillingSubscriptions(role string) bool {
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" || claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	if !canAccessWebManagement(claims.Role) {
-		RespondWithError(w, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
+		RespondWithError(w, r, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
 		return
 	}
 
 	userID, err := uuid.Parse(claims.UserID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Usuario inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Usuario inválido", http.StatusBadRequest)
 		return
 	}
 	companyID, err := uuid.Parse(claims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
 		return
 	}
 
 	user, err := h.userRepo.GetByID(r.Context(), userID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetMe: user")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if user == nil {
-		RespondWithError(w, ErrCodeNotFound, "Usuario no encontrado", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Usuario no encontrado", http.StatusNotFound)
 		return
 	}
 
 	company, err := h.companyRepo.GetByIDForBilling(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetMe: company")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if company == nil {
-		RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
 		return
 	}
 
@@ -741,69 +713,61 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) GetMeEntitlement(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" || claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	if !canAccessWebManagement(claims.Role) {
-		RespondWithError(w, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
+		RespondWithError(w, r, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
 		return
 	}
 	companyID, err := uuid.Parse(claims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
 		return
 	}
 	company, err := h.companyRepo.GetByIDForBilling(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetMeEntitlement: company")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if company == nil {
-		RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
 		return
 	}
 	warehouseCount, err := h.warehouseRepo.CountByCompanyID(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetMeEntitlement: warehouse count")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	remitos30d, _, firstScanAt, err := h.syncRepo.InboundNoteEntitlementMetrics(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetMeEntitlement: inbound note metrics")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	firstScanDone := firstScanAt != nil
 	warehouseUsage, err := h.syncRepo.ListInboundNotesByWarehouseLast30Days(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetMeEntitlement: warehouse usage last 30d")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	deviceCount, err := h.deviceRepo.CountByCompanyID(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetMeEntitlement: device count")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	userCount, err := h.userRepo.CountByCompanyID(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetMeEntitlement: user count")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	mtdTotal, usageSeries, err := h.syncRepo.InboundNotesMTDCumulativeSeries(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetMeEntitlement: documents MTD series")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	documentsByWarehouseMTD, err := h.syncRepo.ListInboundNotesByWarehouseMTD(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetMeEntitlement: documents MTD by warehouse")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	now := time.Now()
@@ -845,22 +809,21 @@ type invoiceListItem struct {
 func (h *AuthHandler) GetMeInvoices(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" || claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	if !canAccessWebManagement(claims.Role) {
-		RespondWithError(w, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
+		RespondWithError(w, r, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
 		return
 	}
 	companyID, err := uuid.Parse(claims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
 		return
 	}
 	rows, err := h.invoiceRepo.ListByCompanyID(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetMeInvoices: list")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	out := make([]invoiceListItem, len(rows))
@@ -887,31 +850,30 @@ type androidDownloadResponse struct {
 // GetAndroidDownloadURL returns a short-lived signed GCS URL to the release APK (entitled companies only).
 func (h *AuthHandler) GetAndroidDownloadURL(w http.ResponseWriter, r *http.Request) {
 	if h.releases == nil || h.releases.Storage == nil || h.releases.Bucket == "" || h.releases.Object == "" {
-		RespondWithError(w, ErrCodeInternalError, "Descarga de la aplicación no disponible en este servidor", http.StatusServiceUnavailable)
+		RespondWithError(w, r, ErrCodeInternalError, "Descarga de la aplicación no disponible en este servidor", http.StatusServiceUnavailable)
 		return
 	}
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" || claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	companyID, err := uuid.Parse(claims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
 		return
 	}
 	company, err := h.companyRepo.GetByIDForBilling(r.Context(), companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetAndroidDownloadURL: company")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if company == nil {
-		RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
 		return
 	}
 	if !billing.CompanyHasAppDownloadAccess(time.Now(), company) {
-		RespondWithError(w, ErrCodeForbidden, "Tu plan no incluye descargar la aplicación en este momento.", http.StatusForbidden)
+		RespondWithError(w, r, ErrCodeForbidden, "Tu plan no incluye descargar la aplicación en este momento.", http.StatusForbidden)
 		return
 	}
 	expiry := h.releases.Expiry
@@ -920,8 +882,7 @@ func (h *AuthHandler) GetAndroidDownloadURL(w http.ResponseWriter, r *http.Reque
 	}
 	urlStr, expiresAt, err := releases.SignedGETURL(r.Context(), h.releases.Storage, h.releases.Bucket, h.releases.Object, expiry)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("GetAndroidDownloadURL: signed URL")
-		RespondWithError(w, ErrCodeInternalError, "Error al generar enlace de descarga", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al generar enlace de descarga", http.StatusInternalServerError, err)
 		return
 	}
 	filename := path.Base(h.releases.Object)
@@ -938,14 +899,14 @@ func (h *AuthHandler) GetAndroidDownloadURL(w http.ResponseWriter, r *http.Reque
 func (h *AuthHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 	var req RegisterDeviceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 
 	normalizeRegisterDeviceRequest(&req)
 
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
 		return
 	}
 
@@ -954,44 +915,41 @@ func (h *AuthHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 	// Get company ID from warehouse (no auth required for device setup)
 	warehouseID, err := uuid.Parse(req.WarehouseID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de warehouse inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de warehouse inválido", http.StatusBadRequest)
 		return
 	}
 
 	// Get warehouse to find company
 	warehouse, err := h.warehouseRepo.GetByID(ctx, warehouseID)
 	if err != nil || warehouse == nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Warehouse no encontrado", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Warehouse no encontrado", http.StatusBadRequest)
 		return
 	}
 	companyID := warehouse.CompanyID
 
 	company, err := h.companyRepo.GetByIDForBilling(ctx, companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("RegisterDevice: company")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if company == nil {
-		RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
 		return
 	}
 
 	existingDevice, err := h.deviceRepo.GetByUUID(ctx, companyID, req.DeviceUUID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("RegisterDevice: existing device lookup")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if existingDevice == nil {
 		activeInWarehouse, err := h.deviceRepo.CountActiveByWarehouseID(ctx, warehouseID)
 		if err != nil {
-			logger.Log.Error().Err(err).Msg("RegisterDevice: count active devices by warehouse")
-			RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+			RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 			return
 		}
 		if block, msg := blockNewDeviceForWarehousePlan(company.SubscriptionPlan, activeInWarehouse); block {
-			RespondWithError(w, ErrCodeForbidden, msg, http.StatusForbidden)
+			RespondWithError(w, r, ErrCodeForbidden, msg, http.StatusForbidden)
 			return
 		}
 	}
@@ -1011,8 +969,7 @@ func (h *AuthHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.deviceRepo.Create(ctx, device); err != nil {
-		logger.Log.Error().Err(err).Msg("Error creating device")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -1079,7 +1036,7 @@ func blockNewDeviceForWarehousePlan(subscriptionPlan string, activeDevicesInWare
 func (h *AuthHandler) GetUserStatus(w http.ResponseWriter, r *http.Request) {
 	userID, err := uuid.Parse(r.Context().Value("user_id").(string))
 	if err != nil {
-		RespondWithError(w, ErrCodeUnauthorized, "Token inválido", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "Token inválido", http.StatusUnauthorized)
 		return
 	}
 
@@ -1087,26 +1044,24 @@ func (h *AuthHandler) GetUserStatus(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error fetching user")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	if user == nil {
-		RespondWithError(w, ErrCodeNotFound, "Usuario no encontrado", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Usuario no encontrado", http.StatusNotFound)
 		return
 	}
 
 	deviceID, err := uuid.Parse(r.Context().Value("device_id").(string))
 	if err != nil {
-		RespondWithError(w, ErrCodeUnauthorized, "Dispositivo inválido", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "Dispositivo inválido", http.StatusUnauthorized)
 		return
 	}
 
 	device, err := h.deviceRepo.GetByID(ctx, deviceID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Error fetching device")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 

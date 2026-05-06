@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	"server/internal/billing"
-	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/models"
 	"server/internal/payments/mercadopago"
@@ -58,45 +57,44 @@ func planTier(plan string) int {
 func (h *AuthHandler) PostMeChangePlan(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" || claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	if !canAccessWebManagement(claims.Role) {
-		RespondWithError(w, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
+		RespondWithError(w, r, ErrCodeForbidden, "Este rol no tiene acceso a la administración web", http.StatusForbidden)
 		return
 	}
 	if !canManageBillingSubscriptions(claims.Role) {
-		RespondWithError(w, ErrCodeForbidden, "Tu rol no puede cambiar el plan ni los cobros.", http.StatusForbidden)
+		RespondWithError(w, r, ErrCodeForbidden, "Tu rol no puede cambiar el plan ni los cobros.", http.StatusForbidden)
 		return
 	}
 
 	companyID, err := uuid.Parse(claims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
 		return
 	}
 
 	var req changePlanRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 	req.PlanID = strings.ToLower(strings.TrimSpace(req.PlanID))
 	req.CardToken = strings.TrimSpace(req.CardToken)
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del cambio de plan.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del cambio de plan.", fields, http.StatusBadRequest)
 		return
 	}
 
 	ctx := r.Context()
 	company, err := h.companyRepo.GetByIDForBilling(ctx, companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: company")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if company == nil {
-		RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
 		return
 	}
 
@@ -105,11 +103,11 @@ func (h *AuthHandler) PostMeChangePlan(w http.ResponseWriter, r *http.Request) {
 	currentTier := planTier(currentPlan)
 	newTier := planTier(req.PlanID)
 	if newTier == 0 {
-		RespondWithError(w, ErrCodeInvalidRequest, "Plan no válido para cambio en línea", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Plan no válido para cambio en línea", http.StatusBadRequest)
 		return
 	}
 	if currentTier == newTier {
-		RespondWithError(w, ErrCodeConflict, "Ya estás en ese plan.", http.StatusConflict)
+		RespondWithError(w, r, ErrCodeConflict, "Ya estás en ese plan.", http.StatusConflict)
 		return
 	}
 
@@ -118,6 +116,7 @@ func (h *AuthHandler) PostMeChangePlan(w http.ResponseWriter, r *http.Request) {
 	if !billing.IsPaidPlan(currentPlan) {
 		RespondWithError(
 			w,
+			r,
 			ErrCodeConflict,
 			"Activá una suscripción paga antes de cambiar de plan.",
 			http.StatusConflict,
@@ -127,6 +126,7 @@ func (h *AuthHandler) PostMeChangePlan(w http.ResponseWriter, r *http.Request) {
 	if company.SubscriptionExpiresAt == nil || !company.SubscriptionExpiresAt.After(now) {
 		RespondWithError(
 			w,
+			r,
 			ErrCodeConflict,
 			"Tu período pago venció. Reactivá la suscripción antes de cambiar de plan.",
 			http.StatusConflict,
@@ -155,6 +155,7 @@ func (h *AuthHandler) handleDowngrade(
 	if !req.ConfirmDowngrade {
 		RespondWithError(
 			w,
+			r,
 			ErrCodeInvalidRequest,
 			"Confirmá el cambio antes de programar el descenso de plan.",
 			http.StatusBadRequest,
@@ -162,12 +163,11 @@ func (h *AuthHandler) handleDowngrade(
 		return
 	}
 	if err := h.validateDowngradeFits(r.Context(), company.ID, maxWarehouses, maxUsers, documentsMonthlyLimit); err != nil {
-		RespondWithError(w, ErrCodeConflict, err.Error(), http.StatusConflict)
+		RespondWithError(w, r, ErrCodeConflict, err.Error(), http.StatusConflict)
 		return
 	}
 	if err := h.companyRepo.SetPendingPlan(r.Context(), company.ID, req.PlanID); err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: set pending")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	expiresStr := ""
@@ -234,6 +234,7 @@ func (h *AuthHandler) handleUpgrade(
 	if h.billingRateQuoter == nil {
 		RespondWithError(
 			w,
+			r,
 			ErrCodeInternalError,
 			"Cotización MEP no disponible. Probá más tarde o configurá BILLING_USD_ARS_RATE.",
 			http.StatusServiceUnavailable,
@@ -242,12 +243,13 @@ func (h *AuthHandler) handleUpgrade(
 	}
 	q, err := h.billingRateQuoter.Quote(ctx)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: fx quote")
 		RespondWithError(
 			w,
+			r,
 			ErrCodeInternalError,
 			"No se pudo obtener la cotización MEP. Probá más tarde.",
 			http.StatusServiceUnavailable,
+			err,
 		)
 		return
 	}
@@ -255,29 +257,25 @@ func (h *AuthHandler) handleUpgrade(
 	currentPlan := strings.ToLower(strings.TrimSpace(company.SubscriptionPlan))
 	currentMonthlyMinor, err := billing.PlanMonthlyAmountMinorARS(currentPlan, charged)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: current pricing")
-		RespondWithError(w, ErrCodeInternalError, "No se pudo calcular el ajuste prorrateado.", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "No se pudo calcular el ajuste prorrateado.", http.StatusInternalServerError, err)
 		return
 	}
 	newMonthlyMinor, err := billing.PlanMonthlyAmountMinorARS(req.PlanID, charged)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: new pricing")
-		RespondWithError(w, ErrCodeInternalError, "No se pudo calcular el ajuste prorrateado.", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "No se pudo calcular el ajuste prorrateado.", http.StatusInternalServerError, err)
 		return
 	}
 
 	breakdown, err := billing.ComputeUpgradeProrationDueMinor(now, *company.SubscriptionExpiresAt, currentMonthlyMinor, newMonthlyMinor)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: proration")
-		RespondWithError(w, ErrCodeInternalError, "No se pudo calcular el ajuste prorrateado.", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "No se pudo calcular el ajuste prorrateado.", http.StatusInternalServerError, err)
 		return
 	}
 	if breakdown == nil || breakdown.DueNowMinor <= 0 {
 		// Period nearly over or fraction collapses to zero: skip the charge but still apply
 		// the new plan immediately for the remainder of the period.
 		if err := h.companyRepo.ChangePlan(ctx, company.ID, req.PlanID, maxWarehouses, maxUsers, documentsMonthlyLimit); err != nil {
-			logger.Log.Error().Err(err).Msg("change plan: update without charge")
-			RespondWithError(w, ErrCodeInternalError, "No se pudo cambiar el plan.", http.StatusInternalServerError)
+			RespondWithError(w, r, ErrCodeInternalError, "No se pudo cambiar el plan.", http.StatusInternalServerError, err)
 			return
 		}
 		RespondWithJSON(w, http.StatusOK, changePlanResponse{
@@ -289,19 +287,17 @@ func (h *AuthHandler) handleUpgrade(
 
 	custID, cardID, err := h.resolveChangePlanCard(ctx, company, req)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: resolve card")
-		RespondWithError(w, ErrCodeInvalidRequest, err.Error(), http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, err.Error(), http.StatusBadRequest, err)
 		return
 	}
 
 	payerEmail, err := h.userRepo.GetCompanyOwnerPrimaryEmail(ctx, company.ID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: payer email")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if payerEmail == "" {
-		RespondWithError(w, ErrCodeInvalidRequest, "Falta un email de titular para Mercado Pago.", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Falta un email de titular para Mercado Pago.", http.StatusBadRequest)
 		return
 	}
 
@@ -309,20 +305,17 @@ func (h *AuthHandler) handleUpgrade(
 
 	tx1, err := h.db.Begin(ctx)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: tx begin")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	invoiceID, err := h.invoiceRepo.InsertPending(ctx, tx1, company.ID, breakdown.DueNowMinor, "ARS", description)
 	if err != nil {
 		_ = tx1.Rollback(ctx)
-		logger.Log.Error().Err(err).Msg("change plan: insert invoice")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if err := tx1.Commit(ctx); err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: tx commit")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -337,37 +330,38 @@ func (h *AuthHandler) handleUpgrade(
 		ExternalReference: invoiceID.String(),
 	}, stub)
 	if err != nil || !chargeOut.Approved || chargeOut.PaymentID == "" {
-		logger.Log.Error().Err(err).Msg("change plan: charge")
+		chargeCause := err
+		if chargeCause == nil {
+			chargeCause = fmt.Errorf("charge incomplete (approved=%v empty_payment_id=%t)", chargeOut.Approved, strings.TrimSpace(chargeOut.PaymentID) == "")
+		}
 		RespondWithError(
 			w,
+			r,
 			ErrCodePaymentRequired,
 			"No se pudo cobrar el ajuste con la tarjeta registrada. Probá con una tarjeta nueva.",
 			http.StatusPaymentRequired,
+			chargeCause,
 		)
 		return
 	}
 
 	tx2, err := h.db.Begin(ctx)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: tx2 begin")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if _, err := h.invoiceRepo.MarkPaid(ctx, tx2, invoiceID, company.ID, chargeOut.PaymentID); err != nil {
 		_ = tx2.Rollback(ctx)
-		logger.Log.Error().Err(err).Msg("change plan: mark paid")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if err := tx2.Commit(ctx); err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: tx2 commit")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := h.companyRepo.ChangePlan(ctx, company.ID, req.PlanID, maxWarehouses, maxUsers, documentsMonthlyLimit); err != nil {
-		logger.Log.Error().Err(err).Msg("change plan: apply")
-		RespondWithError(w, ErrCodeInternalError, "El cobro fue exitoso pero no pudimos aplicar el plan. Contactá a soporte.", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "El cobro fue exitoso pero no pudimos aplicar el plan. Contactá a soporte.", http.StatusInternalServerError, err)
 		return
 	}
 

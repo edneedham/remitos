@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/payments/mercadopago"
 )
@@ -21,56 +20,55 @@ type updatePaymentMethodRequest struct {
 func (h *AuthHandler) PostMeUpdatePaymentMethod(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" || claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 	if !canManageBillingSubscriptions(claims.Role) {
-		RespondWithError(w, ErrCodeForbidden, "Tu rol no puede actualizar medios de pago.", http.StatusForbidden)
+		RespondWithError(w, r, ErrCodeForbidden, "Tu rol no puede actualizar medios de pago.", http.StatusForbidden)
 		return
 	}
 
 	companyID, err := uuid.Parse(claims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Empresa inválida", http.StatusBadRequest)
 		return
 	}
 	userID, err := uuid.Parse(claims.UserID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Usuario inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Usuario inválido", http.StatusBadRequest)
 		return
 	}
 
 	var req updatePaymentMethodRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 	req.CardToken = strings.TrimSpace(req.CardToken)
 
 	if req.UseMockPayment && !h.signupAllowMock {
-		RespondWithError(w, ErrCodeInvalidRequest, "Pago simulado no habilitado en este servidor.", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Pago simulado no habilitado en este servidor.", http.StatusBadRequest)
 		return
 	}
 	if !req.UseMockPayment && req.CardToken == "" {
-		RespondWithError(w, ErrCodeInvalidRequest, "Falta el token de la tarjeta.", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Falta el token de la tarjeta.", http.StatusBadRequest)
 		return
 	}
 
 	ctx := r.Context()
 	company, err := h.companyRepo.GetByIDForBilling(ctx, companyID)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("update payment method: company")
-		RespondWithError(w, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
 	}
 	if company == nil {
-		RespondWithError(w, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Empresa no encontrada", http.StatusNotFound)
 		return
 	}
 
 	user, err := h.userRepo.GetByID(ctx, userID)
 	if err != nil || user == nil {
-		RespondWithError(w, ErrCodeNotFound, "Usuario no encontrado", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Usuario no encontrado", http.StatusNotFound)
 		return
 	}
 	email := ""
@@ -81,7 +79,7 @@ func (h *AuthHandler) PostMeUpdatePaymentMethod(w http.ResponseWriter, r *http.R
 		email = strings.TrimSpace(*user.Username)
 	}
 	if email == "" && !req.UseMockPayment && h.mp.HasAccessToken() {
-		RespondWithError(w, ErrCodeInvalidRequest, "Falta un email de titular para Mercado Pago.", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Falta un email de titular para Mercado Pago.", http.StatusBadRequest)
 		return
 	}
 
@@ -97,16 +95,14 @@ func (h *AuthHandler) PostMeUpdatePaymentMethod(w http.ResponseWriter, r *http.R
 		if existingCust != "" && existingCust != mercadopago.StubCustomerID {
 			cardID, aerr := h.mp.AttachCardToCustomer(ctx, existingCust, req.CardToken)
 			if aerr != nil {
-				logger.Log.Error().Err(aerr).Msg("update payment method: attach card")
-				RespondWithError(w, ErrCodeInvalidRequest, "No pudimos guardar la tarjeta. Revisá los datos e intentá de nuevo.", http.StatusBadRequest)
+				RespondWithError(w, r, ErrCodeInvalidRequest, "No pudimos guardar la tarjeta. Revisá los datos e intentá de nuevo.", http.StatusBadRequest, aerr)
 				return
 			}
 			mpCust, mpCard = existingCust, cardID
 		} else {
 			custID, cardID, serr := h.mp.SaveCard(ctx, email, req.CardToken)
 			if serr != nil {
-				logger.Log.Error().Err(serr).Msg("update payment method: save card")
-				RespondWithError(w, ErrCodeInvalidRequest, "No pudimos guardar la tarjeta. Revisá los datos e intentá de nuevo.", http.StatusBadRequest)
+				RespondWithError(w, r, ErrCodeInvalidRequest, "No pudimos guardar la tarjeta. Revisá los datos e intentá de nuevo.", http.StatusBadRequest, serr)
 				return
 			}
 			mpCust, mpCard = custID, cardID
@@ -114,13 +110,12 @@ func (h *AuthHandler) PostMeUpdatePaymentMethod(w http.ResponseWriter, r *http.R
 	case h.signupAllowMock:
 		mpCust, mpCard = mercadopago.StubCustomerID, mercadopago.StubCardID
 	default:
-		RespondWithError(w, ErrCodeInternalError, "Medios de pago no configurados en el servidor.", http.StatusServiceUnavailable)
+		RespondWithError(w, r, ErrCodeInternalError, "Medios de pago no configurados en el servidor.", http.StatusServiceUnavailable)
 		return
 	}
 
 	if err := h.companyRepo.UpdateMercadoPagoPaymentMethod(ctx, companyID, mpCust, mpCard); err != nil {
-		logger.Log.Error().Err(err).Msg("update payment method: persist")
-		RespondWithError(w, ErrCodeInternalError, "No se pudo guardar el medio de pago.", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "No se pudo guardar el medio de pago.", http.StatusInternalServerError, err)
 		return
 	}
 

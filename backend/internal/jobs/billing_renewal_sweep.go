@@ -41,6 +41,7 @@ func runBillingRenewalSweep(ctx context.Context, svc *billing.RenewalService, co
 	if len(ids) == 0 {
 		return
 	}
+	var failed int
 	for _, id := range ids {
 		_, err := svc.Run(ctx, billing.RenewalRunInput{
 			CompanyID:    id,
@@ -50,7 +51,13 @@ func runBillingRenewalSweep(ctx context.Context, svc *billing.RenewalService, co
 			ExtendMonths: 1,
 		})
 		if err != nil {
+			failed++
 			logger.Log.Warn().Err(err).Str("company_id", id.String()).Msg("billing renewal sweep: run failed")
 		}
 	}
+	logger.Log.Info().
+		Int("candidates", len(ids)).
+		Int("failed", failed).
+		Int("succeeded", len(ids)-failed).
+		Msg("billing renewal sweep: tick complete")
 }

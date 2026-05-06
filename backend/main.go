@@ -17,27 +17,25 @@ import (
 	"github.com/joho/godotenv"
 	"server/config"
 	"server/db"
-	"server/internal/models"
 	"server/internal/billing"
 	"server/internal/handlers"
 	"server/internal/jobs"
 	"server/internal/jwt"
 	"server/internal/logger"
 	"server/internal/middleware"
+	"server/internal/models"
 	notifymail "server/internal/notifications/email"
 	"server/internal/payments/mercadopago"
 	"server/internal/repository"
 )
 
 func main() {
-	logger.Init()
-	logger.Log.Info().Str("version", Version).Msg("Starting server")
-
 	if err := godotenv.Load(); err != nil {
-		logger.Log.Info().Msg("No .env file found, using environment variables")
+		// Logging not configured yet; env vars may still be set by the process environment.
 	}
-
 	cfg := config.Load()
+	logger.Init(cfg.LogLevel)
+	logger.Log.Info().Str("version", Version).Msg("Starting server")
 
 	if err := db.Connect(cfg); err != nil {
 		logger.Log.Fatal().Err(err).Msg("Failed to connect to database")

@@ -67,12 +67,14 @@ func (h *MercadoPagoWebhookHandler) PostNotification(w http.ResponseWriter, r *h
 		return
 	}
 	if h.MP == nil || !h.MP.HasAccessToken() {
+		logger.Log.Warn().Msg("mp webhook: rejected (Mercado Pago not configured)")
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		logger.Log.Warn().Err(err).Msg("mp webhook: failed to read body")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

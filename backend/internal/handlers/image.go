@@ -80,55 +80,54 @@ func (h *ImageHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	// Get user claims for authorization
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 
 	// Get device ID from header to determine warehouse
 	deviceIDHeader := r.Header.Get("X-Device-ID")
 	if deviceIDHeader == "" {
-		RespondWithError(w, ErrCodeInvalidRequest, "X-Device-ID header requerido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "X-Device-ID header requerido", http.StatusBadRequest)
 		return
 	}
 
 	deviceID, err := uuid.Parse(deviceIDHeader)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de dispositivo inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de dispositivo inválido", http.StatusBadRequest)
 		return
 	}
 
 	// Get device to determine warehouse
 	device, err := h.deviceRepo.GetByID(ctx, deviceID)
 	if err != nil || device == nil {
-		RespondWithError(w, ErrCodeNotFound, "Dispositivo no encontrado", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Dispositivo no encontrado", http.StatusNotFound)
 		return
 	}
 
 	// Parse multipart form with 10MB max memory
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to parse multipart form")
-		RespondWithError(w, ErrCodeInvalidRequest, "Error al procesar la imagen", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Error al procesar la imagen", http.StatusBadRequest, err)
 		return
 	}
 
 	// Get uploaded file
 	file, header, err := r.FormFile("image")
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "No se pudo obtener la imagen", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "No se pudo obtener la imagen", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
 	// Validate file size (max 10MB)
 	if header.Size > 10<<20 {
-		RespondWithError(w, ErrCodeInvalidRequest, "La imagen es demasiado grande (máximo 10MB)", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "La imagen es demasiado grande (máximo 10MB)", http.StatusBadRequest)
 		return
 	}
 
 	// Validate content type
 	contentType := header.Header.Get("Content-Type")
 	if !isValidImageType(contentType) {
-		RespondWithError(w, ErrCodeInvalidRequest, "Tipo de archivo no válido. Solo se permiten imágenes JPEG y PNG", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Tipo de archivo no válido. Solo se permiten imágenes JPEG y PNG", http.StatusBadRequest)
 		return
 	}
 
@@ -137,27 +136,26 @@ func (h *ImageHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	entityIDStr := r.FormValue("entity_id")
 
 	if entityType == "" || entityIDStr == "" {
-		RespondWithError(w, ErrCodeInvalidRequest, "Se requiere entity_type y entity_id", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Se requiere entity_type y entity_id", http.StatusBadRequest)
 		return
 	}
 
 	entityID, err := strconv.ParseInt(entityIDStr, 10, 64)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "entity_id debe ser un número", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "entity_id debe ser un número", http.StatusBadRequest)
 		return
 	}
 
 	// Validate entity type
 	if !isValidEntityType(entityType) {
-		RespondWithError(w, ErrCodeInvalidRequest, "Tipo de entidad no válido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Tipo de entidad no válido", http.StatusBadRequest)
 		return
 	}
 
 	// Read file data
 	data, err := io.ReadAll(file)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to read image data")
-		RespondWithError(w, ErrCodeInternalError, "Error al leer la imagen", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al leer la imagen", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -188,14 +186,12 @@ func (h *ImageHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := writer.Write(data); err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to write to GCS")
-		RespondWithError(w, ErrCodeInternalError, "Error al subir la imagen", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al subir la imagen", http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := writer.Close(); err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to close GCS writer")
-		RespondWithError(w, ErrCodeInternalError, "Error al finalizar la subida", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al finalizar la subida", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -214,18 +210,16 @@ func (h *ImageHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.imageRepo.Create(ctx, image); err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to save image record")
 		// Try to delete the GCS object since DB save failed
 		_ = obj.Delete(ctx)
-		RespondWithError(w, ErrCodeInternalError, "Error al guardar información de la imagen", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al guardar información de la imagen", http.StatusInternalServerError, err)
 		return
 	}
 
 	// Generate signed URL
 	signedURL, expiresAt, err := h.generateSignedURL(ctx, gcsPath)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to generate signed URL")
-		RespondWithError(w, ErrCodeInternalError, "Error al generar URL de acceso", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al generar URL de acceso", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -253,28 +247,27 @@ func (h *ImageHandler) GetSignedURL(w http.ResponseWriter, r *http.Request) {
 	// Get user claims for authorization
 	claims := middleware.GetUserClaims(r)
 	if claims.UserID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 
 	// Get image ID from URL
 	imageID := chi.URLParam(r, "id")
 	if imageID == "" {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de imagen requerido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de imagen requerido", http.StatusBadRequest)
 		return
 	}
 
 	id, err := uuid.Parse(imageID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de imagen inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de imagen inválido", http.StatusBadRequest)
 		return
 	}
 
 	// Get image from database
 	image, err := h.imageRepo.GetByID(ctx, id)
 	if err != nil {
-		logger.Log.Error().Err(err).Str("image_id", imageID).Msg("Image not found")
-		RespondWithError(w, ErrCodeNotFound, "Imagen no encontrada", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Imagen no encontrada", http.StatusNotFound, err)
 		return
 	}
 
@@ -285,8 +278,7 @@ func (h *ImageHandler) GetSignedURL(w http.ResponseWriter, r *http.Request) {
 	// Generate signed URL
 	signedURL, expiresAt, err := h.generateSignedURL(ctx, image.GcsPath)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to generate signed URL")
-		RespondWithError(w, ErrCodeInternalError, "Error al generar URL de acceso", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al generar URL de acceso", http.StatusInternalServerError, err)
 		return
 	}
 

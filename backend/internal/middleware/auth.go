@@ -54,6 +54,11 @@ func Auth(deps AuthDeps) func(http.Handler) http.Handler {
 
 			claims, err := deps.JwtSvc.ValidateToken(tokenString)
 			if err != nil {
+				logger.Log.Debug().
+					Err(err).
+					Str("request_id", GetRequestID(r)).
+					Str("client_ip", ClientIP(r)).
+					Msg("auth: invalid or expired JWT")
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}

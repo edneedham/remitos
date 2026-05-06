@@ -24,23 +24,23 @@ func (h *SubscriptionHandler) GetMySubscription(w http.ResponseWriter, r *http.R
 	ctx := r.Context()
 	userClaims := middleware.GetUserClaims(r)
 	if userClaims.UserID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	userID, err := uuid.Parse(userClaims.UserID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Invalid user ID", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
 	sub, err := h.subscriptionRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInternalError, "Internal server error", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Internal server error", http.StatusInternalServerError, err)
 		return
 	}
 	if sub == nil {
-		RespondWithError(w, ErrCodeNotFound, "Subscription not found", http.StatusNotFound)
+		RespondWithError(w, r, ErrCodeNotFound, "Subscription not found", http.StatusNotFound)
 		return
 	}
 
@@ -55,36 +55,36 @@ func (h *SubscriptionHandler) LinkDevice(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	userClaims := middleware.GetUserClaims(r)
 	if userClaims.UserID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	userID, err := uuid.Parse(userClaims.UserID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Invalid user ID", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
 	var req LinkDeviceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Invalid request body", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	deviceID, err := uuid.Parse(req.DeviceID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Invalid device ID", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Invalid device ID", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.subscriptionRepo.LinkDevice(ctx, userID, deviceID); err != nil {
-		RespondWithError(w, ErrCodeInternalError, "Failed to link device", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Failed to link device", http.StatusInternalServerError, err)
 		return
 	}
 
 	sub, err := h.subscriptionRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInternalError, "Internal server error", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Internal server error", http.StatusInternalServerError, err)
 		return
 	}
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"server/internal/billing/mep"
+	"server/internal/logger"
 )
 
 // USDARSQuote is one USD priced in ARS (seller side) for billing.
@@ -45,6 +46,7 @@ func (m *MEPWithFallback) Quote(ctx context.Context) (USDARSQuote, error) {
 		}, nil
 	}
 	if m.FallbackARSPerUSD > 0 {
+		logger.Log.Warn().Err(err).Float64("fallback_ars_per_usd", m.FallbackARSPerUSD).Msg("billing FX: bolsa quote failed, using env fallback")
 		return USDARSQuote{
 			SellPerUSD:    m.FallbackARSPerUSD,
 			EffectiveDate: time.Now(),

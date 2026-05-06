@@ -57,7 +57,7 @@ func (h *ScanHandler) Scan(w http.ResponseWriter, r *http.Request) {
 	if isMultipart {
 		file, header, err := r.FormFile("image")
 		if err != nil {
-			RespondWithError(w, ErrCodeInvalidRequest, "No se pudo obtener la imagen", http.StatusBadRequest)
+			RespondWithError(w, r, ErrCodeInvalidRequest, "No se pudo obtener la imagen", http.StatusBadRequest)
 			return
 		}
 		defer file.Close()
@@ -65,14 +65,13 @@ func (h *ScanHandler) Scan(w http.ResponseWriter, r *http.Request) {
 
 		imageData, err = io.ReadAll(file)
 		if err != nil {
-			logger.Log.Error().Err(err).Msg("Failed to read image data")
-			RespondWithError(w, ErrCodeInternalError, "Error al leer la imagen", http.StatusInternalServerError)
+			RespondWithError(w, r, ErrCodeInternalError, "Error al leer la imagen", http.StatusInternalServerError, err)
 			return
 		}
 	} else {
 		var req ScanRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+			RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 			return
 		}
 
@@ -104,15 +103,14 @@ func (h *ScanHandler) Scan(w http.ResponseWriter, r *http.Request) {
 
 		imageBase64 := r.URL.Query().Get("image_base64")
 		if imageBase64 == "" {
-			RespondWithError(w, ErrCodeInvalidRequest, "Imagen requerida cuando el OCR local no cumple el umbral", http.StatusBadRequest)
+			RespondWithError(w, r, ErrCodeInvalidRequest, "Imagen requerida cuando el OCR local no cumple el umbral", http.StatusBadRequest)
 			return
 		}
 
 		var err error
 		imageData, err = base64.StdEncoding.DecodeString(imageBase64)
 		if err != nil {
-			logger.Log.Error().Err(err).Msg("Failed to decode base64 image")
-			RespondWithError(w, ErrCodeInternalError, "Error al decodificar la imagen", http.StatusInternalServerError)
+			RespondWithError(w, r, ErrCodeInternalError, "Error al decodificar la imagen", http.StatusInternalServerError, err)
 			return
 		}
 		filename = "base64_image"
@@ -122,8 +120,7 @@ func (h *ScanHandler) Scan(w http.ResponseWriter, r *http.Request) {
 
 	extractedText, ocrConfidence, err := h.callVisionAPI(ctx, imageData)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Cloud Vision API failed")
-		RespondWithError(w, ErrCodeInternalError, "Error al procesar con Vision API", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al procesar con Vision API", http.StatusInternalServerError, err)
 		return
 	}
 

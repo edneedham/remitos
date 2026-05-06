@@ -26,23 +26,23 @@ func planLimits(planID string) (maxWarehouses *int, maxUsers *int, documentsMont
 func (h *AuthHandler) SelectMyPlan(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims.CompanyID == "" {
-		RespondWithError(w, ErrCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	companyID, err := uuid.Parse(claims.CompanyID)
 	if err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "ID de empresa inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de empresa inválido", http.StatusBadRequest)
 		return
 	}
 
 	var req SignupPlanSelectionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
-		RespondWithValidationError(w, "Revisá los datos del plan.", fields, http.StatusBadRequest)
+		RespondWithValidationError(w, r, "Revisá los datos del plan.", fields, http.StatusBadRequest)
 		return
 	}
 
@@ -55,7 +55,7 @@ func (h *AuthHandler) SelectMyPlan(w http.ResponseWriter, r *http.Request) {
 		maxUsers,
 		documentsMonthlyLimit,
 	); err != nil {
-		RespondWithError(w, ErrCodeInternalError, "No se pudo guardar el plan", http.StatusInternalServerError)
+		RespondWithError(w, r, ErrCodeInternalError, "No se pudo guardar el plan", http.StatusInternalServerError, err)
 		return
 	}
 
