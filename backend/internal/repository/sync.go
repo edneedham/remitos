@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"server/internal/models"
 )
@@ -20,189 +21,351 @@ func NewSyncRepository(pool *pgxpool.Pool) *SyncRepository {
 	return &SyncRepository{pool: pool}
 }
 
-func (r *SyncRepository) UpsertInboundNotes(ctx context.Context, companyID string, notes []models.SyncInboundNote) ([]models.IdMapping, error) {
-	mappings := make([]models.IdMapping, 0, len(notes))
+type inboundUpsertWork struct {
+	note   models.SyncInboundNote
+	cloudID string
+	insert  bool
+}
 
+func (r *SyncRepository) UpsertInboundNotes(ctx context.Context, companyID string, notes []models.SyncInboundNote) ([]models.IdMapping, error) {
+	if len(notes) == 0 {
+		return nil, nil
+	}
+
+	resolved := make([]struct {
+		note    models.SyncInboundNote
+		cloudID string
+	}, 0, len(notes))
+	ids := make([]uuid.UUID, 0, len(notes))
 	for _, note := range notes {
 		cloudID := note.CloudID
 		if cloudID == "" {
 			cloudID = uuid.New().String()
 		}
+		parsed, err := uuid.Parse(cloudID)
+		if err != nil {
+			return nil, fmt.Errorf("inbound note cloud_id: %w", err)
+		}
+		resolved = append(resolved, struct {
+			note    models.SyncInboundNote
+			cloudID string
+		}{note: note, cloudID: cloudID})
+		ids = append(ids, parsed)
+	}
 
-		var id uuid.UUID
-		var existingCompanyID *string
+	existingCompanyByCloud := make(map[string]string, len(resolved))
+	if len(ids) > 0 {
+		rows, err := r.pool.Query(ctx, `
+			SELECT cloud_id::text, company_id::text
+			FROM inbound_notes
+			WHERE cloud_id = ANY($1::uuid[])
+		`, ids)
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var cid, comp string
+			if err := rows.Scan(&cid, &comp); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			existingCompanyByCloud[cid] = comp
+		}
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
+		rows.Close()
+	}
 
-		err := r.pool.QueryRow(ctx, `
-			SELECT id, company_id FROM inbound_notes WHERE cloud_id = $1
-		`, cloudID).Scan(&id, &existingCompanyID)
-
-		if err == nil && existingCompanyID != nil && *existingCompanyID != companyID {
+	work := make([]inboundUpsertWork, 0, len(resolved))
+	for _, item := range resolved {
+		comp, exists := existingCompanyByCloud[item.cloudID]
+		if exists && comp != companyID {
 			continue
 		}
-
-		if err != nil {
-			_, err := r.pool.Exec(ctx, `
-				INSERT INTO inbound_notes (
-					cloud_id, company_id, remito_num_cliente, remito_num_interno,
-					cant_bultos_total, cuit_remitente, nombre_remitente, apellido_remitente,
-					nombre_destinatario, apellido_destinatario, direccion_destinatario, telefono_destinatario,
-					status, created_at, updated_at
-				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, to_timestamp($14/1000), to_timestamp($15/1000))
-				ON CONFLICT (cloud_id) DO UPDATE SET
-					remito_num_cliente = EXCLUDED.remito_num_cliente,
-					remito_num_interno = EXCLUDED.remito_num_interno,
-					cant_bultos_total = EXCLUDED.cant_bultos_total,
-					cuit_remitente = EXCLUDED.cuit_remitente,
-					nombre_remitente = EXCLUDED.nombre_remitente,
-					apellido_remitente = EXCLUDED.apellido_remitente,
-					nombre_destinatario = EXCLUDED.nombre_destinatario,
-					apellido_destinatario = EXCLUDED.apellido_destinatario,
-					direccion_destinatario = EXCLUDED.direccion_destinatario,
-					telefono_destinatario = EXCLUDED.telefono_destinatario,
-					status = EXCLUDED.status,
-					updated_at = EXCLUDED.updated_at
-			`, cloudID, companyID, note.RemitoNumCliente, note.RemitoNumInterno,
-				note.CantBultosTotal, note.CuitRemitente, note.NombreRemitente, note.ApellidoRemitente,
-				note.NombreDestinatario, note.ApellidoDestinatario, note.DireccionDestinatario, note.TelefonoDestinatario,
-				note.Status, note.CreatedAt, note.UpdatedAt,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("failed to upsert inbound note: %w", err)
-			}
-		} else {
-			_, err := r.pool.Exec(ctx, `
-				UPDATE inbound_notes SET
-					remito_num_cliente = $3, remito_num_interno = $4,
-					cant_bultos_total = $5, cuit_remitente = $6,
-					nombre_remitente = $7, apellido_remitente = $8,
-					nombre_destinatario = $9, apellido_destinatario = $10,
-					direccion_destinatario = $11, telefono_destinatario = $12,
-					status = $13, updated_at = to_timestamp($14/1000)
-				WHERE cloud_id = $1 AND company_id = $2
-			`, cloudID, companyID, note.RemitoNumCliente, note.RemitoNumInterno,
-				note.CantBultosTotal, note.CuitRemitente, note.NombreRemitente, note.ApellidoRemitente,
-				note.NombreDestinatario, note.ApellidoDestinatario, note.DireccionDestinatario, note.TelefonoDestinatario,
-				note.Status, note.UpdatedAt,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("failed to update inbound note: %w", err)
-			}
-		}
-
-		mappings = append(mappings, models.IdMapping{
-			LocalID: note.LocalID,
-			CloudID: cloudID,
+		work = append(work, inboundUpsertWork{
+			note:    item.note,
+			cloudID: item.cloudID,
+			insert:  !exists,
 		})
 	}
 
+	if len(work) == 0 {
+		return nil, nil
+	}
+
+	batch := &pgx.Batch{}
+	const insertSQL = `
+		INSERT INTO inbound_notes (
+			cloud_id, company_id, remito_num_cliente, remito_num_interno,
+			cant_bultos_total, cuit_remitente, nombre_remitente, apellido_remitente,
+			nombre_destinatario, apellido_destinatario, direccion_destinatario, telefono_destinatario,
+			status, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, to_timestamp($14/1000), to_timestamp($15/1000))
+		ON CONFLICT (cloud_id) DO UPDATE SET
+			remito_num_cliente = EXCLUDED.remito_num_cliente,
+			remito_num_interno = EXCLUDED.remito_num_interno,
+			cant_bultos_total = EXCLUDED.cant_bultos_total,
+			cuit_remitente = EXCLUDED.cuit_remitente,
+			nombre_remitente = EXCLUDED.nombre_remitente,
+			apellido_remitente = EXCLUDED.apellido_remitente,
+			nombre_destinatario = EXCLUDED.nombre_destinatario,
+			apellido_destinatario = EXCLUDED.apellido_destinatario,
+			direccion_destinatario = EXCLUDED.direccion_destinatario,
+			telefono_destinatario = EXCLUDED.telefono_destinatario,
+			status = EXCLUDED.status,
+			updated_at = EXCLUDED.updated_at`
+	const updateSQL = `
+		UPDATE inbound_notes SET
+			remito_num_cliente = $3, remito_num_interno = $4,
+			cant_bultos_total = $5, cuit_remitente = $6,
+			nombre_remitente = $7, apellido_remitente = $8,
+			nombre_destinatario = $9, apellido_destinatario = $10,
+			direccion_destinatario = $11, telefono_destinatario = $12,
+			status = $13, updated_at = to_timestamp($14/1000)
+		WHERE cloud_id = $1 AND company_id = $2`
+	for _, w := range work {
+		n := w.note
+		if w.insert {
+			batch.Queue(insertSQL,
+				w.cloudID, companyID, n.RemitoNumCliente, n.RemitoNumInterno,
+				n.CantBultosTotal, n.CuitRemitente, n.NombreRemitente, n.ApellidoRemitente,
+				n.NombreDestinatario, n.ApellidoDestinatario, n.DireccionDestinatario, n.TelefonoDestinatario,
+				n.Status, n.CreatedAt, n.UpdatedAt,
+			)
+		} else {
+			batch.Queue(updateSQL,
+				w.cloudID, companyID, n.RemitoNumCliente, n.RemitoNumInterno,
+				n.CantBultosTotal, n.CuitRemitente, n.NombreRemitente, n.ApellidoRemitente,
+				n.NombreDestinatario, n.ApellidoDestinatario, n.DireccionDestinatario, n.TelefonoDestinatario,
+				n.Status, n.UpdatedAt,
+			)
+		}
+	}
+
+	br := r.pool.SendBatch(ctx, batch)
+	defer br.Close()
+	for _, w := range work {
+		if _, err := br.Exec(); err != nil {
+			if w.insert {
+				return nil, fmt.Errorf("failed to upsert inbound note: %w", err)
+			}
+			return nil, fmt.Errorf("failed to update inbound note: %w", err)
+		}
+	}
+
+	mappings := make([]models.IdMapping, 0, len(work))
+	for _, w := range work {
+		mappings = append(mappings, models.IdMapping{
+			LocalID: w.note.LocalID,
+			CloudID: w.cloudID,
+		})
+	}
 	return mappings, nil
 }
 
-func (r *SyncRepository) UpsertOutboundLists(ctx context.Context, companyID string, lists []models.SyncOutboundList) ([]models.IdMapping, []models.IdMapping, error) {
-	listMappings := make([]models.IdMapping, 0, len(lists))
-	lineMappings := make([]models.IdMapping, 0)
+type outboundListWork struct {
+	list       models.SyncOutboundList
+	cloudID    string
+	existingID uuid.UUID
+}
 
+func (r *SyncRepository) UpsertOutboundLists(ctx context.Context, companyID string, lists []models.SyncOutboundList) ([]models.IdMapping, []models.IdMapping, error) {
+	if len(lists) == 0 {
+		return nil, nil, nil
+	}
+
+	prepared := make([]outboundListWork, 0, len(lists))
+	listUUIDs := make([]uuid.UUID, 0, len(lists))
 	for _, list := range lists {
 		cloudID := list.CloudID
 		if cloudID == "" {
 			cloudID = uuid.New().String()
 		}
-
-		var listID uuid.UUID
-		err := r.pool.QueryRow(ctx, `
-			SELECT id FROM outbound_lists WHERE cloud_id = $1
-		`, cloudID).Scan(&listID)
-
+		parsed, err := uuid.Parse(cloudID)
 		if err != nil {
-			err = r.pool.QueryRow(ctx, `
-				INSERT INTO outbound_lists (
-					cloud_id, company_id, list_number, issue_date,
-					driver_nombre, driver_apellido, status,
-					checklist_signature_path, checklist_signed_at, created_at
-				) VALUES ($1, $2, $3, to_timestamp($4/1000), $5, $6, $7, $8, to_timestamp($9/1000), NOW())
-				RETURNING id
-			`, cloudID, companyID, list.ListNumber, list.IssueDate,
-				list.DriverNombre, list.DriverApellido, list.Status,
-				list.ChecklistSignaturePath, list.ChecklistSignedAt,
-			).Scan(&listID)
-			if err != nil {
-				return nil, nil, fmt.Errorf("failed to insert outbound list: %w", err)
+			return nil, nil, fmt.Errorf("outbound list cloud_id: %w", err)
+		}
+		prepared = append(prepared, outboundListWork{list: list, cloudID: cloudID})
+		listUUIDs = append(listUUIDs, parsed)
+	}
+
+	existingListID := make(map[string]uuid.UUID, len(prepared))
+	if len(listUUIDs) > 0 {
+		rows, err := r.pool.Query(ctx, `
+			SELECT cloud_id::text, id FROM outbound_lists WHERE cloud_id = ANY($1::uuid[])
+		`, listUUIDs)
+		if err != nil {
+			return nil, nil, err
+		}
+		for rows.Next() {
+			var cid string
+			var id uuid.UUID
+			if err := rows.Scan(&cid, &id); err != nil {
+				rows.Close()
+				return nil, nil, err
 			}
-		} else {
-			_, err = r.pool.Exec(ctx, `
-				UPDATE outbound_lists SET
-					list_number = $3, issue_date = to_timestamp($4/1000),
-					driver_nombre = $5, driver_apellido = $6,
-					status = $7, checklist_signature_path = $8,
-					checklist_signed_at = to_timestamp($9/1000)
-				WHERE cloud_id = $1 AND company_id = $2
-			`, cloudID, companyID, list.ListNumber, list.IssueDate,
-				list.DriverNombre, list.DriverApellido, list.Status,
-				list.ChecklistSignaturePath, list.ChecklistSignedAt,
+			existingListID[cid] = id
+		}
+		if err := rows.Err(); err != nil {
+			return nil, nil, err
+		}
+		rows.Close()
+	}
+
+	for i := range prepared {
+		if id, ok := existingListID[prepared[i].cloudID]; ok {
+			prepared[i].existingID = id
+		}
+	}
+
+	const updateListSQL = `
+		UPDATE outbound_lists SET
+			list_number = $3, issue_date = to_timestamp($4/1000),
+			driver_nombre = $5, driver_apellido = $6,
+			status = $7, checklist_signature_path = $8,
+			checklist_signed_at = to_timestamp($9/1000)
+		WHERE cloud_id = $1 AND company_id = $2`
+	const insertListSQL = `
+		INSERT INTO outbound_lists (
+			cloud_id, company_id, list_number, issue_date,
+			driver_nombre, driver_apellido, status,
+			checklist_signature_path, checklist_signed_at, created_at
+		) VALUES ($1, $2, $3, to_timestamp($4/1000), $5, $6, $7, $8, to_timestamp($9/1000), NOW())
+		RETURNING id`
+	const upsertLineSQL = `
+		INSERT INTO outbound_lines (
+			cloud_id, outbound_list_id, delivery_number,
+			recipient_nombre, recipient_apellido, recipient_direccion, recipient_telefono,
+			package_qty, allocated_package_ids, status,
+			delivered_qty, returned_qty, missing_qty
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		ON CONFLICT (cloud_id) DO UPDATE SET
+			delivery_number = EXCLUDED.delivery_number,
+			recipient_nombre = EXCLUDED.recipient_nombre,
+			recipient_apellido = EXCLUDED.recipient_apellido,
+			recipient_direccion = EXCLUDED.recipient_direccion,
+			recipient_telefono = EXCLUDED.recipient_telefono,
+			package_qty = EXCLUDED.package_qty,
+			allocated_package_ids = EXCLUDED.allocated_package_ids,
+			status = EXCLUDED.status,
+			delivered_qty = EXCLUDED.delivered_qty,
+			returned_qty = EXCLUDED.returned_qty,
+			missing_qty = EXCLUDED.missing_qty`
+
+	ub := &pgx.Batch{}
+	for _, p := range prepared {
+		if p.existingID != uuid.Nil {
+			l := p.list
+			ub.Queue(updateListSQL,
+				p.cloudID, companyID, l.ListNumber, l.IssueDate,
+				l.DriverNombre, l.DriverApellido, l.Status,
+				l.ChecklistSignaturePath, l.ChecklistSignedAt,
 			)
-			if err != nil {
-				return nil, nil, fmt.Errorf("failed to update outbound list: %w", err)
+		}
+	}
+	if ub.Len() > 0 {
+		br := r.pool.SendBatch(ctx, ub)
+		for _, p := range prepared {
+			if p.existingID != uuid.Nil {
+				if _, err := br.Exec(); err != nil {
+					br.Close()
+					return nil, nil, fmt.Errorf("failed to update outbound list: %w", err)
+				}
 			}
 		}
+		br.Close()
+	}
 
+	insertedIDs := make(map[string]uuid.UUID, len(prepared))
+	ib := &pgx.Batch{}
+	for _, p := range prepared {
+		if p.existingID == uuid.Nil {
+			l := p.list
+			ib.Queue(insertListSQL,
+				p.cloudID, companyID, l.ListNumber, l.IssueDate,
+				l.DriverNombre, l.DriverApellido, l.Status,
+				l.ChecklistSignaturePath, l.ChecklistSignedAt,
+			)
+		}
+	}
+	if ib.Len() > 0 {
+		br := r.pool.SendBatch(ctx, ib)
+		for _, p := range prepared {
+			if p.existingID == uuid.Nil {
+				var newID uuid.UUID
+				if err := br.QueryRow().Scan(&newID); err != nil {
+					br.Close()
+					return nil, nil, fmt.Errorf("failed to insert outbound list: %w", err)
+				}
+				insertedIDs[p.cloudID] = newID
+			}
+		}
+		br.Close()
+	}
+
+	listMappings := make([]models.IdMapping, 0, len(prepared))
+	lineMappings := make([]models.IdMapping, 0)
+	lb := &pgx.Batch{}
+	lineBatchCount := 0
+	for _, p := range prepared {
+		listID := p.existingID
+		if listID == uuid.Nil {
+			listID = insertedIDs[p.cloudID]
+		}
 		listMappings = append(listMappings, models.IdMapping{
-			LocalID: list.LocalID,
-			CloudID: cloudID,
+			LocalID: p.list.LocalID,
+			CloudID: p.cloudID,
 		})
-
-		for _, line := range list.Lines {
+		for _, line := range p.list.Lines {
 			lineCloudID := line.CloudID
 			if lineCloudID == "" {
 				lineCloudID = uuid.New().String()
 			}
-
-			_, err := r.pool.Exec(ctx, `
-				INSERT INTO outbound_lines (
-					cloud_id, outbound_list_id, delivery_number,
-					recipient_nombre, recipient_apellido, recipient_direccion, recipient_telefono,
-					package_qty, allocated_package_ids, status,
-					delivered_qty, returned_qty, missing_qty
-				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-				ON CONFLICT (cloud_id) DO UPDATE SET
-					delivery_number = EXCLUDED.delivery_number,
-					recipient_nombre = EXCLUDED.recipient_nombre,
-					recipient_apellido = EXCLUDED.recipient_apellido,
-					recipient_direccion = EXCLUDED.recipient_direccion,
-					recipient_telefono = EXCLUDED.recipient_telefono,
-					package_qty = EXCLUDED.package_qty,
-					allocated_package_ids = EXCLUDED.allocated_package_ids,
-					status = EXCLUDED.status,
-					delivered_qty = EXCLUDED.delivered_qty,
-					returned_qty = EXCLUDED.returned_qty,
-					missing_qty = EXCLUDED.missing_qty
-			`, lineCloudID, listID, line.DeliveryNumber,
-				line.RecipientNombre, line.RecipientApellido, line.RecipientDireccion, line.RecipientTelefono,
-				line.PackageQty, line.AllocatedPackageIDs, line.Status,
-				line.DeliveredQty, line.ReturnedQty, line.MissingQty,
-			)
-			if err != nil {
-				return nil, nil, fmt.Errorf("failed to upsert outbound line: %w", err)
-			}
-
 			lineMappings = append(lineMappings, models.IdMapping{
 				LocalID: line.LocalID,
 				CloudID: lineCloudID,
 			})
+			lb.Queue(upsertLineSQL,
+				lineCloudID, listID, line.DeliveryNumber,
+				line.RecipientNombre, line.RecipientApellido, line.RecipientDireccion, line.RecipientTelefono,
+				line.PackageQty, line.AllocatedPackageIDs, line.Status,
+				line.DeliveredQty, line.ReturnedQty, line.MissingQty,
+			)
+			lineBatchCount++
 		}
+	}
+	if lb.Len() > 0 {
+		br := r.pool.SendBatch(ctx, lb)
+		for i := 0; i < lineBatchCount; i++ {
+			if _, err := br.Exec(); err != nil {
+				br.Close()
+				return nil, nil, fmt.Errorf("failed to upsert outbound line: %w", err)
+			}
+		}
+		br.Close()
 	}
 
 	return listMappings, lineMappings, nil
 }
 
 func (r *SyncRepository) UpsertStatusHistory(ctx context.Context, companyID string, history []models.SyncStatusHistory) error {
+	if len(history) == 0 {
+		return nil
+	}
+	const q = `
+		INSERT INTO outbound_line_status_history (
+			cloud_id, company_id, status, created_at
+		) VALUES ($1, $2, $3, to_timestamp($4/1000))
+		ON CONFLICT (cloud_id) DO NOTHING`
+	b := &pgx.Batch{}
 	for _, h := range history {
-		_, err := r.pool.Exec(ctx, `
-			INSERT INTO outbound_line_status_history (
-				cloud_id, company_id, status, created_at
-			) VALUES ($1, $2, $3, to_timestamp($4/1000))
-			ON CONFLICT (cloud_id) DO NOTHING
-		`, uuid.New().String(), companyID, h.Status, h.CreatedAt)
-		if err != nil {
+		b.Queue(q, uuid.New().String(), companyID, h.Status, h.CreatedAt)
+	}
+	br := r.pool.SendBatch(ctx, b)
+	defer br.Close()
+	for range history {
+		if _, err := br.Exec(); err != nil {
 			return fmt.Errorf("failed to insert status history: %w", err)
 		}
 	}
@@ -210,14 +373,22 @@ func (r *SyncRepository) UpsertStatusHistory(ctx context.Context, companyID stri
 }
 
 func (r *SyncRepository) UpsertEditHistory(ctx context.Context, companyID string, history []models.SyncEditHistory) error {
+	if len(history) == 0 {
+		return nil
+	}
+	const q = `
+		INSERT INTO outbound_line_edit_history (
+			cloud_id, company_id, field_name, old_value, new_value, reason, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (cloud_id) DO NOTHING`
+	b := &pgx.Batch{}
 	for _, h := range history {
-		_, err := r.pool.Exec(ctx, `
-			INSERT INTO outbound_line_edit_history (
-				cloud_id, company_id, field_name, old_value, new_value, reason, created_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7)
-			ON CONFLICT (cloud_id) DO NOTHING
-		`, uuid.New().String(), companyID, h.FieldName, h.OldValue, h.NewValue, h.Reason, fmt.Sprintf("%d", h.CreatedAt))
-		if err != nil {
+		b.Queue(q, uuid.New().String(), companyID, h.FieldName, h.OldValue, h.NewValue, h.Reason, fmt.Sprintf("%d", h.CreatedAt))
+	}
+	br := r.pool.SendBatch(ctx, b)
+	defer br.Close()
+	for range history {
+		if _, err := br.Exec(); err != nil {
 			return fmt.Errorf("failed to insert edit history: %w", err)
 		}
 	}
@@ -260,12 +431,33 @@ func (r *SyncRepository) GetInboundNotesSince(ctx context.Context, companyID str
 
 func (r *SyncRepository) GetOutboundListsSince(ctx context.Context, companyID string, since time.Time) ([]models.SyncOutboundList, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT ol.cloud_id, ol.list_number, EXTRACT(EPOCH FROM ol.issue_date)::bigint * 1000,
-			ol.driver_nombre, ol.driver_apellido, ol.status,
-			ol.checklist_signature_path, ol.checklist_signed_at
+		SELECT
+			ol.cloud_id,
+			ol.list_number,
+			EXTRACT(EPOCH FROM ol.issue_date)::bigint * 1000,
+			ol.driver_nombre,
+			ol.driver_apellido,
+			ol.status,
+			ol.checklist_signature_path,
+			EXTRACT(EPOCH FROM ol.checklist_signed_at)::bigint * 1000,
+			ol_line.cloud_id,
+			ol_line.delivery_number,
+			ol_line.recipient_nombre,
+			ol_line.recipient_apellido,
+			ol_line.recipient_direccion,
+			ol_line.recipient_telefono,
+			ol_line.package_qty,
+			ol_line.allocated_package_ids,
+			ol_line.status,
+			ol_line.delivered_qty,
+			ol_line.returned_qty,
+			ol_line.missing_qty,
+			COALESCE(in_cloud_id.cloud_id::text, '')
 		FROM outbound_lists ol
+		LEFT JOIN outbound_lines ol_line ON ol_line.outbound_list_id = ol.id
+		LEFT JOIN inbound_notes in_cloud_id ON ol_line.inbound_note_id = in_cloud_id.id
 		WHERE ol.company_id = $1 AND ol.updated_at > $2
-		ORDER BY ol.updated_at ASC
+		ORDER BY ol.updated_at ASC, ol.id ASC, ol_line.id ASC NULLS LAST
 	`, companyID, since)
 	if err != nil {
 		return nil, err
@@ -273,64 +465,99 @@ func (r *SyncRepository) GetOutboundListsSince(ctx context.Context, companyID st
 	defer rows.Close()
 
 	lists := make([]models.SyncOutboundList, 0)
+	var lastListCloud string
 	for rows.Next() {
-		var l models.SyncOutboundList
-		var signedAt *int64
-		err := rows.Scan(&l.CloudID, &l.ListNumber, &l.IssueDate,
-			&l.DriverNombre, &l.DriverApellido, &l.Status,
-			&l.ChecklistSignaturePath, &signedAt)
+		var (
+			listCloudID            string
+			listNumber             int64
+			issueDate              int64
+			driverNombre           string
+			driverApellido         string
+			status                 string
+			checklistSignaturePath string
+			checklistSignedMs      sql.NullInt64
+			lineCloudID            sql.NullString
+			deliveryNumber         sql.NullString
+			recipientNombre        sql.NullString
+			recipientApellido      sql.NullString
+			recipientDireccion     sql.NullString
+			recipientTelefono      sql.NullString
+			packageQty             sql.NullInt64
+			allocatedPackageIDs    sql.NullString
+			lineStatus             sql.NullString
+			deliveredQty           sql.NullInt64
+			returnedQty            sql.NullInt64
+			missingQty             sql.NullInt64
+			inboundNoteCloudID     string
+		)
+		err := rows.Scan(
+			&listCloudID,
+			&listNumber,
+			&issueDate,
+			&driverNombre,
+			&driverApellido,
+			&status,
+			&checklistSignaturePath,
+			&checklistSignedMs,
+			&lineCloudID,
+			&deliveryNumber,
+			&recipientNombre,
+			&recipientApellido,
+			&recipientDireccion,
+			&recipientTelefono,
+			&packageQty,
+			&allocatedPackageIDs,
+			&lineStatus,
+			&deliveredQty,
+			&returnedQty,
+			&missingQty,
+			&inboundNoteCloudID,
+		)
 		if err != nil {
 			return nil, err
 		}
-		l.ChecklistSignedAt = signedAt
 
-		lines, err := r.getLinesForList(ctx, l.CloudID)
-		if err != nil {
-			return nil, err
+		if listCloudID != lastListCloud {
+			nl := models.SyncOutboundList{
+				CloudID:                listCloudID,
+				ListNumber:             listNumber,
+				IssueDate:              issueDate,
+				DriverNombre:           driverNombre,
+				DriverApellido:         driverApellido,
+				Status:                 status,
+				ChecklistSignaturePath: checklistSignaturePath,
+				Lines:                  []models.SyncOutboundLine{},
+			}
+			if checklistSignedMs.Valid {
+				v := checklistSignedMs.Int64
+				nl.ChecklistSignedAt = &v
+			}
+			lists = append(lists, nl)
+			lastListCloud = listCloudID
 		}
-		l.Lines = lines
 
-		lists = append(lists, l)
+		if lineCloudID.Valid {
+			line := models.SyncOutboundLine{
+				CloudID:             lineCloudID.String,
+				DeliveryNumber:      deliveryNumber.String,
+				RecipientNombre:     recipientNombre.String,
+				RecipientApellido:   recipientApellido.String,
+				RecipientDireccion:  recipientDireccion.String,
+				RecipientTelefono:   recipientTelefono.String,
+				PackageQty:          int(packageQty.Int64),
+				AllocatedPackageIDs: allocatedPackageIDs.String,
+				Status:              lineStatus.String,
+				DeliveredQty:        int(deliveredQty.Int64),
+				ReturnedQty:        int(returnedQty.Int64),
+				MissingQty:         int(missingQty.Int64),
+				InboundNoteCloudID: inboundNoteCloudID,
+			}
+			cur := &lists[len(lists)-1]
+			cur.Lines = append(cur.Lines, line)
+		}
 	}
 
 	return lists, rows.Err()
-}
-
-func (r *SyncRepository) getLinesForList(ctx context.Context, listCloudID string) ([]models.SyncOutboundLine, error) {
-	rows, err := r.pool.Query(ctx, `
-		SELECT ol.cloud_id, ol.delivery_number,
-			ol.recipient_nombre, ol.recipient_apellido, ol.recipient_direccion, ol.recipient_telefono,
-			ol.package_qty, ol.allocated_package_ids, ol.status,
-			ol.delivered_qty, ol.returned_qty, ol.missing_qty,
-			COALESCE(in_cloud_id.cloud_id, '')
-		FROM outbound_lines ol
-		JOIN outbound_lists obl ON ol.outbound_list_id = obl.id
-		LEFT JOIN inbound_notes in_cloud_id ON ol.inbound_note_id = in_cloud_id.id
-		WHERE obl.cloud_id = $1
-		ORDER BY ol.id ASC
-	`, listCloudID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	lines := make([]models.SyncOutboundLine, 0)
-	for rows.Next() {
-		var l models.SyncOutboundLine
-		var inboundNoteCloudID string
-		err := rows.Scan(&l.CloudID, &l.DeliveryNumber,
-			&l.RecipientNombre, &l.RecipientApellido, &l.RecipientDireccion, &l.RecipientTelefono,
-			&l.PackageQty, &l.AllocatedPackageIDs, &l.Status,
-			&l.DeliveredQty, &l.ReturnedQty, &l.MissingQty,
-			&inboundNoteCloudID)
-		if err != nil {
-			return nil, err
-		}
-		l.InboundNoteCloudID = inboundNoteCloudID
-		lines = append(lines, l)
-	}
-
-	return lines, rows.Err()
 }
 
 func (r *SyncRepository) GetInboundNotesCountSince(ctx context.Context, companyID string, since time.Time) (int, error) {
