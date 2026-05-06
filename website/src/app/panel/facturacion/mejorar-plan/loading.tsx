@@ -1,10 +1,10 @@
-import { PanelFormSkeleton } from '../../components/PanelSkeletons';
+import { PanelUpgradePlanRouteSkeleton } from '../../components/PanelSkeletons';
 
 export default function MejorarPlanLoading() {
   return (
     <>
-      <span className="sr-only">Cargando mejorar plan…</span>
-      <PanelFormSkeleton />
+      <span className="sr-only">Cargando cambiar de plan…</span>
+      <PanelUpgradePlanRouteSkeleton />
     </>
   );
 }

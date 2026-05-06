@@ -1,10 +1,10 @@
-import { PanelListSkeleton } from '../components/PanelSkeletons';
+import { PanelDevicesRouteSkeleton } from '../components/PanelSkeletons';
 
 export default function DispositivosLoading() {
   return (
     <>
       <span className="sr-only">Cargando dispositivos…</span>
-      <PanelListSkeleton rows={8} />
+      <PanelDevicesRouteSkeleton />
     </>
   );
 }

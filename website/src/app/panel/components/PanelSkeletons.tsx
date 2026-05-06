@@ -7,6 +7,9 @@ import type { ReactNode } from 'react';
 
 const pulse = 'animate-pulse bg-gray-200';
 
+/** Default list rows for `loading.tsx` on narrow list routes (dispositivos uses grouped variant). */
+export const PANEL_LIST_ROUTE_ROWS = 8;
+
 function PanelOuter({ children }: { children: ReactNode }) {
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6" aria-busy="true">
@@ -185,26 +188,109 @@ export function PanelBillingSkeleton() {
   );
 }
 
-/** Lists (depósitos, dispositivos, operadores, aplicación). */
-export function PanelListSkeleton({ rows = 6 }: { rows?: number }) {
+/**
+ * Narrow list routes (depósitos, operadores): matches max-w-5xl shell + back link, title,
+ * intro lines, and warehouse-style list rows (same density as live pages).
+ */
+export function PanelListSkeleton({
+  rows = PANEL_LIST_ROUTE_ROWS,
+}: {
+  rows?: number;
+}) {
   return (
     <PanelOuter>
-      <div className={`h-9 w-56 rounded-md ${pulse}`} />
-      <div className={`h-5 w-full max-w-xl rounded-md ${pulse}`} />
-      <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-        {Array.from({ length: rows }).map((_, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-4 border-b border-gray-50 px-5 py-4 last:border-0"
-          >
-            <div className={`h-10 w-10 shrink-0 rounded-full ${pulse}`} />
-            <div className="min-w-0 flex-1 space-y-2">
-              <div className={`h-4 w-full max-w-md rounded ${pulse}`} />
-              <div className={`h-3 w-full max-w-xs rounded ${pulse}`} />
-            </div>
-            <div className={`h-8 w-20 shrink-0 rounded-md ${pulse}`} />
+      <div className="mx-auto max-w-5xl space-y-6">
+        <header className="space-y-2">
+          <div className={`h-4 w-28 rounded ${pulse}`} />
+          <div className={`h-9 w-56 max-w-full rounded-md ${pulse}`} />
+          <div className="space-y-2 pt-0.5">
+            <div className={`h-5 w-full max-w-2xl rounded ${pulse}`} />
+            <div
+              className={`h-5 w-full max-w-xl rounded bg-gray-100 ${pulse}`}
+            />
           </div>
-        ))}
+        </header>
+        <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          {Array.from({ length: rows }).map((_, i) => (
+            <div
+              key={i}
+              className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-50 px-5 py-4 last:border-0"
+            >
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className={`h-5 w-48 max-w-full rounded ${pulse}`} />
+                <div
+                  className={`h-4 w-full max-w-md rounded bg-gray-100 ${pulse}`}
+                />
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <div className={`h-9 w-20 rounded-lg ${pulse}`} />
+                <div className={`h-9 w-24 rounded-lg ${pulse}`} />
+              </div>
+            </div>
+          ))}
+        </section>
+      </div>
+    </PanelOuter>
+  );
+}
+
+/** Dispositivos route loading: grouped sections like the live page. */
+export function PanelDevicesRouteSkeleton() {
+  return (
+    <PanelOuter>
+      <div className="mx-auto max-w-5xl space-y-6">
+        <header className="space-y-2">
+          <div className={`h-4 w-28 rounded ${pulse}`} />
+          <div className={`h-9 w-56 max-w-full rounded-md ${pulse}`} />
+          <div className="space-y-2 pt-0.5">
+            <div className={`h-5 w-full max-w-2xl rounded ${pulse}`} />
+            <div
+              className={`h-5 w-full max-w-xl rounded bg-gray-100 ${pulse}`}
+            />
+          </div>
+        </header>
+        <DevicesGroupedListSkeleton />
+      </div>
+    </PanelOuter>
+  );
+}
+
+/** Aplicación route loading: wide title + compact column like ApplicationPageClient. */
+export function PanelApplicationRouteSkeleton() {
+  return (
+    <PanelOuter>
+      <div className="mx-auto max-w-[92rem] space-y-8 text-left">
+        <div className={`h-8 w-44 max-w-full rounded-md ${pulse}`} />
+        <ApplicationContentSkeleton />
+      </div>
+    </PanelOuter>
+  );
+}
+
+/** Cambiar de plan route loading: matches UpgradePlanPageClient shell. */
+export function PanelUpgradePlanRouteSkeleton() {
+  return (
+    <PanelOuter>
+      <header className="space-y-2">
+        <div className={`h-4 w-36 rounded ${pulse}`} />
+        <div className={`h-9 w-72 max-w-full rounded-md ${pulse}`} />
+        <div className={`h-5 w-full max-w-2xl rounded bg-gray-100 ${pulse}`} />
+      </header>
+      <UpgradePlanBodySkeleton />
+    </PanelOuter>
+  );
+}
+
+/** Activar suscripción route loading: title + plan/payment blocks (parent provides max-w-xl). */
+export function PanelActivateSubscriptionRouteSkeleton() {
+  return (
+    <PanelOuter>
+      <div className="mx-auto max-w-xl space-y-8">
+        <div className="space-y-3">
+          <div className={`h-8 w-64 max-w-full rounded-md ${pulse}`} />
+          <div className={`h-4 w-full max-w-lg rounded bg-gray-100 ${pulse}`} />
+        </div>
+        <ActivateSubscriptionBodySkeleton />
       </div>
     </PanelOuter>
   );
@@ -224,20 +310,24 @@ export function PanelCompactSkeleton() {
   );
 }
 
-/** Forms (contraseña, activar suscripción, mejorar plan). */
+/** Forms (cambiar contraseña): matches max-w-lg title + intro + card. */
 export function PanelFormSkeleton() {
   return (
     <PanelOuter>
-      <div className={`h-9 w-64 rounded-md ${pulse}`} />
-      <div className={`h-5 w-full max-w-lg rounded-md ${pulse}`} />
-      <div className="mx-auto max-w-lg space-y-6 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="space-y-2">
-            <div className={`h-4 w-28 rounded ${pulse}`} />
-            <div className={`h-11 w-full rounded-lg ${pulse}`} />
-          </div>
-        ))}
-        <div className={`h-11 w-full max-w-xs rounded-lg ${pulse}`} />
+      <div className="mx-auto max-w-lg space-y-6">
+        <div className="space-y-3">
+          <div className={`h-8 w-56 max-w-full rounded-md ${pulse}`} />
+          <div className={`h-4 w-full max-w-md rounded bg-gray-100 ${pulse}`} />
+        </div>
+        <div className="space-y-6 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className={`h-4 w-28 rounded ${pulse}`} />
+              <div className={`h-11 w-full rounded-lg ${pulse}`} />
+            </div>
+          ))}
+          <div className={`h-11 w-full max-w-xs rounded-lg ${pulse}`} />
+        </div>
       </div>
     </PanelOuter>
   );
@@ -372,7 +462,7 @@ export function UpgradePlanBodySkeleton() {
 /** Activar suscripción: plan + área de pago. */
 export function ActivateSubscriptionBodySkeleton() {
   return (
-    <div className="mx-auto max-w-xl space-y-8" aria-busy="true">
+    <div className="space-y-8" aria-busy="true">
       <div className="space-y-3 rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
         <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
         <div className="grid gap-2">

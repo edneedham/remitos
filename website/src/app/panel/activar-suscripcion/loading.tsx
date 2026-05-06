@@ -1,10 +1,10 @@
-import { PanelFormSkeleton } from '../components/PanelSkeletons';
+import { PanelActivateSubscriptionRouteSkeleton } from '../components/PanelSkeletons';
 
 export default function ActivarSuscripcionLoading() {
   return (
     <>
       <span className="sr-only">Cargando activar suscripción…</span>
-      <PanelFormSkeleton />
+      <PanelActivateSubscriptionRouteSkeleton />
     </>
   );
 }

@@ -4,7 +4,7 @@ export default function DepositosLoading() {
   return (
     <>
       <span className="sr-only">Cargando depósitos…</span>
-      <PanelListSkeleton rows={8} />
+      <PanelListSkeleton />
     </>
   );
 }

@@ -4,7 +4,7 @@ export default function OperadoresLoading() {
   return (
     <>
       <span className="sr-only">Cargando operadores…</span>
-      <PanelListSkeleton rows={7} />
+      <PanelListSkeleton />
     </>
   );
 }
