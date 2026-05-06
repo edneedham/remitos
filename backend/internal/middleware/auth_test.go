@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,6 +24,23 @@ func (m *mockDeviceRepo) GetByID(ctx context.Context, deviceID uuid.UUID) (*mode
 		return nil, m.err
 	}
 	return m.device, nil
+}
+
+type countingDeviceRepo struct {
+	mu    sync.Mutex
+	calls int
+	dev   *models.Device
+	err   error
+}
+
+func (m *countingDeviceRepo) GetByID(ctx context.Context, deviceID uuid.UUID) (*models.Device, error) {
+	m.mu.Lock()
+	m.calls++
+	m.mu.Unlock()
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.dev, nil
 }
 
 func generateTestToken(userID uuid.UUID, companyID uuid.UUID, role string, secret string) string {
@@ -254,6 +272,48 @@ func TestAuth_DeviceID_CompanyMismatch(t *testing.T) {
 
 	if w.Code != http.StatusForbidden {
 		t.Errorf("expected status 403, got %d", w.Code)
+	}
+}
+
+func TestAuth_DeviceID_SecondRequestUsesAuthPassCache(t *testing.T) {
+	resetDeviceAuthCaches()
+	jwtSvc := srvjwt.NewService("test-secret")
+	userID := uuid.New()
+	companyID := uuid.New()
+	deviceID := uuid.New()
+	tokenString := generateTestTokenWithCompany(userID, "admin", companyID, "test-secret")
+
+	warehouseID := uuid.New()
+	deviceRepo := &countingDeviceRepo{
+		dev: &models.Device{
+			ID:          deviceID,
+			CompanyID:   companyID,
+			DeviceUUID:  "test-device-uuid",
+			Platform:    "android",
+			Status:      "active",
+			WarehouseID: warehouseID,
+		},
+	}
+
+	handler := Auth(AuthDeps{JwtSvc: jwtSvc, DeviceRepo: deviceRepo})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := func() *http.Request {
+		r := httptest.NewRequest(http.MethodGet, "/", nil)
+		r.Header.Set("Authorization", "Bearer "+tokenString)
+		r.Header.Set("X-Device-ID", deviceID.String())
+		return r
+	}
+
+	handler.ServeHTTP(httptest.NewRecorder(), req())
+	handler.ServeHTTP(httptest.NewRecorder(), req())
+
+	deviceRepo.mu.Lock()
+	n := deviceRepo.calls
+	deviceRepo.mu.Unlock()
+	if n != 1 {
+		t.Fatalf("expected GetByID once when auth-pass cache hits on second request, got %d", n)
 	}
 }
 

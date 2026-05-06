@@ -22,6 +22,7 @@ vi.mock('../lib/webAuth', () => ({
   fetchProfile: () => mockFetchProfile(),
   canAccessWebManagement: (...args: unknown[]) =>
     mockCanAccessWebManagement(...args),
+  canManageBillingSubscriptions: () => true,
   clearWebSession: vi.fn(),
 }));
 

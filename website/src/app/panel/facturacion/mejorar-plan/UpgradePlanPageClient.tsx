@@ -30,6 +30,7 @@ import type { Entitlement } from '../../lib/entitlementTypes';
 import type { PlanCatalogLimitsResponse } from '../../lib/planCatalogLimits';
 import { formatInvoiceMoney } from '../../lib/invoiceFormat';
 import { BILLING_LEGAL_NOTICE_AR } from '../../../lib/billingLegalNotice';
+import { UpgradePlanBodySkeleton } from '../../components/PanelSkeletons';
 
 const CardPayment = dynamic(
   () => import('@mercadopago/sdk-react').then((m) => m.CardPayment),
@@ -63,7 +64,7 @@ function pctRemainingLabel(fraction: number): string {
 
 export default function UpgradePlanPageClient() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [pricingPyme, setPricingPyme] = useState<PlanPricingResponse | null>(
@@ -170,7 +171,7 @@ export default function UpgradePlanPageClient() {
         setError(
           'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
         );
-        setReady(true);
+        setEntitlementLoading(false);
         return;
       }
 
@@ -202,13 +203,13 @@ export default function UpgradePlanPageClient() {
           body.message ||
             'No se pudieron obtener los datos de tu cuenta. Probá de nuevo más tarde.',
         );
-        setReady(true);
+        setEntitlementLoading(false);
         return;
       }
 
       const data = (await res.json()) as Entitlement;
       setEntitlement(data);
-      setReady(true);
+      setEntitlementLoading(false);
     }
 
     void load();
@@ -218,7 +219,7 @@ export default function UpgradePlanPageClient() {
   }, [router]);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!entitlement) return;
 
     let cancelled = false;
 
@@ -233,10 +234,10 @@ export default function UpgradePlanPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [ready]);
+  }, [entitlement]);
 
   useEffect(() => {
-    if (!ready || !entitlement) return;
+    if (!entitlement) return;
 
     let cancelled = false;
 
@@ -269,12 +270,31 @@ export default function UpgradePlanPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [ready, entitlement]);
+  }, [entitlement]);
 
-  if (!ready && !error) {
+  if (entitlementLoading && !error) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-hidden />
+      <div className="bg-gray-50 px-4 pb-14 pt-8">
+        <div className="mx-auto max-w-[92rem] space-y-8">
+          <header className="space-y-2">
+            <p>
+              <Link
+                href="/panel/facturacion"
+                className="text-sm font-semibold text-blue-700 underline"
+              >
+                ← Facturación
+              </Link>
+            </p>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+              Cambiar de plan
+            </h1>
+            <p className="text-base leading-relaxed text-gray-600">
+              Revisá cómo calculamos el ajuste cuando pasás a un plan superior en
+              medio de un período de facturación ya abonado.
+            </p>
+          </header>
+          <UpgradePlanBodySkeleton />
+        </div>
       </div>
     );
   }
@@ -300,6 +320,10 @@ export default function UpgradePlanPageClient() {
         </div>
       </div>
     );
+  }
+
+  if (!entitlement) {
+    return null;
   }
 
   const now = Date.now();

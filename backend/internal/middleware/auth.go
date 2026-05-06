@@ -74,12 +74,28 @@ func Auth(deps AuthDeps) func(http.Handler) http.Handler {
 				deviceID, err := uuid.Parse(deviceIDHeader)
 				if err != nil {
 					logger.Log.Warn().Str("device_id", deviceIDHeader).Msg("Invalid device ID format")
+				} else if tryAuthPass(claims.UserID, deviceID, claims.CompanyID) {
+					userClaims.DeviceID = deviceID.String()
 				} else {
 					ctx := r.Context()
-					device, err := deps.DeviceRepo.GetByID(ctx, deviceID)
-					if err != nil {
-						logger.Log.Error().Err(err).Msg("Error fetching device")
-					} else if device != nil {
+					var device *models.Device
+					if cid, wid, ok := tryDeviceSnapshot(deviceID); ok {
+						device = &models.Device{
+							ID:          deviceID,
+							CompanyID:   cid,
+							WarehouseID: wid,
+						}
+					} else if deps.DeviceRepo != nil {
+						var errFetch error
+						device, errFetch = deps.DeviceRepo.GetByID(ctx, deviceID)
+						if errFetch != nil {
+							logger.Log.Error().Err(errFetch).Msg("Error fetching device")
+						} else if device != nil {
+							recordDeviceSnapshot(device.ID, device.CompanyID, device.WarehouseID)
+						}
+					}
+
+					if device != nil {
 						if device.CompanyID != claims.CompanyID {
 							logger.Log.Warn().
 								Str("user_id", claims.UserID.String()).
@@ -91,11 +107,10 @@ func Auth(deps AuthDeps) func(http.Handler) http.Handler {
 							return
 						}
 
-						// Check warehouse access if user warehouse repo is provided
 						if deps.UserWarehouseRepo != nil {
-							hasAccess, err := deps.UserWarehouseRepo.HasWarehouseAccess(ctx, claims.UserID, device.WarehouseID)
-							if err != nil {
-								logger.Log.Error().Err(err).Msg("Error checking warehouse access")
+							hasAccess, errAccess := deps.UserWarehouseRepo.HasWarehouseAccess(ctx, claims.UserID, device.WarehouseID)
+							if errAccess != nil {
+								logger.Log.Error().Err(errAccess).Msg("Error checking warehouse access")
 							} else if !hasAccess {
 								logger.Log.Warn().
 									Str("user_id", claims.UserID.String()).
@@ -108,10 +123,11 @@ func Auth(deps AuthDeps) func(http.Handler) http.Handler {
 						}
 
 						userClaims.DeviceID = deviceID.String()
-						logger.Log.Info().
+						recordAuthPass(claims.UserID, deviceID, claims.CompanyID)
+						logger.Log.Debug().
 							Str("user_id", claims.UserID.String()).
 							Str("device_id", deviceID.String()).
-							Msg("Device validated for request")
+							Msg("device validated")
 					}
 				}
 			}

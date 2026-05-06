@@ -66,6 +66,9 @@ interface InboundDao {
     @Query("SELECT * FROM inbound_notes WHERE id = :id")
     suspend fun getInboundNote(id: Long): InboundNoteEntity?
 
+    @Query("SELECT * FROM inbound_notes WHERE id IN (:ids)")
+    suspend fun getInboundNotesByIds(ids: List<Long>): List<InboundNoteEntity>
+
     @Update
     suspend fun updateInbound(note: InboundNoteEntity)
 

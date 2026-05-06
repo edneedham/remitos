@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: websiteRoot,
   },
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
   devIndicators: false,
   async redirects() {
     return [];

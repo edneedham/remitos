@@ -55,12 +55,12 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Log.Info().
+	logger.Log.Debug().
 		Str("user_id", userClaims.UserID).
 		Str("company_id", userClaims.CompanyID).
 		Int("inbound_notes", len(req.InboundNotes)).
 		Int("outbound_lists", len(req.OutboundLists)).
-		Msg("Processing sync request")
+		Msg("sync request")
 
 	ctx := r.Context()
 
@@ -80,7 +80,7 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if company.DocumentsMonthlyLimit != nil && len(req.InboundNotes) > 0 {
-		mtdTotal, _, err := h.syncRepo.InboundNotesMTDCumulativeSeries(ctx, companyID)
+		mtdTotal, err := h.syncRepo.InboundNotesMTDCount(ctx, companyID)
 		if err != nil {
 			RespondWithError(w, r, ErrCodeInternalError, "Failed to validate limits", http.StatusInternalServerError, err)
 			return

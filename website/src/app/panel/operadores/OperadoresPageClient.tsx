@@ -4,6 +4,11 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import {
+  OperadoresBootstrapSkeleton,
+  OperadoresListSkeleton,
+  PanelEntitlementIntroSkeleton,
+} from '../components/PanelSkeletons';
 import { getApiBaseUrl } from '../../lib/apiUrl';
 import {
   canAccessWebManagement,
@@ -30,7 +35,9 @@ type Operator = {
 
 export default function OperadoresPageClient() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [profileResolved, setProfileResolved] = useState(false);
+  const [entitlementLoading, setEntitlementLoading] = useState(true);
+  const [operatorsLoading, setOperatorsLoading] = useState(false);
   const [profile, setProfile] = useState<WebProfile | null>(null);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [operators, setOperators] = useState<Operator[]>([]);
@@ -58,7 +65,8 @@ export default function OperadoresPageClient() {
         setLoadError(
           'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
         );
-        setReady(true);
+        setProfileResolved(true);
+        setEntitlementLoading(false);
         return;
       }
 
@@ -71,18 +79,20 @@ export default function OperadoresPageClient() {
         return;
       }
       setProfile(userProfile);
+      setProfileResolved(true);
 
       const entRes = await fetchWithWebAuth('/auth/me/entitlement');
       if (cancelled) return;
+      setEntitlementLoading(false);
       if (entRes.ok) {
         setEntitlement((await entRes.json()) as Entitlement);
       }
 
       if (!canManageOperators(userProfile.role)) {
-        setReady(true);
         return;
       }
 
+      setOperatorsLoading(true);
       const res = await fetchWithWebAuth('/admin/operadores');
       if (cancelled) return;
       if (res.status === 401) {
@@ -94,12 +104,12 @@ export default function OperadoresPageClient() {
         setLoadError(
           'No se pudieron cargar los operadores. Probá de nuevo más tarde.',
         );
-        setReady(true);
+        setOperatorsLoading(false);
         return;
       }
       const list = (await res.json()) as Operator[];
       setOperators(Array.isArray(list) ? list : []);
-      setReady(true);
+      setOperatorsLoading(false);
     }
 
     void load();
@@ -183,14 +193,6 @@ export default function OperadoresPageClient() {
     setActionError(data.message || 'No se pudo cambiar la contraseña.');
   };
 
-  if (!ready && !loadError) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-hidden />
-      </div>
-    );
-  }
-
   const maxUsers = entitlement?.max_users;
   const userCount = entitlement?.user_count;
   const atUserCap =
@@ -213,18 +215,24 @@ export default function OperadoresPageClient() {
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             Operadores
           </h1>
-          <p className="text-base leading-relaxed text-gray-600">
-            Los operadores inician sesión en la app En Punto en cada depósito.{' '}
-            {typeof maxUsers === 'number' ? (
-              <>
-                Tu plan permite hasta <span className="font-semibold">{maxUsers}</span>{' '}
-                usuarios en total ({typeof userCount === 'number' ? userCount : '—'} en uso,
-                incluye titular y operadores).
-              </>
-            ) : (
-              <>Gestioná cuentas de operadores para tu empresa.</>
-            )}
-          </p>
+          {!profileResolved || (entitlementLoading && !loadError) ? (
+            <PanelEntitlementIntroSkeleton />
+          ) : (
+            <p className="text-base leading-relaxed text-gray-600">
+              Los operadores inician sesión en la app En Punto en cada depósito.{' '}
+              {typeof maxUsers === 'number' ? (
+                <>
+                  Tu plan permite hasta{' '}
+                  <span className="font-semibold">{maxUsers}</span> usuarios en
+                  total (
+                  {typeof userCount === 'number' ? userCount : '—'} en uso,
+                  incluye titular y operadores).
+                </>
+              ) : (
+                <>Gestioná cuentas de operadores para tu empresa.</>
+              )}
+            </p>
+          )}
         </header>
 
         {loadError ? (
@@ -236,7 +244,11 @@ export default function OperadoresPageClient() {
           </div>
         ) : null}
 
-        {!canManage && profile ? (
+        {!profileResolved && !loadError ? (
+          <OperadoresBootstrapSkeleton />
+        ) : null}
+
+        {!canManage && profile && profileResolved ? (
           <div
             className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
             role="status"
@@ -246,7 +258,7 @@ export default function OperadoresPageClient() {
           </div>
         ) : null}
 
-        {canManage ? (
+        {canManage && profileResolved ? (
           <>
             {actionError ? (
               <div
@@ -322,82 +334,93 @@ export default function OperadoresPageClient() {
               </button>
             </form>
 
-            <section
-              className="rounded-xl border border-gray-200 bg-white shadow-sm"
-              aria-label="Lista de operadores"
-            >
-              {operators.length === 0 ? (
-                <p className="p-6 text-sm text-gray-600">
-                  Todavía no hay operadores. Creá uno para que puedan iniciar sesión en la app.
-                </p>
-              ) : (
-                <ul className="divide-y divide-gray-100">
-                  {operators.map((op) => {
-                    const busy = busyId === op.id;
-                    return (
-                      <li
-                        key={op.id}
-                        className="space-y-3 px-5 py-4 text-sm"
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-gray-900">
-                              {op.email ?? op.username ?? 'Sin email'}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Estado:{' '}
-                              <span className="font-medium text-gray-700">
-                                {op.status === 'active' ? 'Activo' : 'Suspendido'}
-                              </span>
-                            </p>
+            {operatorsLoading && !loadError ? (
+              <OperadoresListSkeleton />
+            ) : (
+              <section
+                className="rounded-xl border border-gray-200 bg-white shadow-sm"
+                aria-label="Lista de operadores"
+              >
+                {operators.length === 0 ? (
+                  <p className="p-6 text-sm text-gray-600">
+                    Todavía no hay operadores. Creá uno para que puedan iniciar sesión en la app.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-gray-100">
+                    {operators.map((op) => {
+                      const busy = busyId === op.id;
+                      return (
+                        <li
+                          key={op.id}
+                          className="space-y-3 px-5 py-4 text-sm"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-gray-900">
+                                {op.email ?? op.username ?? 'Sin email'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Estado:{' '}
+                                <span className="font-medium text-gray-700">
+                                  {op.status === 'active'
+                                    ? 'Activo'
+                                    : 'Suspendido'}
+                                </span>
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void toggleStatus(op)}
+                              className="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              {busy ? (
+                                <Loader2
+                                  className="h-3 w-3 animate-spin"
+                                  aria-hidden
+                                />
+                              ) : op.status === 'active' ? (
+                                'Suspender'
+                              ) : (
+                                'Reactivar'
+                              )}
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void toggleStatus(op)}
-                            className="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
-                          >
-                            {busy ? (
-                              <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                            ) : op.status === 'active' ? (
-                              'Suspender'
-                            ) : (
-                              'Reactivar'
-                            )}
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap items-end gap-2">
-                          <label className="min-w-[200px] flex-1 text-xs">
-                            <span className="text-gray-600">Nueva contraseña</span>
-                            <input
-                              type="password"
-                              minLength={8}
-                              value={pwdById[op.id] ?? ''}
-                              onChange={(e) =>
-                                setPwdById((prev) => ({
-                                  ...prev,
-                                  [op.id]: e.target.value,
-                                }))
-                              }
-                              className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
-                              autoComplete="new-password"
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void savePassword(op)}
-                            className="rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-200 disabled:opacity-50"
-                          >
-                            Guardar contraseña
-                          </button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
+                          <div className="flex flex-wrap items-end gap-2">
+                            <label className="min-w-[200px] flex-1 text-xs">
+                              <span className="text-gray-600">
+                                Nueva contraseña
+                              </span>
+                              <input
+                                type="password"
+                                minLength={8}
+                                value={pwdById[op.id] ?? ''}
+                                onChange={(e) =>
+                                  setPwdById((prev) => ({
+                                    ...prev,
+                                    [op.id]: e.target.value,
+                                  }))
+                                }
+                                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                                autoComplete="new-password"
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void savePassword(op)}
+                              className="rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-200 disabled:opacity-50"
+                            >
+                              Guardar contraseña
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+            )}
           </>
         ) : null}
       </div>

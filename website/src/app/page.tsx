@@ -1,14 +1,24 @@
-import {
-  ArrowRight,
-} from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import HomeGate from './HomeGate';
+import HomeBelowFoldFallback from './HomeBelowFoldFallback';
 import HeroSignupRow from './ui/components/website/HeroSignupRow';
 import HeroQrOverlay from './ui/components/website/HeroQrOverlay';
-import BenefitsSection from './ui/components/website/BenefitsSection';
-import HowItWorksSection from './ui/components/website/HowItWorksSection';
-import PricingPlansSection from './ui/components/website/PricingPlansSection';
+
+const BenefitsSection = dynamic(
+  () => import('./ui/components/website/BenefitsSection'),
+  { loading: () => <HomeBelowFoldFallback /> },
+);
+const HowItWorksSection = dynamic(
+  () => import('./ui/components/website/HowItWorksSection'),
+  { loading: () => <HomeBelowFoldFallback /> },
+);
+const PricingPlansSection = dynamic(
+  () => import('./ui/components/website/PricingPlansSection'),
+  { loading: () => <HomeBelowFoldFallback /> },
+);
 
 export default function Home() {
   return (
