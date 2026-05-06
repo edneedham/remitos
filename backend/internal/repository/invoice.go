@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,15 +30,30 @@ type BillingInvoice struct {
 	Status                     string
 	Description                string
 	IssuedAt                   time.Time
+	USDListAmount              sql.NullFloat64
+	ARSPerUSD                  sql.NullFloat64
+	FXSource                   sql.NullString
+	FXEffectiveDate            sql.NullTime
 	MpPaymentID                *string
 	ReceiptEmailSentAt         sql.NullTime
 	RenewalFailureNoticeSentAt sql.NullTime
 }
 
+// InvoiceFXSnapshot stores conversion metadata captured at invoice issuance time.
+// Nil/zero fields mean "not available" for that invoice path.
+type InvoiceFXSnapshot struct {
+	USDListAmount   *float64
+	ARSPerUSD       *float64
+	FXSource        string
+	FXEffectiveDate *time.Time
+}
+
 func (r *InvoiceRepository) ListByCompanyID(ctx context.Context, companyID uuid.UUID) ([]BillingInvoice, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT id, company_id, amount_minor, currency, status,
-		       COALESCE(description, ''), issued_at, mp_payment_id,
+		       COALESCE(description, ''), issued_at,
+		       usd_list_amount, ars_per_usd, fx_source, fx_effective_date,
+		       mp_payment_id,
 		       receipt_email_sent_at, renewal_failure_notice_sent_at
 		FROM billing_invoices
 		WHERE company_id = $1
@@ -60,6 +76,10 @@ func (r *InvoiceRepository) ListByCompanyID(ctx context.Context, companyID uuid.
 			&inv.Status,
 			&inv.Description,
 			&inv.IssuedAt,
+			&inv.USDListAmount,
+			&inv.ARSPerUSD,
+			&inv.FXSource,
+			&inv.FXEffectiveDate,
 			&mpID,
 			&inv.ReceiptEmailSentAt,
 			&inv.RenewalFailureNoticeSentAt,
@@ -80,13 +100,53 @@ func (r *InvoiceRepository) ListByCompanyID(ctx context.Context, companyID uuid.
 
 // InsertPending creates a billing invoice in pending status (issued, awaiting payment confirmation).
 func (r *InvoiceRepository) InsertPending(ctx context.Context, conn DBConn, companyID uuid.UUID, amountMinor int64, currency, description string) (uuid.UUID, error) {
+	return r.InsertPendingWithSnapshot(ctx, conn, companyID, amountMinor, currency, description, nil)
+}
+
+// InsertPendingWithSnapshot creates a pending invoice and optionally captures FX snapshot metadata.
+func (r *InvoiceRepository) InsertPendingWithSnapshot(ctx context.Context, conn DBConn, companyID uuid.UUID, amountMinor int64, currency, description string, fx *InvoiceFXSnapshot) (uuid.UUID, error) {
+	var (
+		usdListAmount   any
+		arsPerUSD       any
+		fxSource        any
+		fxEffectiveDate any
+	)
+	if fx != nil {
+		if fx.USDListAmount != nil {
+			usdListAmount = *fx.USDListAmount
+		}
+		if fx.ARSPerUSD != nil {
+			arsPerUSD = *fx.ARSPerUSD
+		}
+		if s := strings.TrimSpace(fx.FXSource); s != "" {
+			fxSource = s
+		}
+		if fx.FXEffectiveDate != nil {
+			fxEffectiveDate = *fx.FXEffectiveDate
+		}
+	}
+
 	query := `
-		INSERT INTO billing_invoices (company_id, amount_minor, currency, status, description, issued_at)
-		VALUES ($1, $2, $3, 'pending', $4, NOW())
+		INSERT INTO billing_invoices (
+			company_id, amount_minor, currency, status, description, issued_at,
+			usd_list_amount, ars_per_usd, fx_source, fx_effective_date
+		)
+		VALUES ($1, $2, $3, 'pending', $4, NOW(), $5, $6, $7, $8)
 		RETURNING id
 	`
 	var id uuid.UUID
-	err := conn.QueryRow(ctx, query, companyID, amountMinor, currency, description).Scan(&id)
+	err := conn.QueryRow(
+		ctx,
+		query,
+		companyID,
+		amountMinor,
+		currency,
+		description,
+		usdListAmount,
+		arsPerUSD,
+		fxSource,
+		fxEffectiveDate,
+	).Scan(&id)
 	return id, err
 }
 
@@ -148,7 +208,9 @@ func (r *InvoiceRepository) GetByID(ctx context.Context, invoiceID uuid.UUID) (*
 	var mpID sql.NullString
 	err := r.pool.QueryRow(ctx, `
 		SELECT id, company_id, amount_minor, currency, status,
-		       COALESCE(description, ''), issued_at, mp_payment_id,
+		       COALESCE(description, ''), issued_at,
+		       usd_list_amount, ars_per_usd, fx_source, fx_effective_date,
+		       mp_payment_id,
 		       receipt_email_sent_at, renewal_failure_notice_sent_at
 		FROM billing_invoices
 		WHERE id = $1
@@ -160,6 +222,10 @@ func (r *InvoiceRepository) GetByID(ctx context.Context, invoiceID uuid.UUID) (*
 		&inv.Status,
 		&inv.Description,
 		&inv.IssuedAt,
+		&inv.USDListAmount,
+		&inv.ARSPerUSD,
+		&inv.FXSource,
+		&inv.FXEffectiveDate,
 		&mpID,
 		&inv.ReceiptEmailSentAt,
 		&inv.RenewalFailureNoticeSentAt,

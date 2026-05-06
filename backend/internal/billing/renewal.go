@@ -96,6 +96,7 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 	}
 
 	amountMinor := in.AmountMinor
+	var fxSnapshot *repository.InvoiceFXSnapshot
 	if amountMinor <= 0 {
 		if s.RateQuoter == nil {
 			return nil, fmt.Errorf("billing rate quoter is not configured")
@@ -110,6 +111,19 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 			return nil, fmt.Errorf("billing amount: %w", perr)
 		}
 		amountMinor = computed
+		if usdListAmount, ok := MonthlyListUSD(company.SubscriptionPlan); ok {
+			var fxDate *time.Time
+			if !q.EffectiveDate.IsZero() {
+				d := q.EffectiveDate
+				fxDate = &d
+			}
+			fxSnapshot = &repository.InvoiceFXSnapshot{
+				USDListAmount:   &usdListAmount,
+				ARSPerUSD:       &charged,
+				FXSource:        q.Source,
+				FXEffectiveDate: fxDate,
+			}
+		}
 	}
 
 	payerEmail, err := s.Users.GetCompanyOwnerPrimaryEmail(ctx, in.CompanyID)
@@ -124,7 +138,15 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 	if err != nil {
 		return nil, err
 	}
-	invoiceID, err := s.Invoices.InsertPending(ctx, tx1, in.CompanyID, amountMinor, currency, in.Description)
+	invoiceID, err := s.Invoices.InsertPendingWithSnapshot(
+		ctx,
+		tx1,
+		in.CompanyID,
+		amountMinor,
+		currency,
+		in.Description,
+		fxSnapshot,
+	)
 	if err != nil {
 		_ = tx1.Rollback(ctx)
 		return nil, err
