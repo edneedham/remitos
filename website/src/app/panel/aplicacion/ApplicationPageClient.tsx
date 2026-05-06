@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { ApplicationContentSkeleton } from '../components/PanelSkeletons';
 import { getApiBaseUrl } from '../../lib/apiUrl';
 import { isLikelyMobileDevice } from '../../lib/mobileDevice';
 import { getPublicSiteOrigin } from '../../lib/siteUrl';
@@ -23,7 +24,7 @@ import type { Entitlement } from '../lib/entitlementTypes';
 
 export default function ApplicationPageClient() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -40,13 +41,13 @@ export default function ApplicationPageClient() {
   }, []);
 
   useEffect(() => {
-    if (!ready) return;
+    if (entitlementLoading || loadError) return;
     try {
       window.localStorage.setItem(CHECKLIST_DOWNLOAD_PAGE_VISITED_KEY, '1');
     } catch {
       /* ignore */
     }
-  }, [ready]);
+  }, [entitlementLoading, loadError]);
 
   useEffect(() => {
     if (!hasWebSession()) {
@@ -62,7 +63,7 @@ export default function ApplicationPageClient() {
         setLoadError(
           'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
         );
-        setReady(true);
+        setEntitlementLoading(false);
         return;
       }
 
@@ -93,13 +94,13 @@ export default function ApplicationPageClient() {
           body.message ||
             'No se pudieron obtener los datos de tu cuenta. Probá de nuevo más tarde.',
         );
-        setReady(true);
+        setEntitlementLoading(false);
         return;
       }
 
       const data = (await res.json()) as Entitlement;
       setEntitlement(data);
-      setReady(true);
+      setEntitlementLoading(false);
     }
 
     void load();
@@ -173,7 +174,7 @@ export default function ApplicationPageClient() {
 
   useEffect(() => {
     if (
-      !ready ||
+      entitlementLoading ||
       entitlement?.can_download_app !== true ||
       isMobile !== false ||
       didAutoStartTransfer.current
@@ -182,7 +183,12 @@ export default function ApplicationPageClient() {
     }
     didAutoStartTransfer.current = true;
     void handleStartTransfer();
-  }, [ready, entitlement?.can_download_app, isMobile, handleStartTransfer]);
+  }, [
+    entitlementLoading,
+    entitlement?.can_download_app,
+    isMobile,
+    handleStartTransfer,
+  ]);
 
   async function handleDownload() {
     setActionError(null);
@@ -225,14 +231,6 @@ export default function ApplicationPageClient() {
     }
   }
 
-  if (!ready && !loadError) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-hidden />
-      </div>
-    );
-  }
-
   const canDownload = entitlement?.can_download_app === true;
 
   return (
@@ -261,7 +259,11 @@ export default function ApplicationPageClient() {
         ) : null}
 
         <div className="max-w-xl space-y-8">
-          {!canDownload ? (
+          {entitlementLoading && !loadError ? (
+            <ApplicationContentSkeleton />
+          ) : null}
+
+          {!entitlementLoading && !canDownload ? (
             <div className="space-y-4 text-sm text-gray-600">
               <p>
                 Plan:{' '}
@@ -277,12 +279,12 @@ export default function ApplicationPageClient() {
                 Volver al panel
               </Link>
             </div>
-          ) : isMobile === null ? (
+          ) : !entitlementLoading && isMobile === null ? (
             <div className="flex min-h-[8rem] flex-col items-center justify-center gap-2 py-10 text-sm text-gray-600">
               <Loader2 className="h-5 w-5 animate-spin text-blue-600" aria-hidden />
               <span className="text-center">Preparando…</span>
             </div>
-          ) : isMobile ? (
+          ) : !entitlementLoading && isMobile ? (
             <button
               type="button"
               disabled={downloadBusy}
@@ -298,7 +300,7 @@ export default function ApplicationPageClient() {
                 'Descargar APK'
               )}
             </button>
-          ) : (
+          ) : !entitlementLoading ? (
             <div className="space-y-4 text-center">
               <p className="sr-only">
                 Código QR para abrir la sesión en el teléfono
@@ -348,9 +350,9 @@ export default function ApplicationPageClient() {
                 Generar nuevo QR
               </button>
             </div>
-          )}
+          ) : null}
 
-          {canDownload ? (
+          {!entitlementLoading && canDownload ? (
             <section aria-labelledby="install-mobile-heading">
               <h2
                 id="install-mobile-heading"

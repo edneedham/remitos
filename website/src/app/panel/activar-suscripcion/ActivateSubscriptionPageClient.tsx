@@ -20,6 +20,7 @@ import {
 } from '../../lib/webAuth';
 import { needsActivateSubscription } from '../lib/activateSubscriptionGate';
 import type { Entitlement } from '../lib/entitlementTypes';
+import { ActivateSubscriptionBodySkeleton } from '../components/PanelSkeletons';
 
 const CardPayment = dynamic(
   () => import('@mercadopago/sdk-react').then((m) => m.CardPayment),
@@ -183,8 +184,17 @@ export default function ActivateSubscriptionPageClient() {
   if (!ready) {
     return (
       <div className="bg-gray-50 px-4 pb-12 pt-6">
-        <div className="mx-auto max-w-[92rem] py-10 text-center text-sm text-gray-600">
-          Cargando…
+        <div className="mx-auto max-w-[92rem]">
+          <div className="max-w-xl">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+              Activar suscripción
+            </h1>
+            <p className="mt-3 text-sm leading-relaxed text-gray-600">
+              Tu prueba terminó o el acceso pago no está vigente. Elegí un plan y
+              cargá un medio de pago para seguir usando la aplicación y el panel.
+            </p>
+            <ActivateSubscriptionBodySkeleton />
+          </div>
         </div>
       </div>
     );

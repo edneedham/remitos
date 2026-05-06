@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Smartphone } from 'lucide-react';
+import { DevicesGroupedListSkeleton } from '../components/PanelSkeletons';
 import { getApiBaseUrl } from '../../lib/apiUrl';
 import {
   canAccessWebManagement,
@@ -66,7 +67,7 @@ function statusBadge(status: DeviceStatus): {
 
 export default function DevicesPageClient() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [devicesLoading, setDevicesLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [devices, setDevices] = useState<Device[]>([]);
@@ -86,7 +87,7 @@ export default function DevicesPageClient() {
         setLoadError(
           'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
         );
-        setReady(true);
+        setDevicesLoading(false);
         return;
       }
 
@@ -110,12 +111,12 @@ export default function DevicesPageClient() {
         setLoadError(
           'No se pudieron cargar los dispositivos. Probá de nuevo más tarde.',
         );
-        setReady(true);
+        setDevicesLoading(false);
         return;
       }
       const list = (await res.json()) as Device[];
       setDevices(Array.isArray(list) ? list : []);
-      setReady(true);
+      setDevicesLoading(false);
     }
 
     void load();
@@ -182,14 +183,6 @@ export default function DevicesPageClient() {
     );
   }, [devices]);
 
-  if (!ready && !loadError) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-hidden />
-      </div>
-    );
-  }
-
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6">
       <div className="mx-auto max-w-5xl space-y-6">
@@ -232,7 +225,11 @@ export default function DevicesPageClient() {
           </div>
         ) : null}
 
-        {devices.length === 0 ? (
+        {devicesLoading && !loadError ? (
+          <DevicesGroupedListSkeleton />
+        ) : null}
+
+        {!devicesLoading && devices.length === 0 ? (
           <section className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-sm">
             <div className="flex items-center gap-3">
               <Smartphone className="h-6 w-6 text-orange-600" aria-hidden />
@@ -248,7 +245,7 @@ export default function DevicesPageClient() {
               </p>
             </div>
           </section>
-        ) : (
+        ) : !devicesLoading ? (
           <div className="space-y-6">
             {grouped.map((group) => (
               <section
@@ -340,7 +337,7 @@ export default function DevicesPageClient() {
               </section>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
