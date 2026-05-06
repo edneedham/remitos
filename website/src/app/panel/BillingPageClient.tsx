@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import {
@@ -15,6 +14,10 @@ import {
   refreshWebSession,
   type WebProfile,
 } from '../lib/webAuth';
+import {
+  BillingComprobantesSkeleton,
+  BillingMainSkeleton,
+} from './components/PanelSkeletons';
 import PaymentMethodSection from './facturacion/PaymentMethodSection';
 import { needsActivateSubscription } from './lib/activateSubscriptionGate';
 import {
@@ -37,7 +40,8 @@ import {
 
 export default function BillingPageClient() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [entitlementLoading, setEntitlementLoading] = useState(true);
+  const [invoicesLoading, setInvoicesLoading] = useState(true);
   const [profile, setProfile] = useState<WebProfile | null>(null);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,9 +64,14 @@ export default function BillingPageClient() {
         setError(
           'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
         );
-        setReady(true);
+        setEntitlementLoading(false);
+        setInvoicesLoading(false);
         return;
       }
+
+      setEntitlementLoading(true);
+      setInvoicesLoading(true);
+      setError(null);
 
       await refreshWebSession();
 
@@ -75,66 +84,76 @@ export default function BillingPageClient() {
       }
       setProfile(userProfile);
 
-      const res = await fetchWithWebAuth('/auth/me/entitlement');
+      const [entRes, invRes] = await Promise.all([
+        fetchWithWebAuth('/auth/me/entitlement'),
+        fetchWithWebAuth('/auth/me/invoices'),
+      ]);
       if (cancelled) return;
 
-      if (res.status === 401) {
+      if (entRes.status === 401 || invRes.status === 401) {
         clearWebSession();
         router.replace('/ingresar');
         return;
       }
 
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as {
+      if (!entRes.ok) {
+        const body = (await entRes.json().catch(() => ({}))) as {
           message?: string;
         };
         setError(
           body.message ||
             'No se pudieron obtener los datos de tu cuenta. Probá de nuevo más tarde.',
         );
-        setReady(true);
-        return;
-      }
-
-      const data = (await res.json()) as Entitlement;
-      setEntitlement(data);
-
-      const normalizedPlan = (data.subscription_plan ?? '').toLowerCase().trim();
-      const expiresAtMs = data.subscription_expires_at
-        ? Date.parse(data.subscription_expires_at)
-        : Number.NaN;
-      const inThreeDayWindow =
-        Number.isFinite(expiresAtMs) &&
-        expiresAtMs > Date.now() &&
-        expiresAtMs - Date.now() <= 3 * 24 * 60 * 60 * 1000;
-      const supportsPricingPreview = normalizedPlan === 'pyme' || normalizedPlan === 'empresa';
-      if (inThreeDayWindow && supportsPricingPreview) {
-        const pricingRes = await fetchWithWebAuth(`/auth/me/plan-pricing?plan_id=${normalizedPlan}`);
-        if (!cancelled && pricingRes.ok) {
-          const pricing = (await pricingRes.json()) as {
-            amount_minor?: number;
-            currency?: string;
-          };
-          if (typeof pricing.amount_minor === 'number' && Number.isFinite(pricing.amount_minor)) {
-            setNextBillingEstimateMinor(pricing.amount_minor);
-            setNextBillingEstimateCurrency((pricing.currency ?? 'ARS').toUpperCase());
-          } else {
-            setNextBillingEstimateMinor(null);
-          }
-        } else if (!cancelled) {
-          setNextBillingEstimateMinor(null);
-        }
+        setEntitlement(null);
       } else {
-        setNextBillingEstimateMinor(null);
-      }
+        const data = (await entRes.json()) as Entitlement;
+        setEntitlement(data);
 
-      const invRes = await fetchWithWebAuth('/auth/me/invoices');
-      if (cancelled) return;
-      if (invRes.status === 401) {
-        clearWebSession();
-        router.replace('/ingresar');
-        return;
+        const normalizedPlan = (data.subscription_plan ?? '')
+          .toLowerCase()
+          .trim();
+        const expiresAtMs = data.subscription_expires_at
+          ? Date.parse(data.subscription_expires_at)
+          : Number.NaN;
+        const inThreeDayWindow =
+          Number.isFinite(expiresAtMs) &&
+          expiresAtMs > Date.now() &&
+          expiresAtMs - Date.now() <= 3 * 24 * 60 * 60 * 1000;
+        const supportsPricingPreview =
+          normalizedPlan === 'pyme' || normalizedPlan === 'empresa';
+
+        void (async () => {
+          if (inThreeDayWindow && supportsPricingPreview) {
+            const pricingRes = await fetchWithWebAuth(
+              `/auth/me/plan-pricing?plan_id=${normalizedPlan}`,
+            );
+            if (cancelled) return;
+            if (pricingRes.ok) {
+              const pricing = (await pricingRes.json()) as {
+                amount_minor?: number;
+                currency?: string;
+              };
+              if (
+                typeof pricing.amount_minor === 'number' &&
+                Number.isFinite(pricing.amount_minor)
+              ) {
+                setNextBillingEstimateMinor(pricing.amount_minor);
+                setNextBillingEstimateCurrency(
+                  (pricing.currency ?? 'ARS').toUpperCase(),
+                );
+              } else {
+                setNextBillingEstimateMinor(null);
+              }
+            } else {
+              setNextBillingEstimateMinor(null);
+            }
+          } else {
+            if (!cancelled) setNextBillingEstimateMinor(null);
+          }
+        })();
       }
+      setEntitlementLoading(false);
+
       if (!invRes.ok) {
         setInvoicesError(
           'No se pudieron cargar los comprobantes. Probá de nuevo más tarde.',
@@ -145,8 +164,7 @@ export default function BillingPageClient() {
         setInvoicesError(null);
         setInvoices(Array.isArray(raw) ? (raw as BillingInvoiceRow[]) : []);
       }
-
-      setReady(true);
+      setInvoicesLoading(false);
     }
 
     void load();
@@ -155,16 +173,10 @@ export default function BillingPageClient() {
     };
   }, [router]);
 
-  if (!ready && !error) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-hidden />
-      </div>
-    );
-  }
-
   const now = Date.now();
-  const billing = deriveBillingPresentation(entitlement, now);
+  const billing = entitlement
+    ? deriveBillingPresentation(entitlement, now)
+    : null;
   const planCatalogEntry = getPlanById(entitlement?.subscription_plan);
   const currentPlanName = planCatalogEntry?.name ?? formatPlanLabel(entitlement?.subscription_plan);
   const currentPlanPrice = planCatalogEntry?.monthlyPriceLabel ?? 'A definir';
@@ -199,13 +211,13 @@ export default function BillingPageClient() {
   const usageUpgrade = resolveUsageUpgradeAction(
     projectedOverage,
     subscriptionTierId,
-    billing.hasActivePaymentPeriod,
+    billing?.hasActivePaymentPeriod ?? false,
   );
   const paymentEndMs = entitlement?.subscription_expires_at
     ? Date.parse(entitlement.subscription_expires_at)
     : Number.NaN;
   const showNextBillingEstimate =
-    billing.hasActivePaymentPeriod &&
+    billing?.hasActivePaymentPeriod &&
     Number.isFinite(paymentEndMs) &&
     paymentEndMs > now &&
     paymentEndMs - now <= 3 * 24 * 60 * 60 * 1000 &&
@@ -235,7 +247,9 @@ export default function BillingPageClient() {
           </div>
         )}
 
-        {entitlement && billing.isArchived ? (
+        {entitlementLoading && !error ? <BillingMainSkeleton /> : null}
+
+        {entitlement && billing?.isArchived ? (
           <div
             className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
             role="status"
@@ -245,7 +259,10 @@ export default function BillingPageClient() {
           </div>
         ) : null}
 
-        {entitlement && !billing.isArchived && billing.companyBillingInactive ? (
+        {entitlement &&
+        billing &&
+        !billing.isArchived &&
+        billing.companyBillingInactive ? (
           <div
             className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
             role="status"
@@ -256,6 +273,7 @@ export default function BillingPageClient() {
         ) : null}
 
         {entitlement &&
+        billing &&
         !billing.isArchived &&
         !billing.companyBillingInactive &&
         needsActivateSubscription(entitlement) ? (
@@ -279,6 +297,7 @@ export default function BillingPageClient() {
 
         {entitlement?.pending_plan &&
         entitlement.pending_plan.trim() !== '' &&
+        billing &&
         billing.hasActivePaymentPeriod &&
         !billing.isArchived &&
         !billing.companyBillingInactive ? (
@@ -317,6 +336,7 @@ export default function BillingPageClient() {
         ) : null}
 
         {entitlement &&
+        billing &&
         usageUpgrade.type === 'href' &&
         !billing.isArchived &&
         !billing.companyBillingInactive ? (
@@ -352,7 +372,7 @@ export default function BillingPageClient() {
           </div>
         ) : null}
 
-        {entitlement ? (
+        {entitlement && billing ? (
           <section
             className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
             aria-labelledby="billing-heading"
@@ -531,13 +551,20 @@ export default function BillingPageClient() {
                   {invoicesError}
                 </p>
               ) : null}
-              {!invoicesError && invoices.length === 0 ? (
+              {invoicesLoading && !invoicesError ? (
+                <BillingComprobantesSkeleton />
+              ) : null}
+              {!invoicesLoading &&
+              !invoicesError &&
+              invoices.length === 0 ? (
                 <p className="mt-4 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-600">
                   Todavía no hay comprobantes para mostrar. Cuando se registren
                   pagos, van a aparecer acá.
                 </p>
               ) : null}
-              {!invoicesError && invoices.length > 0 ? (
+              {!invoicesLoading &&
+              !invoicesError &&
+              invoices.length > 0 ? (
                 <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200">
                   <table className="w-full min-w-[36rem] text-left text-sm">
                     <thead className="border-b border-gray-200 bg-gray-50">

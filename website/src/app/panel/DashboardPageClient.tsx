@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import {
   BadgeCheck,
   Download,
-  Loader2,
   ScanLine,
   Smartphone,
   Users,
@@ -26,6 +25,11 @@ import {
   CHECKLIST_DOWNLOAD_PAGE_VISITED_KEY,
 } from '../lib/trialOnboardingChecklist';
 import DocumentUsageSection from './DocumentUsageSection';
+import {
+  DashboardDocumentUsageSkeleton,
+  DashboardInvoicesSkeleton,
+  DashboardStatCardsSkeleton,
+} from './components/PanelSkeletons';
 import TrialOnboardingChecklist from './TrialOnboardingChecklist';
 import {
   deriveBillingPresentation,
@@ -66,8 +70,9 @@ function maybeEmitFirstScanCompleted(data: Entitlement): void {
 
 export default function DashboardPageClient() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
+  const [entitlementLoading, setEntitlementLoading] = useState(true);
+  const [invoicesLoading, setInvoicesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<BillingInvoiceRow[]>([]);
   const [invoicesError, setInvoicesError] = useState<string | null>(null);
@@ -101,7 +106,7 @@ export default function DashboardPageClient() {
 
     function onWindowFocus() {
       readDownloadVisitFlag();
-      if (ready) void refreshEntitlementOnFocus();
+      if (entitlement !== null) void refreshEntitlementOnFocus();
     }
 
     readDownloadVisitFlag();
@@ -111,7 +116,7 @@ export default function DashboardPageClient() {
       window.removeEventListener('focus', onWindowFocus);
       window.removeEventListener('storage', readDownloadVisitFlag);
     };
-  }, [ready, router]);
+  }, [entitlement, router]);
 
   useEffect(() => {
     if (!hasWebSession()) {
@@ -127,9 +132,14 @@ export default function DashboardPageClient() {
         setError(
           'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
         );
-        setReady(true);
+        setEntitlementLoading(false);
+        setInvoicesLoading(false);
         return;
       }
+
+      setEntitlementLoading(true);
+      setInvoicesLoading(true);
+      setError(null);
 
       await refreshWebSession();
 
@@ -141,38 +151,34 @@ export default function DashboardPageClient() {
         return;
       }
 
-      const res = await fetchWithWebAuth('/auth/me/entitlement');
+      const [entRes, invRes] = await Promise.all([
+        fetchWithWebAuth('/auth/me/entitlement'),
+        fetchWithWebAuth('/auth/me/invoices'),
+      ]);
       if (cancelled) return;
 
-      if (res.status === 401) {
+      if (entRes.status === 401 || invRes.status === 401) {
         clearWebSession();
         router.replace('/ingresar');
         return;
       }
 
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as {
+      if (!entRes.ok) {
+        const body = (await entRes.json().catch(() => ({}))) as {
           message?: string;
         };
         setError(
           body.message ||
             'No se pudieron obtener los datos de tu cuenta. Probá de nuevo más tarde.',
         );
-        setReady(true);
-        return;
+        setEntitlement(null);
+      } else {
+        const data = (await entRes.json()) as Entitlement;
+        setEntitlement(data);
+        maybeEmitFirstScanCompleted(data);
       }
+      setEntitlementLoading(false);
 
-      const data = (await res.json()) as Entitlement;
-      setEntitlement(data);
-      maybeEmitFirstScanCompleted(data);
-
-      const invRes = await fetchWithWebAuth('/auth/me/invoices');
-      if (cancelled) return;
-      if (invRes.status === 401) {
-        clearWebSession();
-        router.replace('/ingresar');
-        return;
-      }
       if (!invRes.ok) {
         setInvoicesError(
           'No se pudieron cargar las facturas. Probá de nuevo más tarde.',
@@ -183,7 +189,7 @@ export default function DashboardPageClient() {
         setInvoicesError(null);
         setInvoices(Array.isArray(raw) ? (raw as BillingInvoiceRow[]) : []);
       }
-      setReady(true);
+      setInvoicesLoading(false);
     }
 
     void load();
@@ -192,16 +198,10 @@ export default function DashboardPageClient() {
     };
   }, [router]);
 
-  if (!ready && !error) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-hidden />
-      </div>
-    );
-  }
-
   const now = Date.now();
-  const billing = deriveBillingPresentation(entitlement, now);
+  const billing = entitlement
+    ? deriveBillingPresentation(entitlement, now)
+    : null;
   const checklistModel =
     entitlement &&
     buildTrialOnboardingChecklist(entitlement, downloadPageVisited);
@@ -233,6 +233,8 @@ export default function DashboardPageClient() {
         {checklistModel ? (
           <TrialOnboardingChecklist model={checklistModel} />
         ) : null}
+
+        {entitlementLoading && !error ? <DashboardStatCardsSkeleton /> : null}
 
         {entitlement ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -390,12 +392,16 @@ export default function DashboardPageClient() {
                     {formatPlanLabel(entitlement.subscription_plan)}
                   </p>
                   <p className="mt-2 text-xs leading-snug text-gray-600">
-                    {billing.billingStatusSummary}
+                    {billing?.billingStatusSummary}
                   </p>
                 </div>
               </div>
             </section>
           </div>
+        ) : null}
+
+        {entitlementLoading && !error ? (
+          <DashboardDocumentUsageSkeleton />
         ) : null}
 
         {entitlement ? (
@@ -420,7 +426,11 @@ export default function DashboardPageClient() {
           />
         ) : null}
 
-        {entitlement ? (
+        {entitlement && invoicesLoading ? (
+          <DashboardInvoicesSkeleton />
+        ) : null}
+
+        {entitlement && !invoicesLoading ? (
           <section
             className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
             aria-labelledby="invoices-heading"
@@ -515,7 +525,7 @@ export default function DashboardPageClient() {
           </div>
         )}
 
-        {entitlement && billing.isArchived ? (
+        {entitlement && billing?.isArchived ? (
           <div
             className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
             role="status"
@@ -525,7 +535,10 @@ export default function DashboardPageClient() {
           </div>
         ) : null}
 
-        {entitlement && !billing.isArchived && billing.companyBillingInactive ? (
+        {entitlement &&
+        billing &&
+        !billing.isArchived &&
+        billing.companyBillingInactive ? (
           <div
             className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
             role="status"
