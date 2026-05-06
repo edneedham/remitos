@@ -14,6 +14,8 @@ func TestCompanyHasAppDownloadAccess(t *testing.T) {
 	trialEndPast := now.Add(-24 * time.Hour)
 	subExpiresFuture := now.Add(48 * time.Hour)
 	subExpiresPast := now.Add(-48 * time.Hour)
+	subExpiresWithinGrace := now.Add(-24 * time.Hour)
+	subExpiresOutsideGrace := now.Add(-96 * time.Hour)
 
 	tests := []struct {
 		name string
@@ -51,7 +53,7 @@ func TestCompanyHasAppDownloadAccess(t *testing.T) {
 		{"pyme after trial subscription expired", &models.Company{
 			ID: uuid.New(), Status: "active", SubscriptionPlan: "pyme",
 			TrialEndsAt:           &trialEndPast,
-			SubscriptionExpiresAt: &subExpiresPast,
+			SubscriptionExpiresAt: &subExpiresOutsideGrace,
 		}, false},
 		{"premium no expiry", &models.Company{
 			ID: uuid.New(), Status: "active", SubscriptionPlan: "premium",
@@ -63,6 +65,14 @@ func TestCompanyHasAppDownloadAccess(t *testing.T) {
 		{"premium expires past", &models.Company{
 			ID: uuid.New(), Status: "active", SubscriptionPlan: "premium",
 			SubscriptionExpiresAt: &subExpiresPast,
+		}, true},
+		{"premium past within grace", &models.Company{
+			ID: uuid.New(), Status: "active", SubscriptionPlan: "premium",
+			SubscriptionExpiresAt: &subExpiresWithinGrace,
+		}, true},
+		{"premium past outside grace", &models.Company{
+			ID: uuid.New(), Status: "active", SubscriptionPlan: "premium",
+			SubscriptionExpiresAt: &subExpiresOutsideGrace,
 		}, false},
 		{"corporativo with future expiry", &models.Company{
 			ID: uuid.New(), Status: "active", SubscriptionPlan: "corporativo",

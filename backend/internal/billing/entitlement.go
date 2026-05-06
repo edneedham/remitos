@@ -7,6 +7,8 @@ import (
 	"server/internal/models"
 )
 
+const PaidSubscriptionGracePeriod = 72 * time.Hour
+
 // CompanyHasAppDownloadAccess returns true if the company may download the Android APK.
 // Access is granted during an active trial window (trial_ends_at in the future), regardless
 // of whether subscription_plan is stored as "trial", "pyme", or "empresa"; or when on an
@@ -33,7 +35,8 @@ func CompanyHasAppDownloadAccess(now time.Time, c *models.Company) bool {
 		if c.SubscriptionExpiresAt == nil {
 			return true
 		}
-		return now.Before(*c.SubscriptionExpiresAt)
+		// Paid plans keep access for a fixed grace window after expiry.
+		return now.Before(c.SubscriptionExpiresAt.Add(PaidSubscriptionGracePeriod))
 	}
 
 	return false

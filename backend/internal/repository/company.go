@@ -112,7 +112,9 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 	return &c, nil
 }
 
-// ExtendPaidSubscriptionPeriod advances subscription_expires_at by extendMonths from the later of now or current expiry.
+// ExtendPaidSubscriptionPeriod advances subscription_expires_at by extendMonths from the
+// current subscription boundary when present (or now if null). This preserves the billing
+// anchor so late payments do not grant extra free days.
 func (r *CompanyRepository) ExtendPaidSubscriptionPeriod(ctx context.Context, conn DBConn, companyID uuid.UUID, extendMonths int) (time.Time, error) {
 	if extendMonths <= 0 {
 		return time.Time{}, errors.New("extend months must be positive")
@@ -120,8 +122,7 @@ func (r *CompanyRepository) ExtendPaidSubscriptionPeriod(ctx context.Context, co
 	query := `
 		UPDATE companies
 		SET subscription_expires_at =
-				GREATEST(COALESCE(subscription_expires_at, NOW()), NOW())
-				+ ($2::integer * INTERVAL '1 month'),
+				COALESCE(subscription_expires_at, NOW()) + ($2::integer * INTERVAL '1 month'),
 			updated_at = NOW()
 		WHERE id = $1
 			AND archived_at IS NULL
