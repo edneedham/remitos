@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS idx_outbound_lists_company_updated_at;
+DROP INDEX IF EXISTS idx_inbound_notes_company_updated_at;

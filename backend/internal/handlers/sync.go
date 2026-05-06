@@ -55,12 +55,12 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Log.Info().
+	logger.Log.Debug().
 		Str("user_id", userClaims.UserID).
 		Str("company_id", userClaims.CompanyID).
 		Int("inbound_notes", len(req.InboundNotes)).
 		Int("outbound_lists", len(req.OutboundLists)).
-		Msg("Processing sync request")
+		Msg("sync request")
 
 	ctx := r.Context()
 
