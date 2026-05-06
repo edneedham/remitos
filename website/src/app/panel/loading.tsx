@@ -1,15 +1,11 @@
-import LoadingSpinner from '../ui/components/shared/LoadingSpinner';
+import { PanelDashboardSkeleton } from './components/PanelSkeletons';
 
-/** Shown during client navigations between panel routes (instant feedback). */
+/** Default while the main dashboard segment resolves. */
 export default function PanelLoading() {
   return (
-    <div
-      className="flex min-h-[40vh] items-center justify-center py-16"
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-    >
-      <LoadingSpinner />
-    </div>
+    <>
+      <span className="sr-only">Cargando panel…</span>
+      <PanelDashboardSkeleton />
+    </>
   );
 }
