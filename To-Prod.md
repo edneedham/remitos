@@ -151,4 +151,35 @@ The API’s `CORS_ALLOWED_ORIGINS` must include your **exact** Vercel production
 
 ---
 
+## 9. Post-deploy smoke & secret rotation
+
+Use this after **every production API deploy** (new Cloud Run revision) and whenever you **rotate secrets**. It satisfies the operational checklist in `FAILURE-CHECK.md` (“webhook and secret rotation tested after each API/deploy change”).
+
+### After each API deploy
+
+1. **`GET /health`** on the public API URL → **200** and body `ok`.
+2. **Mercado Pago webhook reachability** — **`GET`** `https://<your-api-host>/webhooks/mercadopago` → **200** (Mercado Pago uses this when validating the webhook URL).
+3. **Optional:** In the Mercado Pago dashboard, send a **test notification** for topic **`payment`** and confirm the API returns **200** in logs (payload may be ignored; avoid **5xx**).
+4. **Auth smoke:** Log in on the production site once (`NEXT_PUBLIC_API_URL` → same API). Confirms **`JWT_SECRET`** and DB connectivity end-to-end.
+
+**Note:** Long-term, validate Mercado Pago **`x-signature`** using the webhook signing secret configured in MP (see MP docs). That verification is not wired in this codebase yet; until then, smoke testing is **reachability + delivery logs**, not HMAC verification.
+
+### When rotating secrets (each rotation event)
+
+| Secret | What to verify |
+|--------|----------------|
+| **`MERCADOPAGO_ACCESS_TOKEN`** | Card attach/save, renewal charges, webhook processing; MP dashboard shows successful webhook deliveries if applicable. |
+| **`JWT_SECRET`** | Existing JWTs invalidate — users must log in again. Smoke: login, panel, `/auth/me`-equivalent flows. |
+| **DB password** (`DB_*`) | API starts; `/health`; no migration connection errors in logs. |
+| **`BILLING_RENEWAL_SECRET`** | `POST /internal/billing/trigger-renewal` with header **`X-Billing-Secret`** succeeds only with the **new** secret; the old secret must fail with **401** (or equivalent). |
+
+Keep rotation steps in runbooks or tickets so each event leaves an audit trail.
+
+### Optional automation
+
+- **CI/post-deploy:** After deploy, `curl` **`/health`** and **`GET /webhooks/mercadopago`** (store production base URL in CI vars; no secrets in logs).
+- **Monitoring:** Uptime or synthetic checks on `/health` weekly; alert on non-200.
+
+---
+
 *Last updated for deployments targeting Neon + Vercel + Google Cloud Run. Adjust service names if you use GKE or Compute Engine instead.*
