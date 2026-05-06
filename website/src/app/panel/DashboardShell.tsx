@@ -4,6 +4,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import type { LucideIcon } from 'lucide-react';
+import {
+  AppWindow,
+  CreditCard,
+  KeyRound,
+  LayoutDashboard,
+  Smartphone,
+  UserCog,
+  Warehouse,
+} from 'lucide-react';
 import HeaderAuthNav from '../ui/components/website/HeaderAuthNav';
 import {
   canManageOperators,
@@ -15,11 +25,13 @@ import ActivateSubscriptionGate from './ActivateSubscriptionGate';
 function SidebarNavLink({
   href,
   end,
+  icon: Icon,
   children,
 }: {
   href: string;
   /** When true, only an exact pathname match is active (no prefix match). */
   end?: boolean;
+  icon: LucideIcon;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -34,12 +46,13 @@ function SidebarNavLink({
     <Link
       href={href}
       prefetch={href === '/' ? false : undefined}
-      className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
         active
           ? 'bg-blue-50 text-blue-700'
           : 'text-gray-700 hover:bg-gray-50'
       }`}
     >
+      <Icon className="h-4 w-4 shrink-0" aria-hidden />
       {children}
     </Link>
   );
@@ -85,19 +98,27 @@ export default function DashboardShell({
           </Link>
         </div>
         <nav className="flex flex-col gap-1 p-4">
-          <SidebarNavLink href="/panel" end>
+          <SidebarNavLink href="/panel" end icon={LayoutDashboard}>
             Panel
           </SidebarNavLink>
-          <SidebarNavLink href="/panel/depositos">Depósitos</SidebarNavLink>
-          <SidebarNavLink href="/panel/dispositivos">
+          <SidebarNavLink href="/panel/depositos" icon={Warehouse}>
+            Depósitos
+          </SidebarNavLink>
+          <SidebarNavLink href="/panel/dispositivos" icon={Smartphone}>
             Dispositivos
           </SidebarNavLink>
           {showOperadoresNav ? (
-            <SidebarNavLink href="/panel/operadores">Operadores</SidebarNavLink>
+            <SidebarNavLink href="/panel/operadores" icon={UserCog}>
+              Operadores
+            </SidebarNavLink>
           ) : null}
-          <SidebarNavLink href="/panel/facturacion">Facturación</SidebarNavLink>
-          <SidebarNavLink href="/panel/aplicacion">Aplicación</SidebarNavLink>
-          <SidebarNavLink href="/panel/cambiar-clave" end>
+          <SidebarNavLink href="/panel/facturacion" icon={CreditCard}>
+            Facturación
+          </SidebarNavLink>
+          <SidebarNavLink href="/panel/aplicacion" icon={AppWindow}>
+            Aplicación
+          </SidebarNavLink>
+          <SidebarNavLink href="/panel/cambiar-clave" end icon={KeyRound}>
             Contraseña
           </SidebarNavLink>
         </nav>
