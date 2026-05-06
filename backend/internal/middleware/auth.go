@@ -108,17 +108,20 @@ func Auth(deps AuthDeps) func(http.Handler) http.Handler {
 						}
 
 						if deps.UserWarehouseRepo != nil {
-							hasAccess, errAccess := deps.UserWarehouseRepo.HasWarehouseAccess(ctx, claims.UserID, device.WarehouseID)
-							if errAccess != nil {
-								logger.Log.Error().Err(errAccess).Msg("Error checking warehouse access")
-							} else if !hasAccess {
-								logger.Log.Warn().
-									Str("user_id", claims.UserID.String()).
-									Str("device_id", deviceID.String()).
-									Str("warehouse_id", device.WarehouseID.String()).
-									Msg("User does not have access to device warehouse")
-								http.Error(w, "No tienes acceso a este depósito", http.StatusForbidden)
-								return
+							skipWarehouseACL := claims.Role == models.RoleCompanyOwner || claims.Role == models.RoleWarehouseAdmin
+							if !skipWarehouseACL {
+								hasAccess, errAccess := deps.UserWarehouseRepo.HasWarehouseAccess(ctx, claims.UserID, device.WarehouseID)
+								if errAccess != nil {
+									logger.Log.Error().Err(errAccess).Msg("Error checking warehouse access")
+								} else if !hasAccess {
+									logger.Log.Warn().
+										Str("user_id", claims.UserID.String()).
+										Str("device_id", deviceID.String()).
+										Str("warehouse_id", device.WarehouseID.String()).
+										Msg("User does not have access to device warehouse")
+									http.Error(w, "No tienes acceso a este depósito", http.StatusForbidden)
+									return
+								}
 							}
 						}
 

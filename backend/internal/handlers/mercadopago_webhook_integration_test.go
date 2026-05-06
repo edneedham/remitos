@@ -74,6 +74,7 @@ func TestHandlePayment_FirstApprovedPayment_SendsReceipt_Integration(t *testing.
 	h := NewMercadoPagoWebhookHandler(
 		pool, invRepo, companyRepo, userRepo, mp, mail,
 		"https://site.example", 0.07,
+		"",
 	)
 
 	if err := h.handlePayment(ctx, mpID); err != nil {
@@ -115,6 +116,7 @@ func TestHandlePayment_DuplicatePaymentID_NoSecondReceipt_Integration(t *testing
 	h := NewMercadoPagoWebhookHandler(
 		pool, invRepo, companyRepo, userRepo, mp, mail,
 		"https://site.example", 0.07,
+		"",
 	)
 
 	if err := h.handlePayment(ctx, mpID); err != nil {

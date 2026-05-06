@@ -226,7 +226,7 @@ fun DeviceSetupScreen(
                                         
                                         // Load warehouses
                                         val warehousesResponse = withContext(Dispatchers.IO) {
-                                            ApiClient.getUnauthenticatedApiService().getWarehouses(companyCode)
+                                            ApiClient.createBearerApiService(authToken!!).getWarehouses()
                                         }
                                         if (warehousesResponse.isSuccessful) {
                                             warehouses = warehousesResponse.body() ?: emptyList()

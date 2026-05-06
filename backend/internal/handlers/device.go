@@ -14,14 +14,16 @@ import (
 // DeviceHandler exposes panel-only device management routes (list / revoke / reactivate).
 // Mobile device registration lives on the AuthHandler (POST /auth/device).
 type DeviceHandler struct {
-	deviceRepo *repository.DeviceRepository
-	jwtSvc     *jwt.Service
+	deviceRepo        *repository.DeviceRepository
+	userWarehouseRepo *repository.UserWarehouseRepository
+	jwtSvc            *jwt.Service
 }
 
-func NewDeviceHandler(deviceRepo *repository.DeviceRepository, jwtSvc *jwt.Service) *DeviceHandler {
+func NewDeviceHandler(deviceRepo *repository.DeviceRepository, userWarehouseRepo *repository.UserWarehouseRepository, jwtSvc *jwt.Service) *DeviceHandler {
 	return &DeviceHandler{
-		deviceRepo: deviceRepo,
-		jwtSvc:     jwtSvc,
+		deviceRepo:        deviceRepo,
+		userWarehouseRepo: userWarehouseRepo,
+		jwtSvc:            jwtSvc,
 	}
 }
 
@@ -93,7 +95,7 @@ func (h *DeviceHandler) setStatus(w http.ResponseWriter, r *http.Request, status
 
 func (h *DeviceHandler) Routes() *chi.Mux {
 	r := chi.NewRouter()
-	r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: h.jwtSvc, DeviceRepo: h.deviceRepo}))
+	r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: h.jwtSvc, DeviceRepo: h.deviceRepo, UserWarehouseRepo: h.userWarehouseRepo}))
 	r.Use(middleware.RequireRoles(models.RoleCompanyOwner, models.RoleWarehouseAdmin))
 	r.Get("/", h.List)
 	r.Patch("/{id}/revoke", h.Revoke)

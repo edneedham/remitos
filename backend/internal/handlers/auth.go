@@ -43,6 +43,7 @@ type AuthHandler struct {
 	syncRepo                *repository.SyncRepository
 	invoiceRepo             *repository.InvoiceRepository
 	deviceRepo              *repository.DeviceRepository
+	userWarehouseRepo       *repository.UserWarehouseRepository
 	refreshTokenRepo        *repository.RefreshTokenRepository
 	transferRepo            *repository.WebSessionTransferRepository
 	subscriptionRepo        *repository.SubscriptionRepository
@@ -58,7 +59,7 @@ type AuthHandler struct {
 	passwordResetTokenRepo  *repository.PasswordResetTokenRepository
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, refreshTokenRepo *repository.RefreshTokenRepository, passwordResetTokenRepo *repository.PasswordResetTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, userWarehouseRepo *repository.UserWarehouseRepository, refreshTokenRepo *repository.RefreshTokenRepository, passwordResetTokenRepo *repository.PasswordResetTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64) *AuthHandler {
 	return &AuthHandler{
 		userRepo:                userRepo,
 		companyRepo:             companyRepo,
@@ -66,6 +67,7 @@ func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository
 		syncRepo:                syncRepo,
 		invoiceRepo:             invoiceRepo,
 		deviceRepo:              deviceRepo,
+		userWarehouseRepo:       userWarehouseRepo,
 		refreshTokenRepo:        refreshTokenRepo,
 		passwordResetTokenRepo:  passwordResetTokenRepo,
 		transferRepo:            transferRepo,
@@ -1084,17 +1086,20 @@ func (h *AuthHandler) GetUserStatus(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) Routes() *chi.Mux {
 	r := chi.NewRouter()
-	r.Post("/registrarse", h.Register)
-	r.Post("/signup", h.SignupTrial)
-	r.Post("/signup/trial", h.SignupTrial)
-	r.Post("/login", h.Login)
-	r.Post("/forgot-password", h.ForgotPassword)
-	r.Post("/reset-password", h.ResetPassword)
-	r.Post("/device", h.RegisterDevice)
-	r.Post("/refresh", h.Refresh)
-	r.Post("/transfer/claim", h.ClaimSessionTransfer)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: h.jwtSvc, DeviceRepo: h.deviceRepo}))
+		r.Use(middleware.AuthEndpointsRateLimit())
+		r.Post("/registrarse", h.Register)
+		r.Post("/signup", h.SignupTrial)
+		r.Post("/signup/trial", h.SignupTrial)
+		r.Post("/login", h.Login)
+		r.Post("/forgot-password", h.ForgotPassword)
+		r.Post("/reset-password", h.ResetPassword)
+		r.Post("/device", h.RegisterDevice)
+		r.Post("/refresh", h.Refresh)
+		r.Post("/transfer/claim", h.ClaimSessionTransfer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: h.jwtSvc, DeviceRepo: h.deviceRepo, UserWarehouseRepo: h.userWarehouseRepo}))
 		r.Post("/logout", h.Logout)
 		r.Post("/change-password", h.ChangePassword)
 		r.Post("/me/plan", h.SelectMyPlan)

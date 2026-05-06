@@ -16,53 +16,41 @@ import (
 )
 
 type WarehouseHandler struct {
-	warehouseRepo *repository.WarehouseRepository
-	companyRepo   *repository.CompanyRepository
-	deviceRepo    *repository.DeviceRepository
-	jwtSvc        *jwt.Service
+	warehouseRepo     *repository.WarehouseRepository
+	companyRepo       *repository.CompanyRepository
+	deviceRepo        *repository.DeviceRepository
+	userWarehouseRepo *repository.UserWarehouseRepository
+	jwtSvc            *jwt.Service
 }
 
 func NewWarehouseHandler(
 	warehouseRepo *repository.WarehouseRepository,
 	companyRepo *repository.CompanyRepository,
 	deviceRepo *repository.DeviceRepository,
+	userWarehouseRepo *repository.UserWarehouseRepository,
 	jwtSvc *jwt.Service,
 ) *WarehouseHandler {
 	return &WarehouseHandler{
-		warehouseRepo: warehouseRepo,
-		companyRepo:   companyRepo,
-		deviceRepo:    deviceRepo,
-		jwtSvc:        jwtSvc,
+		warehouseRepo:     warehouseRepo,
+		companyRepo:       companyRepo,
+		deviceRepo:        deviceRepo,
+		userWarehouseRepo: userWarehouseRepo,
+		jwtSvc:            jwtSvc,
 	}
 }
 
 func (h *WarehouseHandler) List(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var companyID uuid.UUID
-	var err error
-
-	// Check for company_code query param (used during device setup before auth)
-	if companyCode := r.URL.Query().Get("company_code"); companyCode != "" {
-		// Look up company by code
-		company, err := h.warehouseRepo.GetCompanyByCode(ctx, companyCode)
-		if err != nil || company == nil {
-			RespondWithError(w, r, ErrCodeInvalidRequest, "Company not found", http.StatusBadRequest)
-			return
-		}
-		companyID = company.ID
-	} else {
-		// Use auth context
-		userClaims := middleware.GetUserClaims(r)
-		if userClaims.UserID == "" {
-			RespondWithError(w, r, ErrCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		companyID, err = uuid.Parse(userClaims.CompanyID)
-		if err != nil {
-			RespondWithError(w, r, ErrCodeInvalidRequest, "Company ID inválido", http.StatusBadRequest)
-			return
-		}
+	userClaims := middleware.GetUserClaims(r)
+	if userClaims.UserID == "" {
+		RespondWithError(w, r, ErrCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	companyID, err := uuid.Parse(userClaims.CompanyID)
+	if err != nil {
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Company ID inválido", http.StatusBadRequest)
+		return
 	}
 
 	warehouses, err := h.warehouseRepo.GetByCompanyID(ctx, companyID)
@@ -303,13 +291,15 @@ func (h *WarehouseHandler) Archive(w http.ResponseWriter, r *http.Request) {
 
 func (h *WarehouseHandler) Routes() *chi.Mux {
 	r := chi.NewRouter()
-	r.Get("/", h.List)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: h.jwtSvc, DeviceRepo: h.deviceRepo}))
-		r.Use(middleware.RequireRoles(models.RoleCompanyOwner, models.RoleWarehouseAdmin))
-		r.Post("/", h.Create)
-		r.Patch("/{id}", h.Update)
-		r.Delete("/{id}", h.Archive)
+		r.Use(middleware.Auth(middleware.AuthDeps{JwtSvc: h.jwtSvc, DeviceRepo: h.deviceRepo, UserWarehouseRepo: h.userWarehouseRepo}))
+		r.Get("/", h.List)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RequireRoles(models.RoleCompanyOwner, models.RoleWarehouseAdmin))
+			r.Post("/", h.Create)
+			r.Patch("/{id}", h.Update)
+			r.Delete("/{id}", h.Archive)
+		})
 	})
 	return r
 }

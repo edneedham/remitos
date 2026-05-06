@@ -30,6 +30,7 @@ type MercadoPagoWebhookHandler struct {
 	Mailer             notifymail.Sender
 	PublicSiteURL      string
 	FXBufferFraction   float64
+	WebhookSecret      string
 }
 
 func NewMercadoPagoWebhookHandler(
@@ -41,6 +42,7 @@ func NewMercadoPagoWebhookHandler(
 	mailer notifymail.Sender,
 	publicSiteURL string,
 	fxBufferFraction float64,
+	webhookSecret string,
 ) *MercadoPagoWebhookHandler {
 	return &MercadoPagoWebhookHandler{
 		Pool:             pool,
@@ -51,6 +53,7 @@ func NewMercadoPagoWebhookHandler(
 		Mailer:           mailer,
 		PublicSiteURL:    publicSiteURL,
 		FXBufferFraction: fxBufferFraction,
+		WebhookSecret:    webhookSecret,
 	}
 }
 
@@ -77,6 +80,14 @@ func (h *MercadoPagoWebhookHandler) PostNotification(w http.ResponseWriter, r *h
 		logger.Log.Warn().Err(err).Msg("mp webhook: failed to read body")
 		w.WriteHeader(http.StatusBadRequest)
 		return
+	}
+
+	if strings.TrimSpace(h.WebhookSecret) != "" {
+		if !mercadopago.VerifyWebhookSignature(r, h.WebhookSecret) {
+			logger.Log.Warn().Msg("mp webhook: invalid x-signature")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 	}
 
 	paymentID := extractPaymentIDFromRequest(r, body)
@@ -358,7 +369,8 @@ func (h *MercadoPagoWebhookHandler) resolveCompanyID(ctx context.Context, p *mer
 			if inv != nil {
 				return inv.CompanyID, nil
 			}
-			return invID, nil
+			// Unknown UUID external_reference must not be treated as company_id.
+			return uuid.Nil, nil
 		}
 	}
 	return uuid.Nil, nil
