@@ -80,7 +80,7 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if company.DocumentsMonthlyLimit != nil && len(req.InboundNotes) > 0 {
-		mtdTotal, _, err := h.syncRepo.InboundNotesMTDCumulativeSeries(ctx, companyID)
+		mtdTotal, err := h.syncRepo.InboundNotesMTDCount(ctx, companyID)
 		if err != nil {
 			RespondWithError(w, r, ErrCodeInternalError, "Failed to validate limits", http.StatusInternalServerError, err)
 			return

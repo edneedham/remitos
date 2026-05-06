@@ -632,6 +632,23 @@ type DocumentUsageSeriesPoint struct {
 	Cumulative int64  `json:"cumulative"`
 }
 
+// InboundNotesMTDCount returns total inbound notes created in the current UTC calendar month
+// (same window as InboundNotesMTDCumulativeSeries mtdTotal).
+func (r *SyncRepository) InboundNotesMTDCount(ctx context.Context, companyID uuid.UUID) (int64, error) {
+	now := time.Now().UTC()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	nextMonthStart := monthStart.AddDate(0, 1, 0)
+	var n int64
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*)::bigint
+		FROM inbound_notes
+		WHERE company_id = $1
+		  AND created_at >= $2
+		  AND created_at < $3
+	`, companyID, monthStart, nextMonthStart).Scan(&n)
+	return n, err
+}
+
 // InboundNotesMTDCumulativeSeries returns cumulative inbound document totals at the start of each UTC
 // calendar day from the first day of the month through today. Day 1 is always 0; day 2 includes all
 // counts from day 1, and so on. The returned mtdTotal is still the full month-to-date sum through today
