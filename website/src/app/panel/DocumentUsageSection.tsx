@@ -1,14 +1,23 @@
 'use client';
 
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+import type { UsageChartDatum } from './DocumentUsageLineChart';
+
+const DocumentUsageLineChart = dynamic(
+  () => import('./DocumentUsageLineChart'),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="flex h-[260px] w-full items-center justify-center rounded-lg bg-gray-50 text-sm text-gray-500"
+        role="status"
+        aria-live="polite"
+      >
+        Cargando gráfico…
+      </div>
+    ),
+  },
+);
 
 export type DocumentUsageSeriesPoint = {
   date: string;
@@ -52,11 +61,7 @@ function daysInUtcMonth(year: number, monthIndex0: number): number {
 function buildMonthChartData(
   series: DocumentUsageSeriesPoint[],
   limitValue: number | null,
-): Array<{
-  date: string;
-  cumulative: number | null;
-  limitLine: number | undefined;
-}> {
+): UsageChartDatum[] {
   const now = new Date();
   const year = now.getUTCFullYear();
   const monthIndex = now.getUTCMonth();
@@ -70,11 +75,7 @@ function buildMonthChartData(
     sorted.map((p) => [p.date, Number(p.cumulative)]),
   );
 
-  const out: Array<{
-    date: string;
-    cumulative: number | null;
-    limitLine: number | undefined;
-  }> = [];
+  const out: UsageChartDatum[] = [];
 
   let lastCumulative = 0;
   for (let day = 1; day <= lastDay; day++) {
@@ -135,11 +136,6 @@ export default function DocumentUsageSection({
       ? Number(tickValue.toFixed(2))
       : tickValue;
   });
-
-  const formatDay = (d: string) => {
-    const x = new Date(`${d}T12:00:00.000Z`);
-    return x.toLocaleDateString('es-AR', { day: '2-digit', timeZone: 'UTC' });
-  };
 
   const monthAxisLabel =
     chartData.length > 0
@@ -204,107 +200,13 @@ export default function DocumentUsageSection({
         </div>
 
         <div className="mt-4 min-h-[260px] flex-1 w-full min-w-0">
-          <ResponsiveContainer width="100%" height={260}>
-              <LineChart
-                data={chartData}
-                margin={{ top: 8, right: 12, left: 8, bottom: 18 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#e5e7eb"
-                />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={formatDay}
-                  tick={{ fontSize: 11 }}
-                  interval="equidistantPreserveStart"
-                  minTickGap={14}
-                  stroke="#9ca3af"
-                  height={64}
-                  tickMargin={10}
-                  label={{
-                    value: monthAxisLabel,
-                    position: 'insideBottom',
-                    dy: 16,
-                    style: {
-                      textAnchor: 'middle',
-                      fill: '#6b7280',
-                      fontSize: 12,
-                      textTransform: 'capitalize',
-                    },
-                  }}
-                />
-                <YAxis
-                  domain={[0, yMax]}
-                  ticks={yTicks}
-                  allowDecimals={false}
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={(value) =>
-                    typeof value === 'number'
-                      ? value.toLocaleString('es-AR')
-                      : String(value)
-                  }
-                  stroke="#9ca3af"
-                  width={56}
-                  tickMargin={10}
-                  label={{
-                    value: 'Documentos',
-                    angle: -90,
-                    position: 'insideLeft',
-                    dx: -4,
-                    style: {
-                      textAnchor: 'middle',
-                      fill: '#6b7280',
-                      fontSize: 12,
-                    },
-                  }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb',
-                  }}
-                  labelFormatter={(label) =>
-                    typeof label === 'string' ? formatDay(label) : String(label)
-                  }
-                  formatter={(value, name) => {
-                    if (name === 'limitLine') {
-                      const v = typeof value === 'number' ? value : Number(value);
-                      return [v, 'Límite del plan'];
-                    }
-                    if (value == null || value === '') {
-                      return ['—', 'Documentos'];
-                    }
-                    const v = typeof value === 'number' ? value : Number(value);
-                    return [Number.isFinite(v) ? v : '—', 'Documentos'];
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="cumulative"
-                  name="Documentos"
-                  stroke="#2563eb"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4 }}
-                  connectNulls={false}
-                  isAnimationActive={false}
-                />
-                {limitValue != null ? (
-                  <Line
-                    type="monotone"
-                    dataKey="limitLine"
-                    name="Límite del plan"
-                    stroke="#64748b"
-                    strokeWidth={2}
-                    strokeDasharray="6 4"
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                ) : null}
-              </LineChart>
-            </ResponsiveContainer>
+          <DocumentUsageLineChart
+            chartData={chartData}
+            monthAxisLabel={monthAxisLabel}
+            yMax={yMax}
+            yTicks={yTicks}
+            limitValue={limitValue}
+          />
         </div>
       </div>
 
