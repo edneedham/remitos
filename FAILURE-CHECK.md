@@ -17,8 +17,8 @@ This document captures **plausible failure modes** for the Remitos stack as the 
 
 **Checks**
 
-- [ ] Single source of truth for catalog USD prices (or automated contract test that Go and web catalogs match).
-- [ ] `billing_invoices` (or equivalent) stores `ars_per_usd`, `fx_source`, `fx_effective_date`, and snapshot fields needed for support and accounting (see `billing-doc.md` recommendations).
+- [x] Single source of truth for catalog USD prices (or automated contract test that Go and web catalogs match) (`backend/internal/billing/pricing_catalog_contract_test.go`).
+- [x] `billing_invoices` (or equivalent) stores `ars_per_usd`, `fx_source`, `fx_effective_date`, and snapshot fields needed for support and accounting (see `billing-doc.md` recommendations; migration `038_billing_invoice_fx_snapshot`, renewal path populates on catalog-derived charges).
 - [x] Runbook for failed renewal: retry policy, dunning, grace period, and how `subscription_expires_at` interacts with app entitlement (`RENEWAL_FAILURE_RUNBOOK.md`).
 - [ ] Webhook and secret rotation tested after each API/deploy change.
 
