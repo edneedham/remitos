@@ -16,7 +16,7 @@ ON CONFLICT (name) DO NOTHING;
 -- (Plain literal so this migration is self-contained.)
 
 -- ---------------------------------------------------------------------------
--- Company A — active trial (download allowed while trial_ends_at > now)
+-- Company A — active trial (7 days; download allowed while trial_ends_at > now)
 -- Company code: SEEDTRIAL
 -- ---------------------------------------------------------------------------
 INSERT INTO companies (
@@ -32,7 +32,7 @@ INSERT INTO companies (
   'Seed Co — Trial',
   NOW(), NOW(),
   'active', true, 'trial',
-  NULL, NOW() + INTERVAL '30 days',
+  NULL, NOW() + INTERVAL '7 days',
   2, 5, 1000,
   'stub_mp_customer', 'stub_mp_card',
   NULL
