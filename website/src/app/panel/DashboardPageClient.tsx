@@ -245,7 +245,7 @@ export default function DashboardPageClient() {
             >
               <div className="flex gap-3">
                 <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"
                   aria-hidden
                 >
                   <Warehouse className="h-7 w-7" strokeWidth={1.75} />
@@ -275,12 +275,12 @@ export default function DashboardPageClient() {
 
             <Link
               href="/panel/dispositivos"
-              className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-orange-300 hover:bg-orange-50/40"
+              className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40"
               aria-labelledby="devices-card-heading"
             >
               <div className="flex gap-3">
                 <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-700"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"
                   aria-hidden
                 >
                   <Smartphone className="h-7 w-7" strokeWidth={1.75} />
@@ -306,12 +306,12 @@ export default function DashboardPageClient() {
 
             <Link
               href="/panel/facturacion"
-              className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-violet-300 hover:bg-violet-50/40"
+              className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40"
               aria-labelledby="users-card-heading"
             >
               <div className="flex gap-3">
                 <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"
                   aria-hidden
                 >
                   <Users className="h-7 w-7" strokeWidth={1.75} />
@@ -345,7 +345,7 @@ export default function DashboardPageClient() {
             >
               <div className="flex gap-3">
                 <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"
                   aria-hidden
                 >
                   <ScanLine className="h-7 w-7" strokeWidth={1.75} />
@@ -376,7 +376,7 @@ export default function DashboardPageClient() {
             >
               <div className="flex gap-3">
                 <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"
                   aria-hidden
                 >
                   <BadgeCheck className="h-7 w-7" strokeWidth={1.75} />
@@ -500,10 +500,10 @@ export default function DashboardPageClient() {
                           <button
                             type="button"
                             onClick={() => handleDownloadInvoice(inv)}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50"
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
                             aria-label={`Descargar factura ${inv.id}`}
                           >
-                            <Download className="h-4 w-4" aria-hidden />
+                            <Download className="h-4 w-4 text-blue-600" aria-hidden />
                             Descargar
                           </button>
                         </td>
