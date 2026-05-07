@@ -61,3 +61,39 @@ export function validateLoginForm(values: LoginFormValues): LoginFormErrors {
 
   return errors;
 }
+
+/** POST /auth/forgot-password — same company + username rules as login. */
+export type ForgotPasswordField = 'company_code' | 'username';
+
+export type ForgotPasswordErrors = Partial<
+  Record<ForgotPasswordField, string>
+>;
+
+export type ForgotPasswordValues = Pick<
+  LoginFormValues,
+  'companyCode' | 'username'
+>;
+
+export function validateForgotPasswordField(
+  field: ForgotPasswordField,
+  values: ForgotPasswordValues,
+): string | null {
+  if (field === 'company_code') {
+    return validateLoginCompanyCode(values.companyCode);
+  }
+  return validateLoginUsername(values.username);
+}
+
+export function validateForgotPasswordForm(
+  values: ForgotPasswordValues,
+): ForgotPasswordErrors {
+  const errors: ForgotPasswordErrors = {};
+
+  const companyErr = validateLoginCompanyCode(values.companyCode);
+  if (companyErr) errors.company_code = companyErr;
+
+  const usernameErr = validateLoginUsername(values.username);
+  if (usernameErr) errors.username = usernameErr;
+
+  return errors;
+}

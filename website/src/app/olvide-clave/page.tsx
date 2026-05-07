@@ -4,16 +4,14 @@ import ForgotPasswordForm from './ForgotPasswordForm';
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="min-h-[60vh] bg-gray-50">
-      <Suspense
-        fallback={
-          <div className="flex min-h-[40vh] items-center justify-center">
-            <LoadingSpinner size="lg" />
-          </div>
-        }
-      >
-        <ForgotPasswordForm />
-      </Suspense>
-    </div>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[60vh] items-center justify-center bg-gray-50 px-4">
+          <LoadingSpinner size="lg" />
+        </div>
+      }
+    >
+      <ForgotPasswordForm />
+    </Suspense>
   );
 }
