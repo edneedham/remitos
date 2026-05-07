@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { getApiBaseUrl } from '../lib/apiUrl';
+import { isLikelyMobileDevice } from '../lib/mobileDevice';
 import { getPublicSiteOrigin } from '../lib/siteUrl';
 import { hasWebSession, postWithWebAuth } from '../lib/webAuth';
 import { trackTrialOnboardingEvent } from '../lib/trialOnboardingAnalytics';
@@ -18,6 +19,8 @@ export default function SignupGate() {
   const searchParams = useSearchParams();
   const [ready, setReady] = useState(false);
   const [mobileUrl, setMobileUrl] = useState('');
+  /** QR is for scanning from another device; hide on phones/tablets (see HeroQrOverlay). */
+  const [showSignupQr, setShowSignupQr] = useState(false);
   const [showPlanStep, setShowPlanStep] = useState(false);
   const [applyingPreselectedPlan, setApplyingPreselectedPlan] = useState(false);
 
@@ -28,7 +31,22 @@ export default function SignupGate() {
   useEffect(() => {
     const origin = getPublicSiteOrigin();
     setMobileUrl(`${origin}/registro`);
+
+    const mq =
+      typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(min-width: 640px)')
+        : null;
+
+    const syncQrVisibility = () => {
+      const wide = mq?.matches ?? false;
+      setShowSignupQr(!isLikelyMobileDevice() || wide);
+    };
+
+    syncQrVisibility();
+    mq?.addEventListener('change', syncQrVisibility);
     setReady(true);
+
+    return () => mq?.removeEventListener('change', syncQrVisibility);
   }, []);
 
   if (!ready) {
@@ -88,55 +106,60 @@ export default function SignupGate() {
           </div>
         ) : (
           <div className="mx-auto flex w-fit min-w-0 max-w-full flex-col items-center gap-8 lg:flex-row lg:items-start lg:gap-10 xl:gap-12 signup-step-enter">
-            <div className="w-full max-w-[360px] shrink-0 lg:sticky lg:top-8 lg:z-10 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">
+            {/* Trial pitch + benefits: desktop sidebar only (sticky from lg). Form headline covers essentials on smaller viewports. */}
+            <div className="order-2 hidden w-full max-w-[360px] shrink-0 lg:order-1 lg:block lg:sticky lg:top-8 lg:z-10 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">
               <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5">
                 <SignupMarketingAside />
               </div>
             </div>
 
-            <section className="flex min-h-0 min-w-0 w-full max-w-md shrink-0 flex-col rounded-2xl border border-gray-200 bg-white px-5 py-8 shadow-sm sm:px-6 lg:py-10">
-              <div className="mb-0 flex shrink-0 flex-col gap-6 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
-                <header className="min-w-0 flex-1 space-y-3 sm:max-w-md">
-                  <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+            <section className="order-1 flex min-h-0 min-w-0 w-full max-w-md shrink-0 flex-col rounded-2xl border border-gray-200 bg-white px-5 py-7 shadow-sm sm:px-6 sm:py-8 lg:order-2 lg:py-10">
+              <div
+                className={`mb-6 flex shrink-0 flex-col gap-5 sm:mb-8 sm:gap-8 ${showSignupQr ? 'sm:flex-row sm:items-start sm:justify-between' : ''}`}
+              >
+                <header className="min-w-0 flex-1 space-y-2 sm:max-w-md sm:space-y-3">
+                  <h1 className="text-[1.625rem] font-bold leading-snug tracking-tight text-gray-900 sm:text-3xl sm:leading-tight">
                     Probá 7 días gratis
                   </h1>
-                  <p className="text-sm leading-relaxed text-gray-600 break-words">
+                  <p className="text-base leading-relaxed text-gray-600 break-words sm:text-sm sm:leading-relaxed">
                     Completá los datos de empresa y cuenta para empezar tu prueba.
                   </p>
                 </header>
 
-                <div
-                  className="flex shrink-0 flex-col items-center justify-center rounded-xl px-5 py-4 shadow-lg"
-                  aria-label="Código QR para abrir el registro en el celular"
-                >
-                  <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    ¿Preferís el celular?
-                  </p>
-                  <div className="relative h-[140px] w-[140px]">
-                    <QRCodeSVG
-                      value={mobileUrl}
-                      size={140}
-                      level="H"
-                      includeMargin={false}
-                    />
-                    <div
-                      className="absolute inset-0 flex items-center justify-center"
-                      aria-hidden
-                    >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
-                        <img
-                          src="/enpunto-simple.svg"
-                          alt=""
-                          className="h-5 w-5"
-                          aria-hidden
-                        />
+                {showSignupQr ? (
+                  <div
+                    className="flex shrink-0 flex-col items-center justify-center rounded-xl px-5 py-4 shadow-lg"
+                    aria-label="Código QR para abrir el registro en el celular"
+                  >
+                    <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      ¿Preferís el celular?
+                    </p>
+                    <div className="relative h-[140px] w-[140px]">
+                      <QRCodeSVG
+                        value={mobileUrl}
+                        size={140}
+                        level="H"
+                        includeMargin={false}
+                      />
+                      <div
+                        className="absolute inset-0 flex items-center justify-center"
+                        aria-hidden
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
+                          <img
+                            src="/enpunto-simple.svg"
+                            alt=""
+                            className="h-5 w-5"
+                            aria-hidden
+                          />
+                        </div>
                       </div>
                     </div>
+                    <p className="mt-3 max-w-[11rem] text-center text-xs text-gray-500">
+                      Escaneá para el mismo registro en tu teléfono.
+                    </p>
                   </div>
-                  <p className="mt-3 max-w-[11rem] text-center text-xs text-gray-500">
-                    Escaneá para el mismo registro en tu teléfono.
-                  </p>
-                </div>
+                ) : null}
               </div>
 
               <div className="min-h-0 min-w-0 flex-1">
