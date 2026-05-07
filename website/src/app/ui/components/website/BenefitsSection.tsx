@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 const FIRST_BENEFIT_LINE = 'Encontrá documentos al toque.';
 const SECOND_BENEFIT_LINE =
@@ -81,6 +82,54 @@ export default function BenefitsSection() {
       return;
     }
 
+    // Narrow viewports: no wheel-driven sequence — slide benefit lines in from the left on scroll.
+    const mqMobile = window.matchMedia('(max-width: 767px)');
+    if (mqMobile.matches) {
+      gsap.registerPlugin(ScrollTrigger);
+
+      const prefersReduce = window.matchMedia(
+        '(prefers-reduced-motion: reduce)',
+      ).matches;
+
+      if (prefersReduce) {
+        gsap.set([shot, benefitEl, benefit2El, benefit3El], {
+          autoAlpha: 1,
+          x: 0,
+          y: 0,
+          overwrite: 'auto',
+        });
+        return;
+      }
+
+      gsap.set(shot, { autoAlpha: 1, y: 0, overwrite: 'auto' });
+      gsap.set([benefitEl, benefit2El, benefit3El], {
+        autoAlpha: 0,
+        x: -28,
+        force3D: true,
+        overwrite: 'auto',
+      });
+
+      const ctx = gsap.context(() => {
+        gsap.to([benefitEl, benefit2El, benefit3El], {
+          x: 0,
+          autoAlpha: 1,
+          duration: 0.72,
+          stagger: 0.14,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: section,
+            start: 'top 82%',
+            once: true,
+            invalidateOnRefresh: true,
+          },
+        });
+      }, section);
+
+      return () => {
+        ctx.revert();
+      };
+    }
+
     gsap.set(shot, {
       autoAlpha: 0,
       y: 28,
@@ -95,7 +144,7 @@ export default function BenefitsSection() {
 
     gsap.set(benefit3El, {
       autoAlpha: 0,
-      x: 36,
+      x: -36,
       force3D: true,
     });
 
@@ -281,6 +330,11 @@ export default function BenefitsSection() {
       }
 
       if (!lockArmedRef.current) return;
+      if (e.deltaY < 0) {
+        // Always allow backing out by scrolling up.
+        unlockScroll();
+        return;
+      }
       if (e.deltaY <= 0) return;
       e.preventDefault();
       const now = performance.now();
@@ -302,6 +356,10 @@ export default function BenefitsSection() {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!lockArmedRef.current) return;
+      if (['ArrowUp', 'PageUp', 'Home'].includes(e.key)) {
+        unlockScroll();
+        return;
+      }
       if (!['ArrowDown', 'PageDown', ' ', 'Spacebar'].includes(e.key)) return;
       e.preventDefault();
       advanceStep();
@@ -364,44 +422,47 @@ export default function BenefitsSection() {
   return (
     <section
       ref={sectionRef}
-      className="scroll-mt-0 border-b border-gray-200 bg-white py-20 px-4 sm:px-6 lg:px-8"
+      className="scroll-mt-0 border-b border-gray-200 bg-white py-10 px-4 sm:py-14 sm:px-6 lg:px-8 lg:py-20"
       aria-labelledby="benefits-heading"
     >
       <div className="mx-auto w-full max-w-[70%]">
-        <div className="mx-auto mb-12 max-w-content-prose text-center">
+        <div className="mx-auto mb-12 max-w-content-prose text-left md:text-center">
           <h2
             id="benefits-heading"
-            className="mb-4 text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl"
+            className="text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl"
           >
             Menos carga manual, más control operativo
           </h2>
-          <p className="text-lg leading-snug text-gray-600 sm:text-xl lg:text-2xl">
-            Pasá menos tiempo cargando datos y más en lo que importa.
-          </p>
         </div>
       </div>
 
       {!panelOnlyLayout ? (
         <div className="mx-auto mt-10 w-full max-w-[70%]">
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-x-6 lg:gap-x-10">
-            <div className="flex max-w-md flex-col gap-5 justify-self-start md:col-start-1 md:self-center">
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-x-6 lg:gap-x-10">
+            <div className="flex max-w-xl flex-col gap-6 justify-self-start md:col-start-1 md:self-center">
               <p
                 ref={benefitTextRef}
-                className="text-left text-lg leading-relaxed text-gray-800 [visibility:hidden] sm:text-xl lg:text-2xl"
+                className="border-l-[3px] border-blue-600 pl-4 text-left text-xl font-semibold leading-snug tracking-tight text-gray-900 sm:text-2xl lg:text-3xl md:[visibility:hidden]"
               >
                 {FIRST_BENEFIT_LINE}
               </p>
               <p
                 ref={benefitText2Ref}
-                className="text-left text-lg leading-relaxed text-gray-800 [visibility:hidden] sm:text-xl lg:text-2xl"
+                className="border-l-[3px] border-blue-600 pl-4 text-left text-xl font-semibold leading-snug tracking-tight text-gray-900 sm:text-2xl lg:text-3xl md:[visibility:hidden]"
               >
                 {SECOND_BENEFIT_LINE}
+              </p>
+              <p
+                ref={benefitText3Ref}
+                className="border-l-[3px] border-blue-600 pl-4 text-left text-xl font-semibold leading-snug tracking-tight text-gray-900 sm:text-2xl lg:text-3xl md:[visibility:hidden]"
+              >
+                {THIRD_BENEFIT_LINE}
               </p>
             </div>
 
             <div
               ref={screenshotRef}
-              className="relative mx-auto w-fit shrink-0 justify-self-center overflow-hidden rounded-2xl p-4 [visibility:hidden] md:col-start-2 md:row-start-1"
+              className="relative mx-auto w-fit shrink-0 justify-self-center overflow-hidden rounded-2xl p-4 md:justify-self-end md:[visibility:hidden] md:col-start-2 md:row-start-1"
             >
               <Image
                 src="/screenshots/dashboard.png"
@@ -411,15 +472,6 @@ export default function BenefitsSection() {
                 className="h-auto w-[264px] rounded-xl"
                 sizes="264px"
               />
-            </div>
-
-            <div className="max-w-md md:col-start-3 md:row-start-1 md:self-center">
-              <p
-                ref={benefitText3Ref}
-                className="justify-self-end text-right text-lg leading-relaxed text-gray-800 [visibility:hidden] sm:text-xl lg:text-2xl md:justify-self-end"
-              >
-                {THIRD_BENEFIT_LINE}
-              </p>
             </div>
           </div>
         </div>
@@ -439,7 +491,7 @@ export default function BenefitsSection() {
           </div>
           <p
             ref={panelCaptionRef}
-            className="mx-auto mt-8 max-w-content-prose px-4 text-center text-lg font-medium leading-relaxed text-gray-800 sm:text-xl lg:text-2xl"
+            className="mx-auto mt-8 max-w-content-prose px-4 text-left text-lg font-medium leading-relaxed text-gray-800 md:text-center sm:text-xl lg:text-2xl"
           >
             {PANEL_CAPTION_LINE}
           </p>

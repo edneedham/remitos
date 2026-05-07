@@ -26,11 +26,11 @@ export default function Home() {
       <div className="flex flex-col min-h-screen">
         <main className="grow">
           {/* Hero Section */}
-          <div className="border-b border-gray-200 bg-white">
-            <section className="py-20 px-4 sm:px-6 lg:px-8">
-              <div className="mx-auto mt-16 w-full max-w-[70vw] rounded-3xl bg-blue-50 px-8 pt-8 pb-0 sm:px-10 lg:px-12">
-                <div className="flex flex-col items-center gap-10 lg:min-h-[460px] lg:flex-row lg:items-stretch lg:justify-between lg:gap-8">
-                  <div className="flex w-full flex-1 flex-col justify-center lg:max-w-xl lg:pr-2">
+          <div className="bg-white">
+            <section className="py-10 px-4 sm:px-6 lg:px-8">
+              <div className="mx-auto mt-2 w-full max-w-[68.8rem] rounded-3xl bg-blue-50 px-6 pt-8 pb-0 sm:mt-16 sm:px-10 lg:px-12">
+                <div className="flex flex-col items-center gap-4 lg:min-h-[460px] lg:flex-row lg:items-stretch lg:justify-between lg:gap-8">
+                  <div className="flex w-full flex-1 flex-col items-start justify-start text-left lg:max-w-xl lg:justify-center lg:pr-2">
                     <h1 className="mb-8 text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl xl:text-6xl">
                       Herramientas de logística para manejar tu negocio.
                     </h1>
@@ -38,12 +38,12 @@ export default function Home() {
                       Reducí la carga manual de datos, generá hojas de reparto y
                       exportá la info para usarla en otras plataformas.
                     </p>
-                    <div className="mb-10 lg:mb-14">
+                    <div className="mb-2 w-full sm:mb-4 lg:mb-12">
                       <HeroSignupRow />
                     </div>
                   </div>
                   <div className="relative flex w-full max-w-[420px] shrink-0 flex-col justify-end lg:ml-auto">
-                    <div className="h-[460px] overflow-hidden rounded-t-3xl">
+                    <div className="aspect-[10/10.75] w-full overflow-hidden rounded-t-3xl">
                       <Image
                         src="/screenshots/dashboard.png"
                         alt="Dashboard de la app de repartos"
@@ -70,7 +70,7 @@ export default function Home() {
             className="border-b border-gray-200 bg-white py-20 px-4 sm:px-6 lg:px-8"
             aria-labelledby="faq-heading"
           >
-            <div className="mx-auto w-full max-w-[80vw]">
+            <div className="mx-auto w-full max-w-[68.8rem]">
               <div className="mx-auto mb-12 max-w-content-prose text-center">
                 <h2
                   id="faq-heading"
@@ -113,7 +113,7 @@ export default function Home() {
 
           {/* CTA Section */}
           <section className="bg-gray-900 py-20 px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto w-full max-w-[80vw] text-center">
+            <div className="mx-auto w-full max-w-[68.8rem] text-center">
               <h2 className="mb-6 text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
                 ¿Listo para probarlo en tu operación?
               </h2>
