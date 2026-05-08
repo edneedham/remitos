@@ -9,7 +9,7 @@ const mockRefreshWebSession = vi.fn();
 const mockGetApiBaseUrl = vi.fn();
 const mockGetWebAccessToken = vi.fn();
 const mockGetWebRefreshToken = vi.fn();
-const mockIsLikelyMobileDevice = vi.fn();
+const mockDetectDevicePlatform = vi.fn();
 const mockGetPublicSiteOrigin = vi.fn();
 const mockFetchWebProfile = vi.fn();
 const mockCanAccessWebManagement = vi.fn();
@@ -39,7 +39,8 @@ vi.mock('../../lib/apiUrl', () => ({
 }));
 
 vi.mock('../../lib/mobileDevice', () => ({
-  isLikelyMobileDevice: () => mockIsLikelyMobileDevice(),
+  detectDevicePlatform: () => mockDetectDevicePlatform(),
+  isLikelyMobileDevice: () => mockDetectDevicePlatform() !== 'desktop',
 }));
 
 vi.mock('../../lib/siteUrl', () => ({
@@ -71,7 +72,7 @@ describe('ApplicationPageClient', () => {
   });
 
   it('shows title and APK download on mobile', async () => {
-    mockIsLikelyMobileDevice.mockReturnValue(true);
+    mockDetectDevicePlatform.mockReturnValue('android');
 
     await renderApplicationPageClient();
 
@@ -100,7 +101,7 @@ describe('ApplicationPageClient desktop QR transfer', () => {
       },
     );
     mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
-    mockIsLikelyMobileDevice.mockReturnValue(false);
+    mockDetectDevicePlatform.mockReturnValue('desktop');
     mockGetPublicSiteOrigin.mockReturnValue('https://enpunto.com.ar');
     mockFetchWebProfile.mockResolvedValue({ role: 'admin' });
     mockCanAccessWebManagement.mockReturnValue(true);
@@ -139,5 +140,37 @@ describe('ApplicationPageClient desktop QR transfer', () => {
         }),
       ),
     );
+  });
+});
+
+describe('ApplicationPageClient iOS guard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockHasWebSession.mockReturnValue(true);
+    mockRefreshWebSession.mockResolvedValue(true);
+    mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
+    mockFetchWebProfile.mockResolvedValue({ role: 'admin' });
+    mockCanAccessWebManagement.mockReturnValue(true);
+    mockDetectDevicePlatform.mockReturnValue('ios');
+    mockFetchWithWebAuth.mockImplementation(async () =>
+      new Response(
+        JSON.stringify({
+          can_download_app: true,
+          subscription_plan: 'trial',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+  });
+
+  it('does not show APK download action on iOS', async () => {
+    await renderApplicationPageClient();
+
+    expect(
+      await screen.findByText(/está disponible para android/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /descargar apk/i }),
+    ).not.toBeInTheDocument();
   });
 });

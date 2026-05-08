@@ -96,8 +96,10 @@ describe('BillingPageClient', () => {
     expect(
       screen.getByRole('heading', { name: 'Comprobantes de pago' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Suscripción mensual')).toBeInTheDocument();
-    expect(screen.getByText('Pagado')).toBeInTheDocument();
+    expect(screen.getAllByText('Suscripción mensual').length).toBeGreaterThanOrEqual(
+      1,
+    );
+    expect(screen.getAllByText('Pagado').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('En período de prueba').length).toBeGreaterThanOrEqual(
       1,
     );

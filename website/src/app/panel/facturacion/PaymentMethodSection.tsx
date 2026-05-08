@@ -146,11 +146,12 @@ export default function PaymentMethodSection({
     );
   }
 
+  if (!desktopPaymentUi) {
+    return null;
+  }
+
   const showBrick =
-    desktopPaymentUi &&
-    !useMockPayment &&
-    Boolean(mpPublicKey) &&
-    payerEmail.trim().length > 0;
+    !useMockPayment && Boolean(mpPublicKey) && payerEmail.trim().length > 0;
 
   return (
     <section
@@ -163,19 +164,9 @@ export default function PaymentMethodSection({
       >
         Medio de pago (Mercado Pago)
       </h2>
-      <p className="mt-2 hidden text-sm text-gray-600 md:block">
+      <p className="mt-2 text-sm text-gray-600">
         Reemplazá la tarjeta guardada para renovaciones y cobros prorrateados, sin cambiar de plan.
       </p>
-      <p className="mt-2 text-sm text-gray-600 md:hidden">
-        El medio de pago no se puede cambiar desde el teléfono. Abrí Facturación en una computadora.
-      </p>
-
-      <div
-        className="mt-4 rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-950 md:hidden"
-        role="status"
-      >
-        Para cargar o cambiar la tarjeta usá el navegador en escritorio (misma cuenta).
-      </div>
 
       {message ? (
         <p
@@ -210,7 +201,7 @@ export default function PaymentMethodSection({
         </p>
       ) : null}
 
-      {desktopPaymentUi && useMockPayment ? (
+      {useMockPayment ? (
         <div className="mt-6 space-y-3">
           <p className="text-sm text-gray-600">
             Modo desarrollo: simula guardar tarjeta sin cobro real.
@@ -229,7 +220,7 @@ export default function PaymentMethodSection({
         </div>
       ) : null}
 
-      {desktopPaymentUi && showBrick ? (
+      {showBrick ? (
         <div className="mt-6 rounded-xl border border-gray-100 bg-gray-50 p-4">
           <div className="mb-4 flex justify-center border-b border-gray-200 pb-4">
             <Image

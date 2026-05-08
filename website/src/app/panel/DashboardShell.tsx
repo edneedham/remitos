@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
   AppWindow,
+  Check,
   CreditCard,
   KeyRound,
   LayoutDashboard,
@@ -31,6 +32,8 @@ const PANEL_MOBILE_DESKTOP_HINT_STORAGE_KEY =
 
 function PanelMobileDesktopHint() {
   const [dismissed, setDismissed] = useState<boolean | null>(null);
+  const [acknowledging, setAcknowledging] = useState(false);
+  const [closingAck, setClosingAck] = useState(false);
 
   useEffect(() => {
     try {
@@ -59,6 +62,8 @@ function PanelMobileDesktopHint() {
         <button
           type="button"
           onClick={() => {
+            if (acknowledging) return;
+            setAcknowledging(true);
             try {
               window.localStorage.setItem(
                 PANEL_MOBILE_DESKTOP_HINT_STORAGE_KEY,
@@ -67,11 +72,29 @@ function PanelMobileDesktopHint() {
             } catch {
               /* ignore quota / private mode */
             }
-            setDismissed(true);
+            window.setTimeout(() => {
+              setClosingAck(true);
+            }, 220);
+            window.setTimeout(() => {
+              setDismissed(true);
+            }, 520);
           }}
-          className="shrink-0 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-900 hover:bg-blue-100/80"
+          className={`shrink-0 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-900 transition-all duration-300 ${
+            closingAck
+              ? 'pointer-events-none scale-95 opacity-0'
+              : 'hover:bg-blue-100/80'
+          }`}
+          aria-label={
+            acknowledging ? 'Confirmado, ocultando aviso' : 'No volver a mostrar'
+          }
         >
-          No volver a mostrar
+          {acknowledging ? (
+            <span className="inline-flex items-center justify-center">
+              <Check className="h-4 w-4" aria-hidden />
+            </span>
+          ) : (
+            'No volver a mostrar'
+          )}
         </button>
       </div>
     </div>

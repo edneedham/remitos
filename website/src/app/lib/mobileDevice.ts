@@ -6,26 +6,25 @@ type NavigatorWithUaData = Navigator & {
   userAgentData?: { mobile?: boolean };
 };
 
-export function isLikelyMobileDevice(): boolean {
-  if (typeof navigator === 'undefined') return false;
+export type DevicePlatform = 'desktop' | 'android' | 'ios' | 'other_mobile';
 
+export function detectDevicePlatform(): DevicePlatform {
+  if (typeof navigator === 'undefined') return 'desktop';
   const nav = navigator as NavigatorWithUaData;
   const ua = nav.userAgent;
 
-  if (nav.userAgentData?.mobile === true) {
-    return true;
-  }
-
-  if (/Android/i.test(ua)) return true;
-  if (/iPhone|iPod/i.test(ua)) return true;
-  if (/iPad/i.test(ua)) return true;
-
+  if (/Android/i.test(ua)) return 'android';
+  if (/iPhone|iPod|iPad/i.test(ua)) return 'ios';
   // iPadOS 13+ often reports as Mac with touch
-  if (/Macintosh/i.test(ua) && nav.maxTouchPoints > 1) {
-    return true;
+  if (/Macintosh/i.test(ua) && nav.maxTouchPoints > 1) return 'ios';
+
+  const mobileHint = nav.userAgentData?.mobile === true;
+  if (mobileHint || /webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)) {
+    return 'other_mobile';
   }
+  return 'desktop';
+}
 
-  if (/webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return true;
-
-  return false;
+export function isLikelyMobileDevice(): boolean {
+  return detectDevicePlatform() !== 'desktop';
 }

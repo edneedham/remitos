@@ -103,20 +103,21 @@ export function BillingMainSkeleton() {
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="flex justify-between gap-4 border-b border-gray-50 py-2 last:border-0"
+              className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5 md:flex md:justify-between md:gap-4 md:border-0 md:bg-transparent md:px-0 md:py-2 md:border-b md:border-gray-50 md:last:border-0"
             >
-              <div className="h-4 w-40 animate-pulse rounded bg-gray-200" />
-              <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+              <div className="h-3 w-24 animate-pulse rounded bg-gray-200 md:h-4 md:w-40" />
+              <div className="mt-2 h-4 w-36 animate-pulse rounded bg-gray-200 md:mt-0 md:w-32" />
             </div>
           ))}
         </div>
         <div className="mt-8 grid gap-4 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
+          {Array.from({ length: 2 }).map((_, i) => (
             <div
               key={i}
               className="h-40 animate-pulse rounded-lg border border-gray-100 bg-gray-50"
             />
           ))}
+          <div className="hidden h-40 animate-pulse rounded-lg border border-gray-100 bg-gray-50 md:block" />
         </div>
       </div>
     </div>
@@ -129,7 +130,22 @@ export function BillingComprobantesSkeleton() {
     <div className="mt-8 border-t border-gray-100 pt-6" aria-busy="true">
       <div className="h-5 w-52 animate-pulse rounded bg-gray-200" />
       <div className="mt-2 h-4 w-72 max-w-full animate-pulse rounded bg-gray-200" />
-      <div className="mt-4 overflow-hidden rounded-lg border border-gray-200">
+      <div className="mt-4 space-y-2 md:hidden">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="space-y-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="h-3 w-20 animate-pulse rounded bg-gray-200" />
+              <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
+            </div>
+            <div className="h-4 w-full animate-pulse rounded bg-gray-100" />
+            <div className="h-3 w-16 animate-pulse rounded bg-gray-200" />
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 hidden overflow-hidden rounded-lg border border-gray-200 md:block">
         <div className="h-12 animate-pulse bg-gray-100" />
         {Array.from({ length: 5 }).map((_, i) => (
           <div
