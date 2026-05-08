@@ -41,6 +41,7 @@ func SubscriptionRenewalUpcoming(
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html><body>
+%s
 <p>Hola,</p>
 <p>Tu suscripción de <strong>%s</strong> en Remitos se renovará <strong>en 3 días</strong>.</p>
 <p><strong>Fecha de renovación:</strong> %s (Argentina)</p>
@@ -50,6 +51,7 @@ $%s USD (~ ARS %s)</p>
 %s
 <p>Saludos,<br/>El equipo de Remitos</p>
 </body></html>`,
+		HTMLWordmarkBlock(publicSiteURL),
 		escapeHTML(name),
 		escapeHTML(billingDatePhrase),
 		escapeHTML(usdStr),

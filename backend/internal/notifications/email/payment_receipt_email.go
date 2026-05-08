@@ -57,6 +57,7 @@ func PaymentReceipt(
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html><body>
+%s
 <p>Hola,</p>
 <p>Registramos un pago para <strong>%s</strong> en Remitos.</p>
 <p><strong>Importe:</strong> %s<br/>
@@ -69,6 +70,7 @@ func PaymentReceipt(
 %s
 <p>Gracias por confiar en Remitos.</p>
 </body></html>`,
+		HTMLWordmarkBlock(publicSiteURL),
 		escapeHTML(name),
 		escapeHTML(amountLine),
 		escapeHTML(plan),

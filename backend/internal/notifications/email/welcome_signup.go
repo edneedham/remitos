@@ -31,6 +31,7 @@ func SignupWelcome(toEmail, companyCode, companyName string, trialEndsAt time.Ti
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html><body>
+%s
 <p>Hola,</p>
 <p>Tu cuenta de prueba para <strong>%s</strong> ya está lista.</p>
 <p><strong>Código de empresa:</strong> %s<br/>
@@ -38,7 +39,7 @@ func SignupWelcome(toEmail, companyCode, companyName string, trialEndsAt time.Ti
 %s
 <p>Podés iniciar sesión con el correo y la contraseña que usaste al registrarte.</p>
 <p>Saludos,<br/>El equipo de Remitos</p>
-</body></html>`, escapeHTML(name), escapeHTML(code), escapeHTML(end), linkBlock.String())
+</body></html>`, HTMLWordmarkBlock(publicSiteURL), escapeHTML(name), escapeHTML(code), escapeHTML(end), linkBlock.String())
 
 	text := fmt.Sprintf(`Hola,
 

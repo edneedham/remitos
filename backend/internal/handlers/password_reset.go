@@ -125,7 +125,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	u.RawQuery = q.Encode()
 	resetURL := u.String()
 
-	msg := notifymail.PasswordReset(to, resetURL)
+	msg := notifymail.PasswordReset(to, resetURL, h.publicSiteURL)
 	if err := h.mailer.Send(ctx, msg); err != nil {
 		RespondWithError(w, r, ErrCodeInternalError, "No se pudo enviar el correo. Intentá más tarde.", http.StatusServiceUnavailable, err)
 		return

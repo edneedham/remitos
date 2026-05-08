@@ -61,12 +61,14 @@ func onboardingNudgeMessage(toEmail, companyCode, companyName, publicSiteURL, su
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html><body>
+%s
 <p>Hola,</p>
 <p><strong>%s</strong> · código <strong>%s</strong></p>
 %s
 %s
 <p>Saludos,<br/>El equipo de En Punto</p>
 </body></html>`,
+		HTMLWordmarkBlock(publicSiteURL),
 		escapeHTML(name),
 		escapeHTML(code),
 		bodyHTML,

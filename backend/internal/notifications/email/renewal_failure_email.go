@@ -42,6 +42,7 @@ func RenewalChargeFailure(
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html><body>
+%s
 <p>Hola,</p>
 <p>Intentamos renovar la suscripción de <strong>%s</strong> en Remitos, pero <strong>el cobro no se completó</strong>.</p>
 <p><strong>Importe intentado:</strong> %s</p>
@@ -50,6 +51,7 @@ func RenewalChargeFailure(
 <p>Si ya actualizaste el pago, podés ignorar este mensaje.</p>
 <p>El equipo de Remitos</p>
 </body></html>`,
+		HTMLWordmarkBlock(publicSiteURL),
 		escapeHTML(name),
 		escapeHTML(amountLine),
 		escapeHTML(r),

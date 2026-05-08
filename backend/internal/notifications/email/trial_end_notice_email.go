@@ -22,12 +22,14 @@ func TrialEndingSoon(toEmail, companyName, trialEndsPhrase, publicSiteURL string
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html><body>
+%s
 <p>Hola,</p>
 <p>La prueba gratuita de <strong>%s</strong> en Remitos <strong>termina en 3 días</strong> (%s).</p>
 <p>Para no perder el acceso, activá un plan con facturación en tu cuenta.</p>
 %s
 <p>Saludos,<br/>El equipo de Remitos</p>
 </body></html>`,
+		HTMLWordmarkBlock(publicSiteURL),
 		escapeHTML(name),
 		escapeHTML(trialEndsPhrase),
 		link.String(),

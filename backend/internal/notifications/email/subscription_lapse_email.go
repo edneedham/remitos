@@ -22,6 +22,7 @@ func SubscriptionLapsed(toEmail, companyName, expiredOnPhrase, publicSiteURL str
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html><body>
+%s
 <p>Hola,</p>
 <p>La suscripción de <strong>%s</strong> alcanzó su fecha de vencimiento <strong>(%s)</strong>.</p>
 <p>Si el pago no se acreditó, es posible que el acceso a funciones de la app o la web esté restringido hasta que regularices la facturación.</p>
@@ -29,6 +30,7 @@ func SubscriptionLapsed(toEmail, companyName, expiredOnPhrase, publicSiteURL str
 <p>¿Necesitás ayuda? Respondé a este correo o escribinos desde el sitio.</p>
 <p>El equipo de Remitos</p>
 </body></html>`,
+		HTMLWordmarkBlock(publicSiteURL),
 		escapeHTML(name),
 		escapeHTML(expiredOnPhrase),
 		link.String(),

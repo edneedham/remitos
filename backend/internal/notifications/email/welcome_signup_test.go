@@ -19,6 +19,9 @@ func TestSignupWelcome_HTMLContainsCompanyCodeAndLinks(t *testing.T) {
 	if !strings.Contains(m.HTMLBody, `href="https://site.example/dashboard"`) {
 		t.Fatal("missing account link")
 	}
+	if !strings.Contains(m.HTMLBody, "https://site.example/enpunto-wordmark.png") {
+		t.Fatal("missing wordmark image URL")
+	}
 	if !strings.Contains(m.TextBody, "https://site.example/download") {
 		t.Fatal("missing download link in text")
 	}
@@ -30,5 +33,8 @@ func TestSignupWelcome_NoPublicURL_OmitsLinks(t *testing.T) {
 	m := SignupWelcome("user@example.com", "ACME", "Acme SA", end, "")
 	if strings.Contains(m.HTMLBody, "Enlaces útiles") {
 		t.Fatal("did not expect link section")
+	}
+	if strings.Contains(m.HTMLBody, "enpunto-wordmark") {
+		t.Fatal("did not expect wordmark without public site URL")
 	}
 }

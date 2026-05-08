@@ -12,6 +12,8 @@ export async function sendContactAckEmail(to: string, name: string): Promise<voi
   const safeTo = to.trim();
   if (!safeTo) return;
 
+  const wordmark = htmlWordmarkBlock();
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -22,7 +24,7 @@ export async function sendContactAckEmail(to: string, name: string): Promise<voi
       from: from.trim(),
       to: [safeTo],
       subject: 'Recibimos tu mensaje — Remitos',
-      html: `<p>Hola ${escapeHtml(safeName)},</p><p>Gracias por contactarnos. Te responderemos pronto.</p><p>— Equipo Remitos</p>`,
+      html: `${wordmark}<p>Hola ${escapeHtml(safeName)},</p><p>Gracias por contactarnos. Te responderemos pronto.</p><p>— Equipo Remitos</p>`,
       text: `Hola ${safeName},\n\nGracias por contactarnos. Te responderemos pronto.\n\n— Equipo Remitos`,
     }),
   });
@@ -31,6 +33,16 @@ export async function sendContactAckEmail(to: string, name: string): Promise<voi
     const body = await res.text().catch(() => '');
     console.warn('[contact] Resend ack failed:', res.status, body);
   }
+}
+
+/** Same asset path as backend `WordmarkPNGPath` (`website/public/enpunto-wordmark.png`). */
+function htmlWordmarkBlock(): string {
+  const base = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim().replace(/\/$/, '');
+  if (!base) {
+    return '';
+  }
+  const src = escapeHtml(`${base}/enpunto-wordmark.png`);
+  return `<p style="margin:0 0 20px 0;line-height:0;"><img src="${src}" alt="En Punto" width="180" style="display:block;border:0;outline:none;text-decoration:none;max-width:180px;height:auto;"></p>`;
 }
 
 function escapeHtml(s: string): string {
