@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"server/internal/logger"
+	"server/internal/notifications/inapp"
 	notifymail "server/internal/notifications/email"
 	"server/internal/repository"
 )
@@ -21,11 +22,12 @@ func QueuePaymentReceipt(
 	publicSiteURL string,
 	legalFooterAR string,
 	invoiceID uuid.UUID,
+	bc *inapp.Broadcaster,
 ) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		sendPaymentReceipt(ctx, invoices, users, companies, mailer, publicSiteURL, legalFooterAR, invoiceID)
+		sendPaymentReceipt(ctx, invoices, users, companies, mailer, publicSiteURL, legalFooterAR, invoiceID, bc)
 	}()
 }
 
@@ -38,6 +40,7 @@ func sendPaymentReceipt(
 	publicSiteURL string,
 	legalFooterAR string,
 	invoiceID uuid.UUID,
+	bc *inapp.Broadcaster,
 ) {
 	inv, err := invoices.GetByID(ctx, invoiceID)
 	if err != nil || inv == nil {
@@ -98,6 +101,10 @@ func sendPaymentReceipt(
 	}
 	if !ok {
 		logger.Log.Info().Str("invoice_id", invoiceID.String()).Msg("payment receipt: already marked sent (race)")
+		return
+	}
+	if bc != nil {
+		bc.InvoicePaid(ctx, inv.CompanyID, inv.AmountMinor, inv.Currency)
 	}
 }
 
@@ -128,11 +135,12 @@ func QueueRenewalChargeFailure(
 	amountMinor int64,
 	currency string,
 	reason string,
+	bc *inapp.Broadcaster,
 ) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		sendRenewalChargeFailure(ctx, invoices, users, companies, mailer, publicSiteURL, companyID, invoiceID, amountMinor, currency, reason)
+		sendRenewalChargeFailure(ctx, invoices, users, companies, mailer, publicSiteURL, companyID, invoiceID, amountMinor, currency, reason, bc)
 	}()
 }
 
@@ -148,6 +156,7 @@ func sendRenewalChargeFailure(
 	amountMinor int64,
 	currency string,
 	reason string,
+	bc *inapp.Broadcaster,
 ) {
 	inv, err := invoices.GetByID(ctx, invoiceID)
 	if err != nil || inv == nil {
@@ -184,5 +193,9 @@ func sendRenewalChargeFailure(
 	}
 	if !ok {
 		logger.Log.Info().Str("invoice_id", invoiceID.String()).Msg("renewal failure email: already marked")
+		return
+	}
+	if bc != nil {
+		bc.RenewalChargeFailed(ctx, companyID, amountMinor, currency, reason)
 	}
 }

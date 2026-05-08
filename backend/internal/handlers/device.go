@@ -8,6 +8,7 @@ import (
 	"server/internal/jwt"
 	"server/internal/middleware"
 	"server/internal/models"
+	"server/internal/notifications/inapp"
 	"server/internal/repository"
 )
 
@@ -17,13 +18,15 @@ type DeviceHandler struct {
 	deviceRepo        *repository.DeviceRepository
 	userWarehouseRepo *repository.UserWarehouseRepository
 	jwtSvc            *jwt.Service
+	inApp             *inapp.Broadcaster
 }
 
-func NewDeviceHandler(deviceRepo *repository.DeviceRepository, userWarehouseRepo *repository.UserWarehouseRepository, jwtSvc *jwt.Service) *DeviceHandler {
+func NewDeviceHandler(deviceRepo *repository.DeviceRepository, userWarehouseRepo *repository.UserWarehouseRepository, jwtSvc *jwt.Service, inApp *inapp.Broadcaster) *DeviceHandler {
 	return &DeviceHandler{
 		deviceRepo:        deviceRepo,
 		userWarehouseRepo: userWarehouseRepo,
 		jwtSvc:            jwtSvc,
+		inApp:             inApp,
 	}
 }
 
@@ -63,6 +66,7 @@ func (h *DeviceHandler) Reactivate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DeviceHandler) setStatus(w http.ResponseWriter, r *http.Request, status, okMessage string) {
+	ctx := r.Context()
 	claims := middleware.GetUserClaims(r)
 	if claims.CompanyID == "" {
 		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
@@ -79,7 +83,7 @@ func (h *DeviceHandler) setStatus(w http.ResponseWriter, r *http.Request, status
 		return
 	}
 
-	updated, err := h.deviceRepo.SetDeviceStatusForCompany(r.Context(), companyID, deviceID, status)
+	updated, err := h.deviceRepo.SetDeviceStatusForCompany(ctx, companyID, deviceID, status)
 	if err != nil {
 		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
@@ -87,6 +91,14 @@ func (h *DeviceHandler) setStatus(w http.ResponseWriter, r *http.Request, status
 	if !updated {
 		RespondWithError(w, r, ErrCodeNotFound, "Dispositivo no encontrado", http.StatusNotFound)
 		return
+	}
+	if h.inApp != nil {
+		switch status {
+		case "revoked":
+			h.inApp.DeviceRevoked(ctx, companyID)
+		case "active":
+			h.inApp.DeviceReactivated(ctx, companyID)
+		}
 	}
 	RespondWithJSON(w, http.StatusOK, map[string]string{
 		"message": okMessage,

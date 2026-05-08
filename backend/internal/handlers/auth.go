@@ -21,6 +21,7 @@ import (
 	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/models"
+	"server/internal/notifications/inapp"
 	notifymail "server/internal/notifications/email"
 	"server/internal/payments/afip"
 	"server/internal/payments/mercadopago"
@@ -598,6 +599,10 @@ func (h *AuthHandler) ClaimSessionTransfer(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if bc := inapp.NewBroadcaster(h.notificationRepo, h.userRepo, h.publicSiteURL); bc != nil {
+		bc.SessionTransferCompleted(r.Context(), user.CompanyID)
+	}
+
 	secure := middleware.RequestIsHTTPS(r)
 	if wantsWebCookies(r) {
 		middleware.SetWebSessionCookies(w, token, refreshToken, secure)
@@ -1081,6 +1086,10 @@ func (h *AuthHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 	if err := h.deviceRepo.Create(ctx, device); err != nil {
 		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
 		return
+	}
+
+	if bc := inapp.NewBroadcaster(h.notificationRepo, h.userRepo, h.publicSiteURL); bc != nil {
+		bc.DeviceRegistered(ctx, companyID, warehouse.Name)
 	}
 
 	logger.Log.Info().Str("device_id", device.ID.String()).Str("warehouse_id", warehouseID.String()).Msg("Device registered")

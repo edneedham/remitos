@@ -12,12 +12,15 @@ import (
 	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/models"
+	"server/internal/notifications/inapp"
 	"server/internal/repository"
 )
 
 type SyncHandler struct {
-	syncRepo    *repository.SyncRepository
-	companyRepo *repository.CompanyRepository
+	syncRepo       *repository.SyncRepository
+	companyRepo    *repository.CompanyRepository
+	notificationRepo *repository.UserNotificationRepository
+	inApp          *inapp.Broadcaster
 }
 
 func projectedNewInboundNotes(totalIncoming int, existingByCloudID int64, newWithoutCloudID int) int64 {
@@ -28,10 +31,17 @@ func projectedNewInboundNotes(totalIncoming int, existingByCloudID int64, newWit
 	return projected
 }
 
-func NewSyncHandler(syncRepo *repository.SyncRepository, companyRepo *repository.CompanyRepository) *SyncHandler {
+func NewSyncHandler(
+	syncRepo *repository.SyncRepository,
+	companyRepo *repository.CompanyRepository,
+	notificationRepo *repository.UserNotificationRepository,
+	inApp *inapp.Broadcaster,
+) *SyncHandler {
 	return &SyncHandler{
-		syncRepo:    syncRepo,
-		companyRepo: companyRepo,
+		syncRepo:       syncRepo,
+		companyRepo:    companyRepo,
+		notificationRepo: notificationRepo,
+		inApp:          inApp,
 	}
 }
 
@@ -147,6 +157,28 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		if len(req.EditHistory) > 0 {
 			if err := h.syncRepo.UpsertEditHistory(ctx, userClaims.CompanyID, req.EditHistory); err != nil {
 				logger.Log.Error().Err(err).Msg("Failed to upsert edit history")
+			}
+		}
+
+		if h.inApp != nil && h.notificationRepo != nil {
+			_, lifetime, _, errM := h.syncRepo.InboundNoteEntitlementMetrics(ctx, companyID)
+			if errM == nil && lifetime >= 1 {
+				dup, errD := h.notificationRepo.ExistsCompanyKind(ctx, companyID, string(models.UserNotificationKindFirstScanCompleted))
+				if errD == nil && !dup {
+					h.inApp.FirstScanCompleted(ctx, companyID)
+				}
+			}
+			if company.DocumentsMonthlyLimit != nil {
+				mtdTotal, _, errMTD := h.syncRepo.InboundNotesMTDCumulativeSeries(ctx, companyID)
+				if errMTD == nil {
+					limit := int64(*company.DocumentsMonthlyLimit)
+					if limit > 0 && mtdTotal >= (limit*9)/10 && mtdTotal < limit {
+						dupM, errDup := h.notificationRepo.ExistsCompanyKindInUTCMonth(ctx, companyID, string(models.UserNotificationKindDocumentsUsageWarning))
+						if errDup == nil && !dupM {
+							h.inApp.DocumentsUsageWarning(ctx, companyID, mtdTotal, limit)
+						}
+					}
+				}
 			}
 		}
 	}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"server/internal/middleware"
+	"server/internal/notifications/inapp"
 	"server/internal/payments/mercadopago"
 )
 
@@ -117,6 +118,10 @@ func (h *AuthHandler) PostMeUpdatePaymentMethod(w http.ResponseWriter, r *http.R
 	if err := h.companyRepo.UpdateMercadoPagoPaymentMethod(ctx, companyID, mpCust, mpCard); err != nil {
 		RespondWithError(w, r, ErrCodeInternalError, "No se pudo guardar el medio de pago.", http.StatusInternalServerError, err)
 		return
+	}
+
+	if bc := inapp.NewBroadcaster(h.notificationRepo, h.userRepo, h.publicSiteURL); bc != nil {
+		bc.PaymentMethodUpdated(ctx, companyID)
 	}
 
 	RespondWithJSON(w, http.StatusOK, map[string]string{

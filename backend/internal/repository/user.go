@@ -232,6 +232,30 @@ func (r *UserRepository) UpdatePassword(ctx context.Context, id uuid.UUID, passw
 }
 
 // GetCompanyOwnerPrimaryEmail returns the first company_owner email or username-like identifier for payer metadata.
+// ListWebPanelUserIDs returns active users whose role may access the web panel (/panel).
+func (r *UserRepository) ListWebPanelUserIDs(ctx context.Context, companyID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT id FROM users
+		WHERE company_id = $1
+		  AND status = 'active'
+		  AND role IN ('company_owner', 'warehouse_admin', 'read_only', 'admin')
+	`, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func (r *UserRepository) GetCompanyOwnerPrimaryEmail(ctx context.Context, companyID uuid.UUID) (string, error) {
 	query := `
 		SELECT COALESCE(NULLIF(TRIM(email), ''), NULLIF(TRIM(username), ''), '')

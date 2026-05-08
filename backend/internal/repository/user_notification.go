@@ -95,6 +95,33 @@ func (r *UserNotificationRepository) ListForUser(
 	return out, rows.Err()
 }
 
+// ExistsCompanyKind returns true if any notification row exists for this company and kind.
+func (r *UserNotificationRepository) ExistsCompanyKind(ctx context.Context, companyID uuid.UUID, kind string) (bool, error) {
+	var ok bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM user_notifications WHERE company_id = $1 AND kind = $2
+		)
+	`, companyID, kind).Scan(&ok)
+	return ok, err
+}
+
+// ExistsCompanyKindInUTCMonth returns true if a notification of this kind exists for the company
+// in the current UTC calendar month (dedupe for monthly warnings).
+func (r *UserNotificationRepository) ExistsCompanyKindInUTCMonth(ctx context.Context, companyID uuid.UUID, kind string) (bool, error) {
+	var n int64
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM user_notifications
+		WHERE company_id = $1 AND kind = $2
+		  AND created_at >= date_trunc('month', (NOW() AT TIME ZONE 'UTC'))
+		  AND created_at < date_trunc('month', (NOW() AT TIME ZONE 'UTC')) + INTERVAL '1 month'
+	`, companyID, kind).Scan(&n)
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
+}
+
 func (r *UserNotificationRepository) CountUnread(ctx context.Context, userID, companyID uuid.UUID) (int64, error) {
 	q := `
 		SELECT COUNT(*) FROM user_notifications

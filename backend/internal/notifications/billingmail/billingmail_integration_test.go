@@ -49,7 +49,7 @@ func TestSendPaymentReceipt_Idempotent_Integration(t *testing.T) {
 	mail := &recordingSender{}
 	legal := "Nota legal de integración."
 
-	sendPaymentReceipt(ctx, invRepo, users, companies, mail, "https://example.com", legal, invID)
+	sendPaymentReceipt(ctx, invRepo, users, companies, mail, "https://example.com", legal, invID, nil)
 	integration.SleepBrief()
 	if mail.len() != 1 {
 		t.Fatalf("first send: want 1 message, got %d", mail.len())
@@ -60,7 +60,7 @@ func TestSendPaymentReceipt_Idempotent_Integration(t *testing.T) {
 		t.Fatalf("expected receipt_email_sent_at set, inv=%v err=%v", inv, err)
 	}
 
-	sendPaymentReceipt(ctx, invRepo, users, companies, mail, "https://example.com", legal, invID)
+	sendPaymentReceipt(ctx, invRepo, users, companies, mail, "https://example.com", legal, invID, nil)
 	integration.SleepBrief()
 	if mail.len() != 1 {
 		t.Fatalf("second send: want still 1 message (idempotent), got %d", mail.len())
@@ -99,14 +99,14 @@ func TestSendRenewalChargeFailure_OncePerInvoice_Integration(t *testing.T) {
 	mail := &recordingSender{}
 
 	sendRenewalChargeFailure(ctx, invRepo, users, companies, mail, "https://example.com",
-		companyID, invID, 1500000, "ARS", "test rejection")
+		companyID, invID, 1500000, "ARS", "test rejection", nil)
 	integration.SleepBrief()
 	if mail.len() != 1 {
 		t.Fatalf("first failure mail: want 1 got %d", mail.len())
 	}
 
 	sendRenewalChargeFailure(ctx, invRepo, users, companies, mail, "https://example.com",
-		companyID, invID, 1500000, "ARS", "test rejection")
+		companyID, invID, 1500000, "ARS", "test rejection", nil)
 	integration.SleepBrief()
 	if mail.len() != 1 {
 		t.Fatalf("second failure mail: want 1 (idempotent) got %d", mail.len())
@@ -129,7 +129,7 @@ func TestSendRenewalChargeFailure_SkipsWhenInvoicePaid_Integration(t *testing.T)
 		t.Fatal(err)
 	}
 	sendRenewalChargeFailure(ctx, invRepo, users, companies, mail, "https://example.com",
-		inv.CompanyID, invID, 100, "ARS", "x")
+		inv.CompanyID, invID, 100, "ARS", "x", nil)
 	integration.SleepBrief()
 	if mail.len() != 0 {
 		t.Fatalf("paid invoice should not get failure email, got %d", mail.len())

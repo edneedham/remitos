@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"server/internal/models"
 	"server/internal/notifications/billingmail"
+	"server/internal/notifications/inapp"
 	notifymail "server/internal/notifications/email"
 	"server/internal/payments/mercadopago"
 	"server/internal/repository"
@@ -29,6 +30,7 @@ type RenewalService struct {
 	Mailer           notifymail.Sender
 	PublicSiteURL    string
 	Factura          *FacturaEmitter
+	InApp            *inapp.Broadcaster
 }
 
 type RenewalRunInput struct {
@@ -59,6 +61,7 @@ func NewRenewalService(
 	mailer notifymail.Sender,
 	publicSiteURL string,
 	factura *FacturaEmitter,
+	inApp *inapp.Broadcaster,
 ) *RenewalService {
 	return &RenewalService{
 		Pool:             pool,
@@ -72,6 +75,7 @@ func NewRenewalService(
 		Mailer:           mailer,
 		PublicSiteURL:    publicSiteURL,
 		Factura:          factura,
+		InApp:            inApp,
 	}
 }
 
@@ -183,6 +187,7 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 			billingmail.QueueRenewalChargeFailure(
 				s.Invoices, s.Users, s.Companies, s.Mailer, s.PublicSiteURL,
 				in.CompanyID, invoiceID, amountMinor, currency, err.Error(),
+				s.InApp,
 			)
 		}
 		return &RenewalRunResult{
@@ -197,6 +202,7 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 				s.Invoices, s.Users, s.Companies, s.Mailer, s.PublicSiteURL,
 				in.CompanyID, invoiceID, amountMinor, currency,
 				"El cobro con la tarjeta guardada no fue aprobado por Mercado Pago.",
+				s.InApp,
 			)
 		}
 		return &RenewalRunResult{
@@ -245,6 +251,7 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 		billingmail.QueuePaymentReceipt(
 			s.Invoices, s.Users, s.Companies, s.Mailer, s.PublicSiteURL,
 			LegalNoticeAR(s.FXBufferFraction), invoiceID,
+			s.InApp,
 		)
 	}
 	if s.Factura != nil && updated {

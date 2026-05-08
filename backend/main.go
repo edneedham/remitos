@@ -25,6 +25,7 @@ import (
 	"server/internal/middleware"
 	"server/internal/models"
 	notifymail "server/internal/notifications/email"
+	"server/internal/notifications/inapp"
 	"server/internal/payments/afip"
 	"server/internal/payments/afip/certprovider"
 	"server/internal/payments/afip/wsaa"
@@ -108,6 +109,8 @@ func main() {
 
 	syncRepo := repository.NewSyncRepository(db.Pool)
 	invoiceRepo := repository.NewInvoiceRepository(db.Pool)
+	notificationRepo := repository.NewUserNotificationRepository(db.Pool)
+	panelBroadcaster := inapp.NewBroadcaster(notificationRepo, userRepo, cfg.PublicSiteURL)
 	afipTicketRepo := repository.NewAfipTicketRepository(db.Pool)
 
 	var afipTAManager *afip.TAManager
@@ -129,6 +132,9 @@ func main() {
 			BillingEnabled: cfg.AfipBillingEnabled,
 			PadronEnabled:  cfg.AfipPadronEnabled,
 			PadronCacheTTL: padronCacheTTL,
+		}
+		if panelBroadcaster != nil {
+			facturaEmitter.InApp = panelBroadcaster
 		}
 	}
 	if facturaEmitter != nil && cfg.AfipBillingEnabled {
@@ -158,19 +164,19 @@ func main() {
 				billingFx,
 				cfg.BillingFXBufferFraction,
 				cfg.PublicSiteURL,
+				panelBroadcaster,
 			)
 		}()
 		logger.Log.Info().Msg("Subscription renewal reminder emails enabled (1h ticker)")
 		go func() {
-			jobs.StartTrialEndingNoticeLoop(context.Background(), companyRepo, mailSender, cfg.PublicSiteURL)
+			jobs.StartTrialEndingNoticeLoop(context.Background(), companyRepo, mailSender, cfg.PublicSiteURL, panelBroadcaster)
 		}()
 		logger.Log.Info().Msg("Trial ending notice emails enabled (1h ticker)")
 		go func() {
-			jobs.StartSubscriptionLapseNoticeLoop(context.Background(), companyRepo, mailSender, cfg.PublicSiteURL)
+			jobs.StartSubscriptionLapseNoticeLoop(context.Background(), companyRepo, mailSender, cfg.PublicSiteURL, panelBroadcaster)
 		}()
 		logger.Log.Info().Msg("Subscription lapse notice emails enabled (1h ticker)")
 	}
-	notificationRepo := repository.NewUserNotificationRepository(db.Pool)
 	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, userWarehouseRepo, refreshTokenRepo, passwordResetTokenRepo, transferRepo, subscriptionRepo, notificationRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction, facturaEmitter, afipClient)
 	mpWebhookHandler := handlers.NewMercadoPagoWebhookHandler(
 		db.Pool,
@@ -183,10 +189,11 @@ func main() {
 		cfg.BillingFXBufferFraction,
 		cfg.MercadoPagoWebhookSecret,
 		facturaEmitter,
+		panelBroadcaster,
 	)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo, companyRepo, deviceRepo, userWarehouseRepo, jwtSvc)
-	deviceHandler := handlers.NewDeviceHandler(deviceRepo, userWarehouseRepo, jwtSvc)
-	adminHandler := handlers.NewAdminHandler(userRepo, companyRepo, deviceRepo, jwtSvc)
+	deviceHandler := handlers.NewDeviceHandler(deviceRepo, userWarehouseRepo, jwtSvc, panelBroadcaster)
+	adminHandler := handlers.NewAdminHandler(userRepo, companyRepo, deviceRepo, jwtSvc, panelBroadcaster)
 	scanHandler, err := handlers.NewScanHandler()
 	if err != nil {
 		logger.Log.Warn().Err(err).Msg("Failed to initialize scan handler, /scan endpoint will not be available")
@@ -199,7 +206,7 @@ func main() {
 		imageHandler = nil
 	}
 
-	syncHandler := handlers.NewSyncHandler(syncRepo, companyRepo)
+	syncHandler := handlers.NewSyncHandler(syncRepo, companyRepo, notificationRepo, panelBroadcaster)
 
 	h := chi.NewRouter()
 
@@ -248,6 +255,7 @@ func main() {
 			mailSender,
 			cfg.PublicSiteURL,
 			facturaEmitter,
+			panelBroadcaster,
 		)
 	}
 	if cfg.BillingRenewalSecret != "" && renewalSvc != nil {
