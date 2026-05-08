@@ -16,6 +16,10 @@ import {
   isUnread,
 } from './fetchPanelNotifications';
 import type { PanelNotification } from './panelNotificationsTypes';
+import {
+  panelNotificationKindUi,
+  PANEL_NOTIFICATION_TONE_WRAP,
+} from './panelNotificationKindUi';
 
 type PanelNotificationsContextValue = {
   notifications: PanelNotification[];
@@ -195,16 +199,27 @@ export function PanelNotificationsProvider({
 }
 
 function NotificationRowBody({ n }: { n: PanelNotification }) {
+  const { Icon, tone } = panelNotificationKindUi(n.kind);
+  const toneWrap = PANEL_NOTIFICATION_TONE_WRAP[tone];
+
   return (
-    <span className="block w-full">
-      <span className="block text-sm font-semibold text-gray-900">
-        {n.title}
+    <span className="flex w-full gap-3">
+      <span
+        className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${toneWrap}`}
+        aria-hidden
+      >
+        <Icon className="h-5 w-5" strokeWidth={2} />
       </span>
-      {n.body ? (
-        <span className="mt-0.5 block text-sm leading-snug text-gray-600">
-          {n.body}
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-gray-900">
+          {n.title}
         </span>
-      ) : null}
+        {n.body ? (
+          <span className="mt-0.5 block text-sm leading-snug text-gray-600">
+            {n.body}
+          </span>
+        ) : null}
+      </span>
     </span>
   );
 }
