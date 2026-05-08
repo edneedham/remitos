@@ -19,7 +19,7 @@ func TestSignupWelcome_HTMLContainsCompanyCodeAndLinks(t *testing.T) {
 	if !strings.Contains(m.HTMLBody, `href="https://site.example/dashboard"`) {
 		t.Fatal("missing account link")
 	}
-	if !strings.Contains(m.HTMLBody, "https://site.example/enpunto-wordmark.png") {
+	if !strings.Contains(m.HTMLBody, "https://site.example/enpunto-wordmark-email.png") {
 		t.Fatal("missing wordmark image URL")
 	}
 	if !strings.Contains(m.TextBody, "https://site.example/download") {

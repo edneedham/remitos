@@ -6,7 +6,7 @@ import (
 )
 
 // WordmarkPNGPath is served from website/public (absolute path on the marketing site).
-const WordmarkPNGPath = "/enpunto-wordmark.png"
+const WordmarkPNGPath = "/enpunto-wordmark-email.png"
 
 // HTMLWordmarkBlock returns a header image when publicSiteURL is set so remote images load in clients.
 func HTMLWordmarkBlock(publicSiteURL string) string {

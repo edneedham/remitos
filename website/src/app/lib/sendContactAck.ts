@@ -35,13 +35,13 @@ export async function sendContactAckEmail(to: string, name: string): Promise<voi
   }
 }
 
-/** Same asset path as backend `WordmarkPNGPath` (`website/public/enpunto-wordmark.png`). */
+/** Same asset path as backend `WordmarkPNGPath` (`website/public/enpunto-wordmark-email.png`). */
 function htmlWordmarkBlock(): string {
   const base = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim().replace(/\/$/, '');
   if (!base) {
     return '';
   }
-  const src = escapeHtml(`${base}/enpunto-wordmark.png`);
+  const src = escapeHtml(`${base}/enpunto-wordmark-email.png`);
   return `<p style="margin:0 0 20px 0;line-height:0;"><img src="${src}" alt="En Punto" width="180" style="display:block;border:0;outline:none;text-decoration:none;max-width:180px;height:auto;"></p>`;
 }
 
