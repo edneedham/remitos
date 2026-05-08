@@ -170,7 +170,8 @@ func main() {
 		}()
 		logger.Log.Info().Msg("Subscription lapse notice emails enabled (1h ticker)")
 	}
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, userWarehouseRepo, refreshTokenRepo, passwordResetTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction, facturaEmitter, afipClient)
+	notificationRepo := repository.NewUserNotificationRepository(db.Pool)
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, userWarehouseRepo, refreshTokenRepo, passwordResetTokenRepo, transferRepo, subscriptionRepo, notificationRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction, facturaEmitter, afipClient)
 	mpWebhookHandler := handlers.NewMercadoPagoWebhookHandler(
 		db.Pool,
 		invoiceRepo,

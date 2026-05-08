@@ -237,6 +237,8 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.insertSignupWelcomeNotification(ctx, user.ID, companyID)
+
 	type signupResponse struct {
 		Message       string `json:"message"`
 		UserID        string `json:"user_id"`

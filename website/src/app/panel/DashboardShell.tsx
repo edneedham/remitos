@@ -27,6 +27,10 @@ import {
   logoutWebSession,
 } from '../lib/webAuth';
 import ActivateSubscriptionGate from './ActivateSubscriptionGate';
+import {
+  PanelNotificationsProvider,
+  PanelNotificationBell,
+} from './PanelNotificationsContext';
 
 const PANEL_MOBILE_DESKTOP_HINT_STORAGE_KEY =
   'enpunto_panel_mobile_desktop_hint_dismissed';
@@ -236,6 +240,7 @@ export default function DashboardShell({
   }, [mobileNavOpen]);
 
   return (
+    <PanelNotificationsProvider>
     <div className="flex min-h-screen bg-gray-50">
       <aside
         className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-gray-200 bg-white md:flex"
@@ -278,7 +283,7 @@ export default function DashboardShell({
                   <Menu className="h-6 w-6" aria-hidden strokeWidth={2} />
                 )}
               </button>
-              <div className="flex min-w-0 flex-1 justify-center md:hidden">
+              <div className="flex min-w-0 flex-1 items-center justify-center gap-2 md:hidden">
                 <Link href="/" className="flex shrink-0 items-center" prefetch={false}>
                   <Image
                     src="/enpunto-new.svg"
@@ -289,8 +294,16 @@ export default function DashboardShell({
                     unoptimized
                   />
                 </Link>
+                <PanelNotificationBell className="shrink-0" />
               </div>
-              <div className="relative z-10 ml-auto flex shrink-0 items-center md:flex-1 md:justify-end">
+              <div className="relative z-10 ml-auto flex shrink-0 items-center gap-2 md:flex-1 md:justify-end md:gap-3">
+                <div className="hidden items-center gap-3 md:flex">
+                  <PanelNotificationBell className="hidden shrink-0 md:inline-flex" />
+                  <div
+                    className="hidden h-8 w-px shrink-0 bg-gray-200 md:block"
+                    aria-hidden
+                  />
+                </div>
                 <HeaderAuthNav />
               </div>
             </div>
@@ -342,5 +355,6 @@ export default function DashboardShell({
         </div>
       </div>
     </div>
+    </PanelNotificationsProvider>
   );
 }

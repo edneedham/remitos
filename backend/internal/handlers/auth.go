@@ -60,9 +60,10 @@ type AuthHandler struct {
 	passwordResetTokenRepo  *repository.PasswordResetTokenRepository
 	facturaEmitter          *billing.FacturaEmitter
 	afipClient              *afip.Client
+	notificationRepo        *repository.UserNotificationRepository
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, userWarehouseRepo *repository.UserWarehouseRepository, refreshTokenRepo *repository.RefreshTokenRepository, passwordResetTokenRepo *repository.PasswordResetTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64, facturaEmitter *billing.FacturaEmitter, afipClient *afip.Client) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, userWarehouseRepo *repository.UserWarehouseRepository, refreshTokenRepo *repository.RefreshTokenRepository, passwordResetTokenRepo *repository.PasswordResetTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, notificationRepo *repository.UserNotificationRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64, facturaEmitter *billing.FacturaEmitter, afipClient *afip.Client) *AuthHandler {
 	return &AuthHandler{
 		userRepo:                userRepo,
 		companyRepo:             companyRepo,
@@ -86,6 +87,7 @@ func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository
 		billingFXBufferFraction: billingFXBufferFraction,
 		facturaEmitter:          facturaEmitter,
 		afipClient:              afipClient,
+		notificationRepo:        notificationRepo,
 	}
 }
 
@@ -1221,6 +1223,8 @@ func (h *AuthHandler) Routes() *chi.Mux {
 		r.Post("/me/cuit/verify", h.PostMeVerifyCUIT)
 		r.Get("/me/plan-catalog-limits", h.GetMePlanCatalogLimits)
 		r.Get("/me/plan-pricing", h.GetMePlanPricing)
+		r.Get("/me/notifications", h.GetMeNotifications)
+		r.Patch("/me/notifications/{notificationID}/read", h.PatchMeNotificationRead)
 		r.Get("/downloads/android", h.GetAndroidDownloadURL)
 	})
 	return r
