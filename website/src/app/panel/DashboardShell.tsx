@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Monitor,
   Smartphone,
   UserCog,
   Warehouse,
@@ -56,8 +57,15 @@ function PanelMobileDesktopHint() {
       role="status"
     >
       <div className="mx-auto flex max-w-[92rem] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <p className="text-sm leading-snug text-blue-950">
-          Para ver todos los detalles completos, abrí esta página desde tu PC.
+        <p className="flex items-start gap-2.5 text-sm leading-snug text-blue-950 sm:items-center">
+          <Monitor
+            className="mt-0.5 h-5 w-5 shrink-0 text-blue-800 sm:mt-0"
+            aria-hidden
+            strokeWidth={2}
+          />
+          <span>
+            Para ver todos los detalles completos, abrí esta página desde tu PC.
+          </span>
         </p>
         <button
           type="button"
