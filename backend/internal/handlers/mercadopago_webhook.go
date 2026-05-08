@@ -31,6 +31,7 @@ type MercadoPagoWebhookHandler struct {
 	PublicSiteURL      string
 	FXBufferFraction   float64
 	WebhookSecret      string
+	Factura            *billing.FacturaEmitter
 }
 
 func NewMercadoPagoWebhookHandler(
@@ -43,6 +44,7 @@ func NewMercadoPagoWebhookHandler(
 	publicSiteURL string,
 	fxBufferFraction float64,
 	webhookSecret string,
+	factura *billing.FacturaEmitter,
 ) *MercadoPagoWebhookHandler {
 	return &MercadoPagoWebhookHandler{
 		Pool:             pool,
@@ -54,6 +56,7 @@ func NewMercadoPagoWebhookHandler(
 		PublicSiteURL:    publicSiteURL,
 		FXBufferFraction: fxBufferFraction,
 		WebhookSecret:    webhookSecret,
+		Factura:          factura,
 	}
 }
 
@@ -214,6 +217,9 @@ func (h *MercadoPagoWebhookHandler) handlePayment(ctx context.Context, paymentID
 				invUUID,
 			)
 		}
+		if h.Factura != nil && invUUID != uuid.Nil {
+			h.Factura.ScheduleEmit(invUUID)
+		}
 		return nil
 	}
 
@@ -285,6 +291,9 @@ func (h *MercadoPagoWebhookHandler) handlePayment(ctx context.Context, paymentID
 			billing.LegalNoticeAR(h.FXBufferFraction),
 			newInvID,
 		)
+	}
+	if h.Factura != nil {
+		h.Factura.ScheduleEmit(newInvID)
 	}
 
 	return nil

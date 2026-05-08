@@ -12,6 +12,15 @@ type Company struct {
 	Code string    `json:"code,omitempty"`
 	Cuit string    `json:"cuit,omitempty"`
 
+	// Padron / AFIP tax profile (optional; filled after CUIT verification).
+	RazonSocial     string `json:"razon_social,omitempty"`
+	CondicionIVA    string `json:"condicion_iva,omitempty"`
+	DomicilioFiscal string `json:"domicilio_fiscal,omitempty"`
+	// CuitEstado is AFIP padron “estado clave” (e.g. ACTIVO, INACTIVO).
+	CuitEstado     string     `json:"cuit_estado,omitempty"`
+	CuitVerifiedAt *time.Time `json:"cuit_verified_at,omitempty"`
+	PadronSyncedAt *time.Time `json:"padron_synced_at,omitempty"`
+
 	Status           string `json:"status"`
 	IsVerified       bool   `json:"is_verified"`
 	SubscriptionPlan string `json:"subscription_plan"`
@@ -30,12 +39,14 @@ type Company struct {
 	ArchivedAt *time.Time `json:"archived_at,omitempty"`
 }
 
-// SignupTrialRequest is the public web signup request.
-type SignupTrialRequest struct {
+// SignupRequest is the public web signup request body (POST /auth/signup).
+type SignupRequest struct {
 	Email       string `json:"email" validate:"required,email"`
 	Password    string `json:"password" validate:"required,min=8,max=72"`
 	CompanyName string `json:"company_name" validate:"required,min=2,max=200"`
 	CompanyCode string `json:"company_code" validate:"required,min=2,max=32,company_code_chars"`
+	// CompanyCUIT required; normalized to 11 digits in validation.NormalizeSignupRequest, then verified against AFIP padrón before signup completes.
+	CompanyCUIT string `json:"company_cuit" validate:"required,cuit_ar"`
 	CardToken   string `json:"card_token,omitempty"`
 }
 

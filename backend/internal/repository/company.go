@@ -48,6 +48,10 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 	query := `
 		SELECT
 			id, code, name, COALESCE(cuit, '') AS cuit,
+			cuit_verified_at,
+			COALESCE(razon_social, ''), COALESCE(condicion_iva, ''), COALESCE(domicilio_fiscal, ''),
+			COALESCE(cuit_estado, ''),
+			padron_synced_at,
 			status, is_verified, subscription_plan,
 			subscription_expires_at, trial_ends_at,
 			max_warehouses, max_users, documents_monthly_limit,
@@ -59,11 +63,18 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 	var c models.Company
 	var maxW, maxU, maxDoc sql.NullInt32
 	var mpCust, mpCard, pendingPlan sql.NullString
+	var cuitVerified, padronSynced sql.NullTime
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&c.ID,
 		&c.Code,
 		&c.Name,
 		&c.Cuit,
+		&cuitVerified,
+		&c.RazonSocial,
+		&c.CondicionIVA,
+		&c.DomicilioFiscal,
+		&c.CuitEstado,
+		&padronSynced,
 		&c.Status,
 		&c.IsVerified,
 		&c.SubscriptionPlan,
@@ -109,7 +120,41 @@ func (r *CompanyRepository) GetByIDForBilling(ctx context.Context, id uuid.UUID)
 		s := mpCard.String
 		c.MpCardID = &s
 	}
+	if cuitVerified.Valid {
+		t := cuitVerified.Time
+		c.CuitVerifiedAt = &t
+	}
+	if padronSynced.Valid {
+		t := padronSynced.Time
+		c.PadronSyncedAt = &t
+	}
 	return &c, nil
+}
+
+// UpdateCUITPadronResult writes CUIT-related padron snapshot fields after a successful lookup.
+func (r *CompanyRepository) UpdateCUITPadronResult(
+	ctx context.Context,
+	companyID uuid.UUID,
+	cuit, razonSocial, condicionIVA, domicilioFiscal, cuitEstado string,
+) error {
+	cuit = strings.TrimSpace(cuit)
+	razonSocial = strings.TrimSpace(razonSocial)
+	condicionIVA = strings.TrimSpace(condicionIVA)
+	domicilioFiscal = strings.TrimSpace(domicilioFiscal)
+	cuitEstado = strings.TrimSpace(cuitEstado)
+	_, err := r.pool.Exec(ctx, `
+		UPDATE companies SET
+			cuit = NULLIF(TRIM($2), ''),
+			razon_social = NULLIF($3, ''),
+			condicion_iva = NULLIF($4, ''),
+			domicilio_fiscal = NULLIF($5, ''),
+			cuit_estado = NULLIF($6, ''),
+			cuit_verified_at = NOW(),
+			padron_synced_at = NOW(),
+			updated_at = NOW()
+		WHERE id = $1 AND archived_at IS NULL
+	`, companyID, cuit, razonSocial, condicionIVA, domicilioFiscal, cuitEstado)
+	return err
 }
 
 // ExtendPaidSubscriptionPeriod advances subscription_expires_at by extendMonths from the
@@ -184,9 +229,11 @@ func (r *CompanyRepository) CreateTrial(ctx context.Context, company *models.Com
 			id, code, name, created_at, updated_at,
 			status, is_verified, subscription_plan,
 			trial_ends_at, max_warehouses, max_users,
-			mp_customer_id, mp_card_id, documents_monthly_limit
+			mp_customer_id, mp_card_id, documents_monthly_limit,
+			cuit, razon_social, condicion_iva, domicilio_fiscal, cuit_estado, cuit_verified_at, padron_synced_at
 		)
-		VALUES ($1, $2, $3, $4, $5, 'active', false, 'trial', $6, $7, $8, $9, $10, $11)
+		VALUES ($1, $2, $3, $4, $5, 'active', false, 'trial', $6, $7, $8, $9, $10, $11,
+			NULLIF(TRIM($12), ''), NULLIF($13, ''), NULLIF($14, ''), NULLIF($15, ''), NULLIF($16, ''), $17, $18)
 	`
 	_, err := r.pool.Exec(ctx, query,
 		company.ID,
@@ -200,6 +247,13 @@ func (r *CompanyRepository) CreateTrial(ctx context.Context, company *models.Com
 		company.MpCustomerID,
 		company.MpCardID,
 		company.DocumentsMonthlyLimit,
+		company.Cuit,
+		company.RazonSocial,
+		company.CondicionIVA,
+		company.DomicilioFiscal,
+		company.CuitEstado,
+		company.CuitVerifiedAt,
+		company.PadronSyncedAt,
 	)
 	return err
 }

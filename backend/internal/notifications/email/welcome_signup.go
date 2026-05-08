@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-const signupTrialWelcomeSubject = "Tu prueba en Remitos"
+const signupWelcomeSubject = "Tu prueba en Remitos"
 
-// SignupTrialWelcome builds the post-signup trial welcome message (Spanish copy).
-func SignupTrialWelcome(toEmail, companyCode, companyName string, trialEndsAt time.Time, publicSiteURL string) Message {
+// SignupWelcome builds the post-signup welcome message (Spanish copy). The account starts on the trial tier.
+func SignupWelcome(toEmail, companyCode, companyName string, trialEndsAt time.Time, publicSiteURL string) Message {
 	code := strings.TrimSpace(companyCode)
 	name := strings.TrimSpace(companyName)
 	if name == "" {
@@ -57,7 +57,7 @@ El equipo de Remitos
 
 	return Message{
 		To:       toEmail,
-		Subject:  signupTrialWelcomeSubject,
+		Subject:  signupWelcomeSubject,
 		HTMLBody: html,
 		TextBody: text,
 	}

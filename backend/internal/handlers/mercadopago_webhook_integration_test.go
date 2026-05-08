@@ -75,6 +75,7 @@ func TestHandlePayment_FirstApprovedPayment_SendsReceipt_Integration(t *testing.
 		pool, invRepo, companyRepo, userRepo, mp, mail,
 		"https://site.example", 0.07,
 		"",
+		nil,
 	)
 
 	if err := h.handlePayment(ctx, mpID); err != nil {
@@ -117,6 +118,7 @@ func TestHandlePayment_DuplicatePaymentID_NoSecondReceipt_Integration(t *testing
 		pool, invRepo, companyRepo, userRepo, mp, mail,
 		"https://site.example", 0.07,
 		"",
+		nil,
 	)
 
 	if err := h.handlePayment(ctx, mpID); err != nil {

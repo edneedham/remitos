@@ -19,6 +19,7 @@ func TestPaymentReceipt_ContainsInvoiceAndLegal(t *testing.T) {
 		"invoice-uuid",
 		"123456789",
 		"Nota legal de prueba.",
+		"",
 	)
 	if m.To != "payer@test.com" {
 		t.Fatalf("to: %q", m.To)

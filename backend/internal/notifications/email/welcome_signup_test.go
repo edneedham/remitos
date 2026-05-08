@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-func TestSignupTrialWelcome_HTMLContainsCompanyCodeAndLinks(t *testing.T) {
+func TestSignupWelcome_HTMLContainsCompanyCodeAndLinks(t *testing.T) {
 	t.Parallel()
 	end := time.Date(2026, 5, 1, 12, 0, 0, 0, time.UTC)
-	m := SignupTrialWelcome("user@example.com", "ACME", "Acme SA", end, "https://site.example")
+	m := SignupWelcome("user@example.com", "ACME", "Acme SA", end, "https://site.example")
 	if m.To != "user@example.com" {
 		t.Fatalf("to: %q", m.To)
 	}
@@ -24,10 +24,10 @@ func TestSignupTrialWelcome_HTMLContainsCompanyCodeAndLinks(t *testing.T) {
 	}
 }
 
-func TestSignupTrialWelcome_NoPublicURL_OmitsLinks(t *testing.T) {
+func TestSignupWelcome_NoPublicURL_OmitsLinks(t *testing.T) {
 	t.Parallel()
 	end := time.Date(2026, 5, 1, 12, 0, 0, 0, time.UTC)
-	m := SignupTrialWelcome("user@example.com", "ACME", "Acme SA", end, "")
+	m := SignupWelcome("user@example.com", "ACME", "Acme SA", end, "")
 	if strings.Contains(m.HTMLBody, "Enlaces útiles") {
 		t.Fatal("did not expect link section")
 	}

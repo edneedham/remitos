@@ -17,6 +17,7 @@ func PaymentReceipt(
 	invoiceID string,
 	mpPaymentID string,
 	legalFooterAR string,
+	afipFacturaNote string,
 ) Message {
 	name := strings.TrimSpace(companyName)
 	if name == "" {
@@ -49,6 +50,11 @@ func PaymentReceipt(
 		linkBlock.WriteString(fmt.Sprintf(`<p><a href="%s/dashboard">Ver facturación</a></p>`, base))
 	}
 
+	afipBlock := ""
+	if s := strings.TrimSpace(afipFacturaNote); s != "" {
+		afipBlock = fmt.Sprintf(`<p><strong>AFIP / ARCA:</strong> %s</p>`, escapeHTML(s))
+	}
+
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html><body>
 <p>Hola,</p>
@@ -58,6 +64,7 @@ func PaymentReceipt(
 <strong>Fecha:</strong> %s</p>
 <p><strong>Comprobante interno:</strong> %s<br/>
 <strong>ID pago Mercado Pago:</strong> %s</p>
+%s
 <p><em>%s</em></p>
 %s
 <p>Gracias por confiar en Remitos.</p>
@@ -68,10 +75,15 @@ func PaymentReceipt(
 		escapeHTML(when),
 		escapeHTML(invoiceID),
 		escapeHTML(mpPaymentID),
+		afipBlock,
 		escapeHTML(legal),
 		linkBlock.String(),
 	)
 
+	afipText := ""
+	if s := strings.TrimSpace(afipFacturaNote); s != "" {
+		afipText = "AFIP / ARCA: " + s + "\n\n"
+	}
 	text := fmt.Sprintf(`Hola,
 
 Registramos un pago para %s en Remitos.
@@ -83,11 +95,11 @@ Fecha: %s
 Comprobante interno: %s
 ID pago Mercado Pago: %s
 
-%s
+%s%s
 
 %s
 Gracias por confiar en Remitos.
-`, name, amountLine, plan, when, invoiceID, mpPaymentID, legal, textBillingLinks(publicSiteURL))
+`, name, amountLine, plan, when, invoiceID, mpPaymentID, afipText, legal, textBillingLinks(publicSiteURL))
 
 	return Message{
 		To:       toEmail,
