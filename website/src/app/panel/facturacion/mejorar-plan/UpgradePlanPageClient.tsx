@@ -277,14 +277,6 @@ export default function UpgradePlanPageClient() {
       <div className="bg-gray-50 px-4 pb-14 pt-8">
         <div className="mx-auto max-w-[92rem] space-y-8">
           <header className="space-y-2">
-            <p>
-              <Link
-                href="/panel/facturacion"
-                className="text-sm font-semibold text-blue-700 underline"
-              >
-                ← Facturación
-              </Link>
-            </p>
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">
               Cambiar de plan
             </h1>
@@ -380,14 +372,6 @@ export default function UpgradePlanPageClient() {
     <div className="bg-gray-50 px-4 pb-14 pt-8">
       <div className="mx-auto max-w-[92rem] space-y-8">
         <header className="space-y-2">
-          <p>
-            <Link
-              href="/panel/facturacion"
-              className="text-sm font-semibold text-blue-700 underline"
-            >
-              ← Facturación
-            </Link>
-          </p>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             Cambiar de plan
           </h1>

@@ -233,7 +233,7 @@ export default function BillingPageClient() {
           <p className="text-base leading-relaxed text-gray-600">
             Plan, estado de suscripción y comprobantes de pago de tu empresa.
           </p>
-          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+          <p className="mt-3 hidden text-sm leading-relaxed text-gray-500 md:block">
             {BILLING_LEGAL_NOTICE_AR}
           </p>
         </header>
@@ -328,10 +328,13 @@ export default function BillingPageClient() {
             </p>
             <Link
               href="/panel/facturacion/mejorar-plan"
-              className="mt-3 inline-block font-semibold text-indigo-900 underline"
+              className="hidden md:inline-block font-semibold text-indigo-900 underline"
             >
               Ver o modificar en Cambiar de plan
             </Link>
+            <span className="mt-2 block text-indigo-900/90 md:hidden">
+              Cambios de plan: usá una computadora (mismo enlace desde escritorio).
+            </span>
           </div>
         ) : null}
 
@@ -365,10 +368,13 @@ export default function BillingPageClient() {
             </p>
             <Link
               href={usageUpgrade.href}
-              className="mt-4 inline-flex rounded-lg bg-amber-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-950"
+              className="hidden md:inline-flex rounded-lg bg-amber-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-950"
             >
               {usageUpgrade.label}
             </Link>
+            <p className="mt-3 text-sm text-amber-950/90 md:hidden">
+              Para pasar de plan con cobro online, abrí Facturación desde tu PC.
+            </p>
           </div>
         ) : null}
 
@@ -474,10 +480,13 @@ export default function BillingPageClient() {
                   </p>
                   <Link
                     href="/panel/facturacion/mejorar-plan"
-                    className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                    className="mt-4 hidden md:inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
                   >
                     Mejorar plan
                   </Link>
+                  <p className="mt-4 text-sm text-gray-600 md:hidden">
+                    Mejorar plan y pagos asociados: disponible desde una computadora.
+                  </p>
                 </article>
 
                 <article className="rounded-lg border border-gray-200 bg-white p-4 lg:col-span-1">
@@ -505,7 +514,7 @@ export default function BillingPageClient() {
                   )}
                 </article>
 
-                <article className="rounded-lg border border-gray-200 bg-white p-4 lg:col-span-1">
+                <article className="hidden rounded-lg border border-gray-200 bg-white p-4 md:block lg:col-span-1">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Proyección
                   </p>
@@ -522,7 +531,7 @@ export default function BillingPageClient() {
                   </p>
                 </article>
               </div>
-              <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <div className="mt-4 hidden rounded-lg border border-gray-100 bg-gray-50 p-4 md:block">
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                   Incluye
                 </p>
@@ -565,7 +574,20 @@ export default function BillingPageClient() {
               {!invoicesLoading &&
               !invoicesError &&
               invoices.length > 0 ? (
-                <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200">
+                <>
+                  <div className="mt-4 md:hidden">
+                    <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                      Tenés{' '}
+                      <span className="font-semibold tabular-nums">
+                        {invoices.length}
+                      </span>{' '}
+                      comprobante
+                      {invoices.length === 1 ? '' : 's'}. El detalle (fechas,
+                      importes, concepto) está disponible abriendo esta página en
+                      una computadora.
+                    </p>
+                  </div>
+                  <div className="mt-4 hidden overflow-x-auto rounded-lg border border-gray-200 md:block">
                   <table className="w-full min-w-[36rem] text-left text-sm">
                     <thead className="border-b border-gray-200 bg-gray-50">
                       <tr>
@@ -605,6 +627,7 @@ export default function BillingPageClient() {
                     </tbody>
                   </table>
                 </div>
+                </>
               ) : null}
             </div>
 

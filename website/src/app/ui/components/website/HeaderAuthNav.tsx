@@ -79,6 +79,7 @@ export default function HeaderAuthNav() {
   /** Sidebar replaces these links on desktop; hide them in the dropdown only there. */
   const navLinksMobileOnlyInDropdown =
     pathname.startsWith('/panel');
+  const isPanelRoute = pathname.startsWith('/panel');
 
   async function handleLogout() {
     await logoutWebSession();
@@ -98,7 +99,11 @@ export default function HeaderAuthNav() {
       aria-label="Principal"
     >
       {session ? (
-        <div className="relative" ref={accountMenuRef}>
+        <>
+          <div
+            className={`relative ${isPanelRoute ? 'hidden md:block' : ''}`}
+            ref={accountMenuRef}
+          >
           <button
             type="button"
             onClick={() => setAccountMenuOpen((open) => !open)}
@@ -191,6 +196,7 @@ export default function HeaderAuthNav() {
             </div>
           ) : null}
         </div>
+        </>
       ) : (
         <div className="hidden items-center gap-2 sm:gap-4 lg:flex">
           {/* Desktop: plain login + pill signup; mobile uses full-screen menu in Header */}

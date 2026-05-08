@@ -21,18 +21,18 @@ function PanelOuter({ children }: { children: ReactNode }) {
 /** Dashboard home: KPI row only (progressive load before entitlement arrives). */
 export function DashboardStatCardsSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
       {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}
-          className="h-36 rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
+          className="min-h-[7.25rem] rounded-xl border border-gray-100 bg-white p-3 shadow-sm md:min-h-0 md:h-36 md:p-5"
         >
-          <div className="flex animate-pulse gap-3">
-            <div className="h-12 w-12 shrink-0 rounded-xl bg-gray-200" />
-            <div className="flex min-w-0 flex-1 flex-col gap-2 pt-0.5">
-              <div className="h-3 w-24 rounded bg-gray-200" />
-              <div className="h-9 w-16 rounded bg-gray-200" />
-              <div className="h-3 w-full max-w-[11rem] rounded bg-gray-200" />
+          <div className="flex animate-pulse gap-2.5 md:gap-3">
+            <div className="h-8 w-8 shrink-0 rounded-lg bg-gray-200 md:h-12 md:rounded-xl" />
+            <div className="flex min-w-0 flex-1 flex-col gap-2 pt-0.5 md:gap-2.5">
+              <div className="h-2 w-14 rounded bg-gray-200 md:h-3 md:w-24" />
+              <div className="h-7 w-12 rounded bg-gray-200 md:h-9 md:w-16" />
+              <div className="h-2.5 w-full max-w-[6.5rem] rounded bg-gray-200 md:h-3 md:max-w-[11rem]" />
             </div>
           </div>
         </div>

@@ -120,3 +120,23 @@ export function deriveBillingPresentation(entitlement: Entitlement | null, now: 
     nextBillingMilestone,
   };
 }
+
+/** Compact subtitle for KPI tiles on small viewports (matches `billingStatusSummary`). */
+export function shortBillingStatusSummary(full: string): string {
+  switch (full) {
+    case 'Empresa archivada':
+      return 'Archivada';
+    case 'Empresa no activa para facturación':
+      return 'No activa';
+    case 'En período de prueba':
+      return 'En prueba';
+    case 'Suscripción al día':
+      return 'Al día';
+    case 'Prueba finalizada':
+      return 'Prueba vencida';
+    case 'Sin suscripción paga activa':
+      return 'Sin plan pago';
+    default:
+      return full;
+  }
+}

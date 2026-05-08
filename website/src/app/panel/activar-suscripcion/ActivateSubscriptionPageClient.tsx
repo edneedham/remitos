@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { initMercadoPago } from '@mercadopago/sdk-react';
 import { getApiBaseUrl } from '../../lib/apiUrl';
@@ -181,6 +181,51 @@ export default function ActivateSubscriptionPageClient() {
     }
   }
 
+  const activateBrickInitialization = useMemo(
+    () => ({
+      amount: brickAmountArs ?? 0,
+      payer: { email: payerEmail },
+    }),
+    [brickAmountArs, payerEmail],
+  );
+
+  const handleActivateCardSubmit = useCallback(
+    async (data: { token?: string }) => {
+      setError(null);
+      setSubmitting(true);
+      try {
+        const res = await postWithWebAuth('/auth/me/activate-subscription', {
+          plan_id: planId,
+          card_token: data.token,
+        });
+        const body = (await res.json().catch(() => ({}))) as {
+          message?: string;
+        };
+        if (!res.ok) {
+          const msg =
+            body.message ||
+            'No se pudo activar la suscripción. Revisá la tarjeta.';
+          setError(msg);
+          throw new Error(msg);
+        }
+        router.replace(paymentActivationSuccessHref(planId));
+        router.refresh();
+      } catch (e) {
+        const msg =
+          e instanceof Error
+            ? e.message
+            : 'No se pudo completar el pago.';
+        setError((prev) => prev ?? msg);
+        throw e instanceof Error
+          ? e
+          : new Error(msg);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [planId, router],
+  );
+
   if (!ready) {
     return (
       <div className="bg-gray-50 px-4 pb-12 pt-6">
@@ -347,47 +392,9 @@ export default function ActivateSubscriptionPageClient() {
             </div>
             <CardPayment
               key={`${planId}-${brickAmountArs}`}
-              initialization={{
-                amount: brickAmountArs ?? 0,
-                payer: { email: payerEmail },
-              }}
+              initialization={activateBrickInitialization}
               locale="es-AR"
-              onSubmit={async (data) => {
-                setError(null);
-                setSubmitting(true);
-                try {
-                  const res = await postWithWebAuth(
-                    '/auth/me/activate-subscription',
-                    {
-                      plan_id: planId,
-                      card_token: data.token,
-                    },
-                  );
-                  const body = (await res.json().catch(() => ({}))) as {
-                    message?: string;
-                  };
-                  if (!res.ok) {
-                    const msg =
-                      body.message ||
-                      'No se pudo activar la suscripción. Revisá la tarjeta.';
-                    setError(msg);
-                    throw new Error(msg);
-                  }
-                  router.replace(paymentActivationSuccessHref(planId));
-                  router.refresh();
-                } catch (e) {
-                  const msg =
-                    e instanceof Error
-                      ? e.message
-                      : 'No se pudo completar el pago.';
-                  setError((prev) => prev ?? msg);
-                  throw e instanceof Error
-                    ? e
-                    : new Error(msg);
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
+              onSubmit={handleActivateCardSubmit}
             />
             {submitting ? (
               <p className="text-xs text-gray-500">Procesando…</p>

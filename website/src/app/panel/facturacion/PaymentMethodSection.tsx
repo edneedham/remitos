@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { initMercadoPago } from '@mercadopago/sdk-react';
 import { postWithWebAuth } from '../../lib/webAuth';
@@ -32,6 +32,21 @@ const useMockPayment =
  */
 const CARD_UPDATE_NOMINAL_ARS = 100;
 
+function useDesktopPaymentUi(): boolean {
+  const [desktop, setDesktop] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(min-width: 768px)');
+    const sync = () => setDesktop(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  return desktop;
+}
+
 export default function PaymentMethodSection({
   canManage,
   payerEmail,
@@ -39,16 +54,58 @@ export default function PaymentMethodSection({
   canManage: boolean;
   payerEmail: string;
 }) {
+  const desktopPaymentUi = useDesktopPaymentUi();
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mpInitRef = useRef(false);
 
   useEffect(() => {
-    if (!mpPublicKey || mpInitRef.current || useMockPayment) return;
+    if (!desktopPaymentUi || !mpPublicKey || mpInitRef.current || useMockPayment)
+      return;
     initMercadoPago(mpPublicKey);
     mpInitRef.current = true;
-  }, []);
+  }, [desktopPaymentUi]);
+
+  const cardInitialization = useMemo(
+    () => ({
+      amount: CARD_UPDATE_NOMINAL_ARS,
+      payer: { email: payerEmail.trim() },
+    }),
+    [payerEmail],
+  );
+
+  const handleCardSubmit = useCallback(
+    async (data: { token?: string }) => {
+      const token = data.token?.trim();
+      if (!token) {
+        setError('No recibimos el token de la tarjeta.');
+        throw new Error('missing token');
+      }
+      setError(null);
+      setMessage(null);
+      setSubmitting(true);
+      try {
+        const res = await postWithWebAuth('/auth/me/payment-method', {
+          card_token: token,
+        });
+        const body = (await res.json().catch(() => ({}))) as {
+          message?: string;
+        };
+        if (!res.ok) {
+          const msg =
+            body.message ||
+            'No pudimos guardar la tarjeta. Probá de nuevo.';
+          setError(msg);
+          throw new Error(msg);
+        }
+        setMessage(body.message || 'Medio de pago actualizado.');
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [],
+  );
 
   async function submitMock() {
     setError(null);
@@ -90,7 +147,10 @@ export default function PaymentMethodSection({
   }
 
   const showBrick =
-    !useMockPayment && Boolean(mpPublicKey) && payerEmail.trim().length > 0;
+    desktopPaymentUi &&
+    !useMockPayment &&
+    Boolean(mpPublicKey) &&
+    payerEmail.trim().length > 0;
 
   return (
     <section
@@ -103,9 +163,19 @@ export default function PaymentMethodSection({
       >
         Medio de pago (Mercado Pago)
       </h2>
-      <p className="mt-2 text-sm text-gray-600">
+      <p className="mt-2 hidden text-sm text-gray-600 md:block">
         Reemplazá la tarjeta guardada para renovaciones y cobros prorrateados, sin cambiar de plan.
       </p>
+      <p className="mt-2 text-sm text-gray-600 md:hidden">
+        El medio de pago no se puede cambiar desde el teléfono. Abrí Facturación en una computadora.
+      </p>
+
+      <div
+        className="mt-4 rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-950 md:hidden"
+        role="status"
+      >
+        Para cargar o cambiar la tarjeta usá el navegador en escritorio (misma cuenta).
+      </div>
 
       {message ? (
         <p
@@ -140,7 +210,7 @@ export default function PaymentMethodSection({
         </p>
       ) : null}
 
-      {useMockPayment ? (
+      {desktopPaymentUi && useMockPayment ? (
         <div className="mt-6 space-y-3">
           <p className="text-sm text-gray-600">
             Modo desarrollo: simula guardar tarjeta sin cobro real.
@@ -159,7 +229,7 @@ export default function PaymentMethodSection({
         </div>
       ) : null}
 
-      {showBrick ? (
+      {desktopPaymentUi && showBrick ? (
         <div className="mt-6 rounded-xl border border-gray-100 bg-gray-50 p-4">
           <div className="mb-4 flex justify-center border-b border-gray-200 pb-4">
             <Image
@@ -173,39 +243,9 @@ export default function PaymentMethodSection({
           </div>
           <CardPayment
             key={`card-update-${payerEmail}`}
-            initialization={{
-              amount: CARD_UPDATE_NOMINAL_ARS,
-              payer: { email: payerEmail.trim() },
-            }}
+            initialization={cardInitialization}
             locale="es-AR"
-            onSubmit={async (data: { token?: string }) => {
-              const token = data.token?.trim();
-              if (!token) {
-                setError('No recibimos el token de la tarjeta.');
-                throw new Error('missing token');
-              }
-              setError(null);
-              setMessage(null);
-              setSubmitting(true);
-              try {
-                const res = await postWithWebAuth('/auth/me/payment-method', {
-                  card_token: token,
-                });
-                const body = (await res.json().catch(() => ({}))) as {
-                  message?: string;
-                };
-                if (!res.ok) {
-                  const msg =
-                    body.message ||
-                    'No pudimos guardar la tarjeta. Probá de nuevo.';
-                  setError(msg);
-                  throw new Error(msg);
-                }
-                setMessage(body.message || 'Medio de pago actualizado.');
-              } finally {
-                setSubmitting(false);
-              }
-            }}
+            onSubmit={handleCardSubmit}
           />
         </div>
       ) : null}

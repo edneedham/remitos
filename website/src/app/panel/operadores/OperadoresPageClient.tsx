@@ -204,14 +204,6 @@ export default function OperadoresPageClient() {
     <div className="bg-gray-50 px-4 pb-12 pt-6">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="space-y-2">
-          <p>
-            <Link
-              href="/panel"
-              className="text-sm font-semibold text-blue-700 underline"
-            >
-              ← Panel
-            </Link>
-          </p>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             Operadores
           </h1>
