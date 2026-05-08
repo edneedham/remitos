@@ -47,7 +47,7 @@ vi.mock('./SignupPlanSelector', () => ({
   default: () => <div data-testid="signup-plan-selector">Plan selector</div>,
 }));
 
-vi.mock('./SignupTrialForm', () => ({
+vi.mock('./SignupForm', () => ({
   default: ({ onSignupSuccess }: { onSignupSuccess?: () => Promise<void> | void }) => (
     <button
       type="button"

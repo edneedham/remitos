@@ -12,8 +12,8 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-async function renderSignupTrialForm() {
-  const mod = await import('./SignupTrialForm');
+async function renderSignupForm() {
+  const mod = await import('./SignupForm');
   return render(<mod.default />);
 }
 
@@ -23,6 +23,9 @@ async function fillAccountSection(user: ReturnType<typeof userEvent.setup>) {
   });
   fireEvent.change(screen.getByLabelText('Código de empresa'), {
     target: { value: 'MIESA' },
+  });
+  fireEvent.change(screen.getByLabelText(/CUIT de la empresa/i), {
+    target: { value: '30-12345678-1' },
   });
   fireEvent.change(screen.getByLabelText('Correo electrónico'), {
     target: { value: 'owner@example.com' },
@@ -36,7 +39,7 @@ async function fillAccountSection(user: ReturnType<typeof userEvent.setup>) {
   await user.tab();
 }
 
-describe('SignupTrialForm', () => {
+describe('SignupForm', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.unstubAllEnvs();
@@ -64,27 +67,32 @@ describe('SignupTrialForm', () => {
     }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await renderSignupTrialForm();
+    await renderSignupForm();
     await fillAccountSection(user);
 
     await user.click(screen.getByRole('button', { name: /crear cuenta/i }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [, req] = fetchMock.mock.calls[0] as [string, RequestInit];
-    const payload = JSON.parse(String(req.body)) as { card_token?: string };
+    const payload = JSON.parse(String(req.body)) as {
+      card_token?: string;
+      company_cuit?: string;
+    };
     expect(payload.card_token).toBeUndefined();
+    expect(payload.company_cuit).toBe('30123456781');
     expect(routerPush).toHaveBeenCalledWith('/prueba-iniciada');
   });
 
   it('shows validation errors when required account fields are missing', async () => {
     const user = userEvent.setup();
-    await renderSignupTrialForm();
+    await renderSignupForm();
     await user.click(screen.getByRole('button', { name: /crear cuenta/i }));
 
     expect(
       await screen.findByText('Ingresá el nombre de la empresa.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Ingresá el código de empresa.')).toBeInTheDocument();
+    expect(screen.getByText('Ingresá el CUIT de la empresa.')).toBeInTheDocument();
     expect(screen.getByText('Ingresá tu correo electrónico.')).toBeInTheDocument();
   });
 });
