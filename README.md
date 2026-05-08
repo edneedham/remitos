@@ -51,7 +51,9 @@ Servicio HTTP con **PostgreSQL**, **JWT** para sesiones web/móvil, sync multi-t
 
 ### Versión de Go
 
-El backend usa **Go 1.25** (directiva `go` en `backend/go.mod` y dependencias como `cloud.google.com/go/secretmanager`). Si tenés **Go 1.24 o menor**, al ejecutar `go run` / `go test` el toolchain intentará **bajar Go 1.25** automáticamente; si eso **se queda en timeout**, instalá **Go 1.25.x** desde [go.dev/dl](https://go.dev/dl) (reemplaza la instalación actual) o revisá **firewall / proxy** y, si aplica, `GOPROXY` (por ejemplo un mirror corporativo). Forzar solo la toolchain local (`GOTOOLCHAIN=local`) **no alcanza**: varias dependencias exigen Go ≥ 1.25.
+El backend **requiere Go 1.25.x** (`go 1.25.0` en `backend/go.mod`; las dependencias GCP también piden ≥ 1.25). **Instalalo antes de `go run`**: paquete oficial para macOS/Linux/Windows en [go.dev/dl](https://go.dev/dl) (evita depender del auto-download del comando `go`, que puede dar timeout feo en redes lentas o bloqueadas).
+
+Si ya tenés una versión vieja en el PATH, verificá con `go version` que sea **1.25**. Si el download automático de toolchain falla igual, revisá **proxy/firewall** y `GOPROXY`; **`GOTOOLCHAIN=local` con Go 1.24 no sirve** porque el código no compila sin 1.25.
 
 ### Configuración local
 
