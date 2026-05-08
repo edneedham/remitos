@@ -1,124 +1,104 @@
 # Remitos Monorepo
 
-Aplicación completa para el manejo de remitos y repartos. Incluye aplicación Android para escaneo OCR y backend Go para sincronización y API.
+Aplicación para el manejo de remitos y repartos: **app Android** (escaneo OCR y operación en depósito), **API Go** (sync, autenticación, facturación y AFIP/ARCA opcional), y **sitio web** Next.js (marketing, registro, panel de cuenta y facturación).
 
-## Estructura del Monorepo
+## Estructura del monorepo
 
 ```
 remitos/
-├── android/          # Aplicación Android (Kotlin + Jetpack Compose)
-│   ├── app/          # Código fuente de la app
-│   ├── build.gradle.kts
-│   └── gradlew
-├── backend/          # Servidor backend (Go)
-│   ├── internal/     # Paquetes internos
-│   ├── main.go       # Punto de entrada
-│   ├── Dockerfile
-│   └── docker-compose.yml
-├── scripts/          # Scripts compartidos
+├── android/          # App Android (Kotlin + Jetpack Compose)
+├── backend/          # API REST (Go), migraciones SQL, jobs
+│   ├── db/migrations/
+│   ├── internal/
+│   ├── main.go
+│   └── docker-compose.yml   # solo Postgres local (ver abajo)
+├── website/          # Sitio Next.js (App Router)
+├── scripts/
 └── README.md
 ```
 
-## Android App
+## Android
 
-Aplicación Android para el manejo de remitos y repartos. Escanea remitos usando OCR, gestiona listas de reparto y realiza seguimiento de entregas.
+App para escaneo de remitos con OCR, notas de ingreso, listas de reparto y seguimiento de entregas; funciona **offline-first** con sync opcional al backend.
 
-### Estado Actual
+### Estado actual (referencia)
 
-**Versión Beta Offline (0.1.15)**
+**Versión beta offline (0.1.15)** — operaciones locales completas; sync condicionado por flags.
 
-La aplicación funciona completamente offline con todas las operaciones locales:
-- Escaneo de remitos con OCR en el dispositivo (ML Kit + OpenCV)
-- Gestión de notas de ingreso y bultos
-- Creación y cierre de listas de reparto
-- Seguimiento de estados de entrega (en depósito, en tránsito, entregado)
-- Escaneo de códigos de barras GS1
-- Auditoría de cambios con historial completo
+**Tag de referencia:** `v0.1.15-offline-beta`
 
-**Tag de la versión beta:** `v0.1.15-offline-beta`
+### Características principales
 
-### Características Principales
-
-#### Ingresos
-- Escaneo de remitos con captura de imagen
-- OCR automático de campos (CUIT, nombre, dirección, etc.)
-- Escaneo de códigos de barras GS1 para cada bulto
-- Exportación a CSV
-- Edición de campos capturados
-- Seguimiento de bultos disponibles
-
-#### Repartos
-- Creación de listas de reparto
-- Asignación de remitos a listas
-- Firma de checklist
-- Cierre de lista cuando todos los items están entregados
-- Historial de estados por item
-
-#### Auditoría
-- Historial de cambios de estado
-- Historial de ediciones de campos
-- Fechas y razones de modificaciones
+- **Ingresos:** OCR (ML Kit + OpenCV), códigos GS1, exportación CSV, edición y bultos.
+- **Repartos:** listas, asignación, checklist y cierre.
+- **Auditoría:** historial de cambios y ediciones.
 
 ### Tecnologías
 
-- **UI:** Jetpack Compose
-- **Base de datos:** Room (SQLite)
-- **OCR:** ML Kit Text Recognition + OpenCV (preprocesamiento)
-- **Escaneo de códigos:** ML Kit Barcode Scanning
-- **Arquitectura:** MVVM con ViewModels
-- **Inyección de dependencias:** Manual (factory pattern)
+Jetpack Compose, Room, ML Kit, MVVM.
 
-### Construcción
+### Build
 
 ```bash
 cd android
 ./gradlew :app:assembleDebug
 ./gradlew :app:testDebugUnitTest
-./gradlew :app:installDebug
 ```
 
-## Backend
+## Backend (API Go)
 
-Servidor Go para API REST y sincronización de datos con el backend.
+Servicio HTTP con **PostgreSQL**, **JWT** para sesiones web/móvil, sync multi-tenant, **Mercado Pago** para cobros y suscripciones, y —cuando está configurado— integración directa **AFIP/ARCA** (padrón de CUIT, comprobantes con CAE). Las migraciones se aplican al **arranque** del proceso API (`runMigrations` en `main.go`).
 
-### Características
+### Configuración local
 
-- API REST para sincronización de remitos
-- Autenticación JWT
-- WebSocket para tiempo real
-- Docker y docker-compose para deployment
-
-### Construcción
+Copiá variables desde `backend/.env.example`. Para Postgres solo:
 
 ```bash
 cd backend
-docker-compose up -d
+docker compose up -d   # levanta Postgres según docker-compose.yml
 ```
 
-## Arquitectura de Ramas
+Levantá la API con tu `.env` apuntando a ese Postgres (no commitear secretos).
 
-- **`main`** - Versión offline estable (actualmente monorepo con todo)
-- Las características de backend se controlan mediante Feature Flags
+### Tests
 
-## Feature Flags
+```bash
+cd backend
+go test ./...
+```
 
-El sistema de flags permite controlar el modo offline vs backend:
+## Sitio web (`website/`)
+
+Panel y flujos públicos en **Next.js**; usa `NEXT_PUBLIC_API_URL` para hablar con la API. Ver `website/.env.example`.
+
+```bash
+cd website
+pnpm install
+pnpm dev
+```
+
+La rama principal de trabajo es **`main`**.
+
+## Documentación operativa
+
+| Documento | Contenido |
+|-----------|-----------|
+| **`To-Prod.md`** | Despliegue (Neon, Vercel, Cloud Run), env y smoke checks. |
+| **`OPERATIONS.md`** | Migraciones, `/health` vs `/health/ready`, webhooks, AFIP. |
+| **`billing-doc.md`** | Modelo de facturación, MEP, renovaciones. |
+| **`FEATURE_FLAGS_MATRIX.md`** | Alineación Android / API / web antes de releases. |
+
+## Feature flags (Android)
+
+Control de modo offline vs backend; ver `FEATURE_FLAGS_MATRIX.md`.
 
 ```kotlin
-// Modo offline (predeterminado en main)
 FeatureFlags.configureOfflineMode()
-
-// Modo con backend (cuando esté disponible)
-FeatureFlags.configureBackendMode("https://api.example.com")
+FeatureFlags.configureBackendMode("https://tu-api.example.com")
 ```
 
-Flags disponibles:
-- `enableBackendOcr` - Usar OCR del backend
-- `enableImageUpload` - Subir imágenes al backend
-- `enableCloudSync` - Sincronizar auditoría con backend
-
-Para releases: ver **`FEATURE_FLAGS_MATRIX.md`** (matriz Android / API / web, checklist de smoke y disciplina de changelog).
+Flags típicos: `enableBackendOcr`, `enableImageUpload`, `enableCloudSync`.
 
 ## Licencia
 
-Proyecto privado - Todos los derechos reservados
+Proyecto privado — todos los derechos reservados.
