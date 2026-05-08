@@ -1141,3 +1141,114 @@ ON CONFLICT (id) DO UPDATE SET
   returned_qty = EXCLUDED.returned_qty,
   missing_qty = EXCLUDED.missing_qty,
   updated_at = EXCLUDED.updated_at;
+
+-- ---------------------------------------------------------------------------
+-- In-app notifications (panel bell). Only users with web-panel roles receive
+-- real notifications (company_owner, warehouse_admin, read_only, admin).
+-- Operators are excluded — seed rows match that rule.
+-- ---------------------------------------------------------------------------
+INSERT INTO user_notifications (
+  id, user_id, company_id, kind, title, body, action_url, read_at, metadata, created_at
+) VALUES
+  (
+    'a6200000-0000-4000-8000-000000000001',
+    'a3000000-0000-4000-8000-000000000001',
+    'a1000000-0000-4000-8000-000000000001',
+    'signup_welcome',
+    'Bienvenido a En Punto',
+    'Tu cuenta de prueba está lista. Instalá la app Android desde el panel para empezar a escanear remitos.',
+    NULL,
+    NOW() - INTERVAL '6 days',
+    NULL,
+    NOW() - INTERVAL '6 days'
+  ),
+  (
+    'a6200000-0000-4000-8000-000000000002',
+    'a3000000-0000-4000-8000-000000000001',
+    'a1000000-0000-4000-8000-000000000001',
+    'first_scan_completed',
+    'Primer remito sincronizado',
+    'Recibimos el primer remito en la nube. Seguí cargando desde la app para ver métricas en el panel.',
+    NULL,
+    NOW() - INTERVAL '5 days',
+    NULL,
+    NOW() - INTERVAL '5 days'
+  ),
+  (
+    'a6200000-0000-4000-8000-000000000003',
+    'a3000000-0000-4000-8000-000000000001',
+    'a1000000-0000-4000-8000-000000000001',
+    'documents_usage_warning',
+    'Te acercás al límite de documentos',
+    'En lo que va del mes procesaste 920 de 1000 documentos incluidos en tu plan.',
+    NULL,
+    NULL,
+    NOW() - INTERVAL '9 hours'
+  ),
+  (
+    'a6200000-0000-4000-8000-000000000004',
+    'a3000000-0000-4000-8000-000000000001',
+    'a1000000-0000-4000-8000-000000000001',
+    'trial_ending_soon',
+    'Tu prueba está por terminar',
+    'Seed Co — Trial: la prueba termina en 3 días. Activá un plan en Facturación para no perder acceso.',
+    NULL,
+    NULL,
+    NOW() - INTERVAL '2 hours'
+  ),
+  (
+    'a6200000-0000-4000-8000-000000000005',
+    'a3000000-0000-4000-8000-000000000002',
+    'a1000000-0000-4000-8000-000000000001',
+    'device_registered',
+    'Nuevo dispositivo registrado',
+    'Se registró un dispositivo en Depósito Central.',
+    NULL,
+    NULL,
+    NOW() - INTERVAL '45 minutes'
+  ),
+  (
+    'b6200000-0000-4000-8000-000000000001',
+    'b3000000-0000-4000-8000-000000000001',
+    'b1000000-0000-4000-8000-000000000001',
+    'invoice_paid',
+    'Pago registrado',
+    'Registramos un pago de ARS 24990.00 en tu cuenta.',
+    NULL,
+    NOW() - INTERVAL '14 days',
+    NULL,
+    NOW() - INTERVAL '14 days'
+  ),
+  (
+    'b6200000-0000-4000-8000-000000000002',
+    'b3000000-0000-4000-8000-000000000001',
+    'b1000000-0000-4000-8000-000000000001',
+    'factura_ready',
+    'Factura electrónica lista',
+    'Emitimos la factura electrónica (AFIP) para tu último pago. Podés ver el detalle en Facturación.',
+    NULL,
+    NOW() - INTERVAL '14 days' + INTERVAL '5 minutes',
+    NULL,
+    NOW() - INTERVAL '14 days' + INTERVAL '5 minutes'
+  ),
+  (
+    'b6200000-0000-4000-8000-000000000003',
+    'b3000000-0000-4000-8000-000000000001',
+    'b1000000-0000-4000-8000-000000000001',
+    'subscription_renewal_upcoming',
+    'Tu suscripción renueva pronto',
+    'Seed Co — Paid: el próximo cobro estimado es de aprox. $32000 ARS (según cotización). Revisá Facturación si necesitás actualizar la tarjeta.',
+    NULL,
+    NULL,
+    NOW() - INTERVAL '30 minutes'
+  )
+ON CONFLICT (id) DO UPDATE SET
+  user_id = EXCLUDED.user_id,
+  company_id = EXCLUDED.company_id,
+  kind = EXCLUDED.kind,
+  title = EXCLUDED.title,
+  body = EXCLUDED.body,
+  action_url = EXCLUDED.action_url,
+  read_at = EXCLUDED.read_at,
+  metadata = EXCLUDED.metadata,
+  created_at = EXCLUDED.created_at;
