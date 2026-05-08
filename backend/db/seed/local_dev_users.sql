@@ -1183,6 +1183,7 @@ INSERT INTO user_notifications (
     'En lo que va del mes procesaste 920 de 1000 documentos incluidos en tu plan.',
     NULL,
     NULL,
+    NULL,
     NOW() - INTERVAL '9 hours'
   ),
   (
@@ -1194,6 +1195,7 @@ INSERT INTO user_notifications (
     'Seed Co — Trial: la prueba termina en 3 días. Activá un plan en Facturación para no perder acceso.',
     NULL,
     NULL,
+    NULL,
     NOW() - INTERVAL '2 hours'
   ),
   (
@@ -1203,6 +1205,7 @@ INSERT INTO user_notifications (
     'device_registered',
     'Nuevo dispositivo registrado',
     'Se registró un dispositivo en Depósito Central.',
+    NULL,
     NULL,
     NULL,
     NOW() - INTERVAL '45 minutes'
@@ -1238,6 +1241,7 @@ INSERT INTO user_notifications (
     'subscription_renewal_upcoming',
     'Tu suscripción renueva pronto',
     'Seed Co — Paid: el próximo cobro estimado es de aprox. $32000 ARS (según cotización). Revisá Facturación si necesitás actualizar la tarjeta.',
+    NULL,
     NULL,
     NULL,
     NOW() - INTERVAL '30 minutes'
