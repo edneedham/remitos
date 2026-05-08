@@ -63,7 +63,9 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
       : 'md:grid-cols-[320px_minmax(0,1fr)]';
   const visualGridPlacement = !isPdfStep && visualOnRight ? 'md:col-start-2 md:row-start-1' : '';
   const textGridPlacement = !isPdfStep && visualOnRight ? 'md:col-start-1 md:row-start-1' : '';
-  const visualAlignClass = visualOnRight ? 'md:ml-auto md:mr-0' : 'md:mr-auto md:ml-0';
+  const visualAlignClass = visualOnRight
+    ? 'mx-auto md:ml-auto md:mr-0'
+    : 'mx-auto md:mr-auto md:ml-0';
   const textAlignClass = visualOnRight ? 'md:mr-0 md:ml-auto' : 'md:ml-0 md:mr-auto';
 
   useEffect(() => {
@@ -128,11 +130,7 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
         <p className="mb-3 text-2xl font-semibold tracking-wide text-blue-600 sm:text-3xl">
           {step.id}
         </p>
-        <h3
-          className={`text-4xl font-bold leading-tight text-gray-900 sm:text-5xl lg:text-5xl ${
-            isPdfStep ? 'whitespace-nowrap' : ''
-          }`}
-        >
+        <h3 className="text-4xl font-bold leading-tight text-gray-900 sm:text-5xl lg:text-5xl">
           {step.title}
         </h3>
       </header>
@@ -140,13 +138,13 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
       <div className={`grid grid-cols-1 items-center gap-8 md:gap-14 ${stepGridCols}`}>
         <div
           ref={visualRef}
-          className={`min-w-0 ${visualGridPlacement} ${
-            isPdfStep ? 'order-2 mt-8 md:mt-10' : ''
+          className={`min-w-0 max-md:flex max-md:w-full max-md:justify-center ${visualGridPlacement} ${
+            isPdfStep ? 'max-md:order-1 md:order-2 max-md:mt-0 md:mt-10' : ''
           }`}
         >
           {isPdfStep ? (
-            <div className="relative ml-0 mr-auto w-full">
-              <div className="ml-auto w-[68%]">
+            <div className="relative mx-auto flex w-full max-md:justify-center md:ml-0 md:mr-auto md:block">
+              <div className="hidden ml-auto w-[68%] md:block">
                 <Image
                   src={step.imageSrc}
                   alt={step.imageAlt}
@@ -160,7 +158,7 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
                 alt="Pantalla de historial de repartos en la app"
                 width={286}
                 height={611}
-                className="absolute left-0 top-1/2 h-auto w-[286px] -translate-y-1/2 rounded-[28px] shadow-[0_10px_24px_rgba(0,0,0,0.22)]"
+                className="mx-auto h-auto w-[286px] max-w-[calc(100vw-2rem)] rounded-[28px] shadow-[0_10px_24px_rgba(0,0,0,0.22)] md:absolute md:left-0 md:right-auto md:top-1/2 md:mx-0 md:max-w-none md:-translate-y-1/2"
               />
             </div>
           ) : (
@@ -176,7 +174,7 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
 
         <div
           ref={textRef}
-          className={`min-w-0 ${textGridPlacement} ${isPdfStep ? 'order-1' : ''}`}
+          className={`min-w-0 ${textGridPlacement} ${isPdfStep ? 'max-md:order-2 md:order-1 max-md:mt-2' : ''}`}
         >
           <p
             className={`w-full max-w-none text-2xl leading-relaxed text-gray-600 sm:text-3xl lg:text-4xl lg:leading-snug ${textAlignClass}`}
@@ -196,10 +194,10 @@ export default function HowItWorksSection() {
       aria-labelledby="how-it-works-heading"
     >
       <div className="mx-auto w-full max-w-[80vw]">
-        <div className="mx-auto mb-14 max-w-content-prose text-center">
+        <div className="mb-6 w-full max-w-content-prose text-left md:mb-14">
           <h2
             id="how-it-works-heading"
-            className="mb-6 text-4xl font-bold text-gray-900 sm:text-5xl lg:text-5xl"
+            className="mb-4 text-4xl font-bold text-gray-900 sm:mb-6 sm:text-5xl lg:text-5xl"
           >
             Cómo funciona, paso a paso
           </h2>

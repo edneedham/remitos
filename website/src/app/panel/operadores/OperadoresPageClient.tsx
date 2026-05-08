@@ -42,7 +42,7 @@ export default function OperadoresPageClient() {
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [operators, setOperators] = useState<Operator[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [formEmail, setFormEmail] = useState('');
+  const [formUsername, setFormUsername] = useState('');
   const [formPassword, setFormPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -132,17 +132,21 @@ export default function OperadoresPageClient() {
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    const username = formUsername.trim();
+    if (username.length < 3) {
+      setActionError('El nombre de usuario debe tener al menos 3 caracteres.');
+      return;
+    }
     setSubmitting(true);
     setActionError(null);
-    const emailTrim = formEmail.trim();
-    const body: { email?: string; password: string } = {
+    const body: { username: string; password: string } = {
+      username,
       password: formPassword,
     };
-    if (emailTrim) body.email = emailTrim;
     const res = await postWithWebAuth('/admin/operadores', body);
     setSubmitting(false);
     if (res.ok) {
-      setFormEmail('');
+      setFormUsername('');
       setFormPassword('');
       await refreshOperators();
       return;
@@ -155,8 +159,8 @@ export default function OperadoresPageClient() {
     const next = op.status === 'active' ? 'suspended' : 'active';
     const ok = window.confirm(
       next === 'suspended'
-        ? `¿Suspender a ${op.email ?? op.username ?? 'este operador'}?`
-        : `¿Reactivar a ${op.email ?? op.username ?? 'este operador'}?`,
+        ? `¿Suspender a ${op.username ?? op.email ?? 'este operador'}?`
+        : `¿Reactivar a ${op.username ?? op.email ?? 'este operador'}?`,
     );
     if (!ok) return;
     setBusyId(op.id);
@@ -204,14 +208,6 @@ export default function OperadoresPageClient() {
     <div className="bg-gray-50 px-4 pb-12 pt-6">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="space-y-2">
-          <p>
-            <Link
-              href="/panel"
-              className="text-sm font-semibold text-blue-700 underline"
-            >
-              ← Panel
-            </Link>
-          </p>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             Operadores
           </h1>
@@ -299,12 +295,15 @@ export default function OperadoresPageClient() {
               </h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <label className="block text-sm">
-                  <span className="font-medium text-gray-800">Email (opcional)</span>
+                  <span className="font-medium text-gray-800">Usuario</span>
                   <input
-                    type="email"
-                    value={formEmail}
-                    onChange={(e) => setFormEmail(e.target.value)}
+                    type="text"
+                    required
+                    minLength={3}
+                    value={formUsername}
+                    onChange={(e) => setFormUsername(e.target.value)}
                     className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    autoCapitalize="none"
                     autoComplete="off"
                   />
                 </label>
@@ -357,7 +356,7 @@ export default function OperadoresPageClient() {
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                               <p className="font-semibold text-gray-900">
-                                {op.email ?? op.username ?? 'Sin email'}
+                                {op.username ?? op.email ?? 'Sin usuario'}
                               </p>
                               <p className="text-xs text-gray-500">
                                 Estado:{' '}

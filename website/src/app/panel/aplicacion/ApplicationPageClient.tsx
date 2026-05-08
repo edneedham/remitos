@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { ApplicationContentSkeleton } from '../components/PanelSkeletons';
 import { getApiBaseUrl } from '../../lib/apiUrl';
-import { isLikelyMobileDevice } from '../../lib/mobileDevice';
+import { detectDevicePlatform, type DevicePlatform } from '../../lib/mobileDevice';
 import { getPublicSiteOrigin } from '../../lib/siteUrl';
 import {
   canAccessWebManagement,
@@ -32,14 +32,14 @@ export default function ApplicationPageClient() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [downloadBusy, setDownloadBusy] = useState(false);
 
-  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+  const [devicePlatform, setDevicePlatform] = useState<DevicePlatform | null>(null);
   const [transferBusy, setTransferBusy] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
   const [transferUrl, setTransferUrl] = useState('');
   const didAutoStartTransfer = useRef(false);
 
   useEffect(() => {
-    setIsMobile(isLikelyMobileDevice());
+    setDevicePlatform(detectDevicePlatform());
   }, []);
 
   useEffect(() => {
@@ -179,7 +179,7 @@ export default function ApplicationPageClient() {
     if (
       entitlementLoading ||
       entitlement?.can_download_app !== true ||
-      isMobile !== false ||
+      devicePlatform !== 'desktop' ||
       didAutoStartTransfer.current
     ) {
       return;
@@ -189,7 +189,7 @@ export default function ApplicationPageClient() {
   }, [
     entitlementLoading,
     entitlement?.can_download_app,
-    isMobile,
+    devicePlatform,
     handleStartTransfer,
   ]);
 
@@ -282,12 +282,22 @@ export default function ApplicationPageClient() {
                 Volver al panel
               </Link>
             </div>
-          ) : !entitlementLoading && isMobile === null ? (
+          ) : !entitlementLoading && devicePlatform === null ? (
             <div className="flex min-h-[8rem] flex-col items-center justify-center gap-2 py-10 text-sm text-gray-600">
               <Loader2 className="h-5 w-5 animate-spin text-blue-600" aria-hidden />
               <span className="text-center">Preparando…</span>
             </div>
-          ) : !entitlementLoading && isMobile ? (
+          ) : !entitlementLoading && devicePlatform !== 'desktop' ? (
+            devicePlatform === 'ios' ? (
+              <div className="space-y-3">
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  La app de En Punto está disponible para Android. Desde iPhone o iPad no se puede instalar APK.
+                </p>
+                <p className="text-sm text-gray-600">
+                  Si necesitás usar la app móvil, abrí esta cuenta desde un dispositivo Android.
+                </p>
+              </div>
+            ) : (
             <button
               type="button"
               disabled={downloadBusy}
@@ -303,6 +313,7 @@ export default function ApplicationPageClient() {
                 'Descargar APK'
               )}
             </button>
+            )
           ) : !entitlementLoading ? (
             <div className="space-y-4 text-center">
               <p className="sr-only">

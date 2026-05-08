@@ -340,9 +340,9 @@ export default function SignupTrialForm({
   const formShell =
     variant === 'card'
       ? 'rounded-xl bg-white border border-gray-200 p-6 shadow-sm text-left lg:p-8'
-      : 'w-full min-w-0 max-w-full -mt-1 text-left sm:-mt-2';
+      : 'w-full min-w-0 max-w-full text-left sm:-mt-1 lg:-mt-2';
 
-  const mainStackClass = variant === 'embedded' ? 'space-y-4' : 'space-y-6';
+  const mainStackClass = variant === 'embedded' ? 'space-y-6' : 'space-y-6';
 
   const accountInputClass = (field: SignupTrialAccountField) =>
     `w-full px-4 py-3 border rounded-lg ${
@@ -358,16 +358,16 @@ export default function SignupTrialForm({
       noValidate
     >
       <div className={mainStackClass}>
-        <div className="min-w-0 space-y-1.5 sm:max-w-md">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="min-w-0 space-y-2 sm:max-w-md sm:space-y-1.5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-blue-700 sm:text-lg sm:normal-case sm:tracking-tight sm:text-gray-900 sm:font-semibold">
             Empresa y cuenta
           </h2>
-          <p className="text-sm leading-snug text-gray-500 break-words sm:leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-600 break-words sm:text-sm sm:leading-snug sm:text-gray-500">
             Probá gratis 7 días con hasta 2 depósitos, 1 dispositivo por depósito y hasta 500 documentos.
           </p>
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-6 sm:space-y-5">
           <div>
             <label
               htmlFor="su-company"

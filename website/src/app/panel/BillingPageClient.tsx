@@ -18,6 +18,7 @@ import {
   BillingComprobantesSkeleton,
   BillingMainSkeleton,
 } from './components/PanelSkeletons';
+import { PanelKeyValueList, PanelStatTile } from './components/PanelShared';
 import PaymentMethodSection from './facturacion/PaymentMethodSection';
 import { needsActivateSubscription } from './lib/activateSubscriptionGate';
 import {
@@ -223,6 +224,57 @@ export default function BillingPageClient() {
     paymentEndMs - now <= 3 * 24 * 60 * 60 * 1000 &&
     nextBillingEstimateMinor !== null;
 
+  const summaryItems =
+    entitlement && billing
+      ? [
+          {
+            label: 'Plan',
+            value: formatPlanLabel(entitlement.subscription_plan),
+          },
+          {
+            label: 'Estado de facturación',
+            value: billing.billingStatusSummary,
+          },
+          {
+            label: 'Próximo hito',
+            value: billing.nextBillingMilestone,
+          },
+          ...(showNextBillingEstimate
+            ? [
+                {
+                  label: 'Próximo cobro estimado',
+                  value: formatInvoiceMoney(
+                    nextBillingEstimateMinor,
+                    nextBillingEstimateCurrency,
+                  ),
+                },
+              ]
+            : []),
+          {
+            label: 'Estado pago (acceso a app)',
+            value: billing.isPaid ? 'Sí' : 'No',
+          },
+          {
+            label: 'Período pago',
+            value: billing.hasActivePaymentPeriod
+              ? entitlement.subscription_expires_at
+                ? `Hasta ${formatDateTime(entitlement.subscription_expires_at)}`
+                : 'Activo (sin vencimiento)'
+              : 'No activo',
+          },
+          {
+            label: 'En prueba',
+            value: billing.hasActiveTrial ? 'Sí' : 'No',
+          },
+          {
+            label: 'Período de prueba',
+            value: billing.hasActiveTrial
+              ? `Hasta ${formatDateTime(entitlement?.trial_ends_at)}`
+              : 'No activo',
+          },
+        ]
+      : [];
+
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6">
       <div className="mx-auto max-w-[92rem] space-y-8">
@@ -233,7 +285,7 @@ export default function BillingPageClient() {
           <p className="text-base leading-relaxed text-gray-600">
             Plan, estado de suscripción y comprobantes de pago de tu empresa.
           </p>
-          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+          <p className="mt-3 hidden text-sm leading-relaxed text-gray-500 md:block">
             {BILLING_LEGAL_NOTICE_AR}
           </p>
         </header>
@@ -328,7 +380,7 @@ export default function BillingPageClient() {
             </p>
             <Link
               href="/panel/facturacion/mejorar-plan"
-              className="mt-3 inline-block font-semibold text-indigo-900 underline"
+              className="hidden md:inline-block font-semibold text-indigo-900 underline"
             >
               Ver o modificar en Cambiar de plan
             </Link>
@@ -365,7 +417,7 @@ export default function BillingPageClient() {
             </p>
             <Link
               href={usageUpgrade.href}
-              className="mt-4 inline-flex rounded-lg bg-amber-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-950"
+              className="hidden md:inline-flex rounded-lg bg-amber-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-950"
             >
               {usageUpgrade.label}
             </Link>
@@ -388,64 +440,7 @@ export default function BillingPageClient() {
               abajo cuando estén disponibles.
             </p>
 
-            <dl className="mt-6 space-y-3 text-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <dt className="text-gray-600">Plan</dt>
-                <dd className="text-right font-medium text-gray-900">
-                  {formatPlanLabel(entitlement.subscription_plan)}
-                </dd>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <dt className="text-gray-600">Estado de facturación</dt>
-                <dd className="text-right font-medium text-gray-900">
-                  {billing.billingStatusSummary}
-                </dd>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <dt className="text-gray-600">Próximo hito</dt>
-                <dd className="max-w-[min(100%,20rem)] text-right font-medium text-gray-900">
-                  {billing.nextBillingMilestone}
-                </dd>
-              </div>
-              {showNextBillingEstimate ? (
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <dt className="text-gray-600">Próximo cobro estimado</dt>
-                  <dd className="max-w-[min(100%,20rem)] text-right font-medium text-gray-900">
-                    {formatInvoiceMoney(nextBillingEstimateMinor, nextBillingEstimateCurrency)}
-                  </dd>
-                </div>
-              ) : null}
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <dt className="text-gray-600">Estado pago (acceso a app)</dt>
-                <dd className="font-medium text-gray-900">
-                  {billing.isPaid ? 'Sí' : 'No'}
-                </dd>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <dt className="text-gray-600">Período pago</dt>
-                <dd className="max-w-[min(100%,20rem)] text-right font-medium text-gray-900">
-                  {billing.hasActivePaymentPeriod
-                    ? entitlement.subscription_expires_at
-                      ? `Hasta ${formatDateTime(entitlement.subscription_expires_at)}`
-                      : 'Activo (sin vencimiento)'
-                    : 'No activo'}
-                </dd>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <dt className="text-gray-600">En prueba</dt>
-                <dd className="font-medium text-gray-900">
-                  {billing.hasActiveTrial ? 'Sí' : 'No'}
-                </dd>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <dt className="text-gray-600">Período de prueba</dt>
-                <dd className="max-w-[min(100%,20rem)] text-right font-medium text-gray-900">
-                  {billing.hasActiveTrial
-                    ? `Hasta ${formatDateTime(entitlement?.trial_ends_at)}`
-                    : 'No activo'}
-                </dd>
-              </div>
-            </dl>
+            <PanelKeyValueList items={summaryItems} className="mt-6" />
             {showNextBillingEstimate ? (
               <p className="mt-4 text-xs leading-relaxed text-gray-500">
                 Este importe es una estimación calculada 3 días antes del vencimiento usando la
@@ -454,42 +449,35 @@ export default function BillingPageClient() {
               </p>
             ) : null}
 
-            <div className="mt-8 border-t border-gray-100 pt-6">
+            <div className="mt-8 hidden border-t border-gray-100 pt-6 md:block">
               <h3 className="text-sm font-semibold text-gray-900">
                 Tu plan actual
               </h3>
               <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                <article className="rounded-lg border border-gray-200 bg-gray-50 p-4 lg:col-span-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Plan
-                  </p>
-                  <p className="mt-2 text-lg font-semibold text-gray-900">
-                    {currentPlanName}
-                  </p>
-                  <p className="mt-1 text-sm text-gray-600">
-                    {currentPlanPrice} / mes + IVA
-                  </p>
+                <PanelStatTile
+                  label="Plan"
+                  value={currentPlanName}
+                  description={`${currentPlanPrice} / mes + IVA`}
+                  tone="muted"
+                  className="hidden md:block lg:col-span-1"
+                >
                   <p className="mt-2 text-xs text-gray-500">
                     Excedentes: {currentPlanOverage}
                   </p>
                   <Link
                     href="/panel/facturacion/mejorar-plan"
-                    className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                    className="mt-4 hidden md:inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
                   >
                     Mejorar plan
                   </Link>
-                </article>
+                </PanelStatTile>
 
-                <article className="rounded-lg border border-gray-200 bg-white p-4 lg:col-span-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Uso actual
-                  </p>
-                  <p className="mt-2 text-2xl font-bold text-gray-900">
-                    {docsUsed.toLocaleString('es-AR')}
-                  </p>
-                  <p className="mt-1 text-sm text-gray-600">
-                    documentos en el mes
-                  </p>
+                <PanelStatTile
+                  label="Uso actual"
+                  value={docsUsed.toLocaleString('es-AR')}
+                  description="documentos en el mes"
+                  className="lg:col-span-1"
+                >
                   <p className="mt-2 text-xs text-gray-500">
                     {typeof docsLimit === 'number'
                       ? `${docsRemaining?.toLocaleString('es-AR')} restantes de ${docsLimit.toLocaleString('es-AR')}`
@@ -503,26 +491,22 @@ export default function BillingPageClient() {
                       />
                     </div>
                   )}
-                </article>
+                </PanelStatTile>
 
-                <article className="rounded-lg border border-gray-200 bg-white p-4 lg:col-span-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Proyección
-                  </p>
-                  <p className="mt-2 text-2xl font-bold text-gray-900">
-                    {projectedMonthEndDocs.toLocaleString('es-AR')}
-                  </p>
-                  <p className="mt-1 text-sm text-gray-600">
-                    documentos estimados al cierre
-                  </p>
+                <PanelStatTile
+                  label="Proyección"
+                  value={projectedMonthEndDocs.toLocaleString('es-AR')}
+                  description="documentos estimados al cierre"
+                  className="hidden md:block lg:col-span-1"
+                >
                   <p className="mt-2 text-xs text-gray-500">
                     {projectedOverage && projectedOverage > 0
                       ? `Excedente estimado: ${projectedOverage.toLocaleString('es-AR')} documentos`
                       : 'Sin excedente estimado al ritmo actual'}
                   </p>
-                </article>
+                </PanelStatTile>
               </div>
-              <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <div className="mt-4 hidden rounded-lg border border-gray-100 bg-gray-50 p-4 md:block">
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                   Incluye
                 </p>
@@ -565,7 +549,31 @@ export default function BillingPageClient() {
               {!invoicesLoading &&
               !invoicesError &&
               invoices.length > 0 ? (
-                <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200">
+                <>
+                  <div className="mt-4 space-y-2 md:hidden">
+                    {invoices.map((inv) => (
+                      <article
+                        key={inv.id}
+                        className="rounded-lg border border-gray-200 bg-white px-3 py-2.5"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-medium text-gray-500">
+                            {formatInvoiceDate(inv.issued_at)}
+                          </p>
+                          <p className="text-sm font-semibold tabular-nums text-gray-900">
+                            {formatInvoiceMoney(inv.amount_minor, inv.currency)}
+                          </p>
+                        </div>
+                        <p className="mt-1 text-sm text-gray-800">
+                          {inv.description?.trim() ? inv.description : '—'}
+                        </p>
+                        <p className="mt-1 text-xs font-medium text-gray-600">
+                          {invoiceStatusLabel(inv.status)}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
+                  <div className="mt-4 hidden overflow-x-auto rounded-lg border border-gray-200 md:block">
                   <table className="w-full min-w-[36rem] text-left text-sm">
                     <thead className="border-b border-gray-200 bg-gray-50">
                       <tr>
@@ -605,10 +613,11 @@ export default function BillingPageClient() {
                     </tbody>
                   </table>
                 </div>
+                </>
               ) : null}
             </div>
 
-            <div className="mt-8 border-t border-gray-100 pt-6">
+            <div className="mt-8 pt-6 md:border-t md:border-gray-100">
               <PaymentMethodSection
                 canManage={
                   profile ? canManageBillingSubscriptions(profile.role) : false

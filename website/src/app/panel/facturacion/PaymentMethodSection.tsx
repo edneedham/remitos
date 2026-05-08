@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { initMercadoPago } from '@mercadopago/sdk-react';
 import { postWithWebAuth } from '../../lib/webAuth';
@@ -32,6 +32,21 @@ const useMockPayment =
  */
 const CARD_UPDATE_NOMINAL_ARS = 100;
 
+function useDesktopPaymentUi(): boolean {
+  const [desktop, setDesktop] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(min-width: 768px)');
+    const sync = () => setDesktop(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  return desktop;
+}
+
 export default function PaymentMethodSection({
   canManage,
   payerEmail,
@@ -39,16 +54,58 @@ export default function PaymentMethodSection({
   canManage: boolean;
   payerEmail: string;
 }) {
+  const desktopPaymentUi = useDesktopPaymentUi();
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mpInitRef = useRef(false);
 
   useEffect(() => {
-    if (!mpPublicKey || mpInitRef.current || useMockPayment) return;
+    if (!desktopPaymentUi || !mpPublicKey || mpInitRef.current || useMockPayment)
+      return;
     initMercadoPago(mpPublicKey);
     mpInitRef.current = true;
-  }, []);
+  }, [desktopPaymentUi]);
+
+  const cardInitialization = useMemo(
+    () => ({
+      amount: CARD_UPDATE_NOMINAL_ARS,
+      payer: { email: payerEmail.trim() },
+    }),
+    [payerEmail],
+  );
+
+  const handleCardSubmit = useCallback(
+    async (data: { token?: string }) => {
+      const token = data.token?.trim();
+      if (!token) {
+        setError('No recibimos el token de la tarjeta.');
+        throw new Error('missing token');
+      }
+      setError(null);
+      setMessage(null);
+      setSubmitting(true);
+      try {
+        const res = await postWithWebAuth('/auth/me/payment-method', {
+          card_token: token,
+        });
+        const body = (await res.json().catch(() => ({}))) as {
+          message?: string;
+        };
+        if (!res.ok) {
+          const msg =
+            body.message ||
+            'No pudimos guardar la tarjeta. Probá de nuevo.';
+          setError(msg);
+          throw new Error(msg);
+        }
+        setMessage(body.message || 'Medio de pago actualizado.');
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [],
+  );
 
   async function submitMock() {
     setError(null);
@@ -87,6 +144,10 @@ export default function PaymentMethodSection({
         </p>
       </section>
     );
+  }
+
+  if (!desktopPaymentUi) {
+    return null;
   }
 
   const showBrick =
@@ -173,39 +234,9 @@ export default function PaymentMethodSection({
           </div>
           <CardPayment
             key={`card-update-${payerEmail}`}
-            initialization={{
-              amount: CARD_UPDATE_NOMINAL_ARS,
-              payer: { email: payerEmail.trim() },
-            }}
+            initialization={cardInitialization}
             locale="es-AR"
-            onSubmit={async (data: { token?: string }) => {
-              const token = data.token?.trim();
-              if (!token) {
-                setError('No recibimos el token de la tarjeta.');
-                throw new Error('missing token');
-              }
-              setError(null);
-              setMessage(null);
-              setSubmitting(true);
-              try {
-                const res = await postWithWebAuth('/auth/me/payment-method', {
-                  card_token: token,
-                });
-                const body = (await res.json().catch(() => ({}))) as {
-                  message?: string;
-                };
-                if (!res.ok) {
-                  const msg =
-                    body.message ||
-                    'No pudimos guardar la tarjeta. Probá de nuevo.';
-                  setError(msg);
-                  throw new Error(msg);
-                }
-                setMessage(body.message || 'Medio de pago actualizado.');
-              } finally {
-                setSubmitting(false);
-              }
-            }}
+            onSubmit={handleCardSubmit}
           />
         </div>
       ) : null}

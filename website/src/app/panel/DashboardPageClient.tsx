@@ -34,6 +34,7 @@ import TrialOnboardingChecklist from './TrialOnboardingChecklist';
 import {
   deriveBillingPresentation,
   formatPlanLabel,
+  shortBillingStatusSummary,
 } from './lib/billingPresentation';
 import type { BillingInvoiceRow, Entitlement } from './lib/entitlementTypes';
 import {
@@ -77,6 +78,7 @@ export default function DashboardPageClient() {
   const [invoices, setInvoices] = useState<BillingInvoiceRow[]>([]);
   const [invoicesError, setInvoicesError] = useState<string | null>(null);
   const [downloadPageVisited, setDownloadPageVisited] = useState(false);
+  const [companyName, setCompanyName] = useState<string | null>(null);
 
   useEffect(() => {
     function readDownloadVisitFlag() {
@@ -150,6 +152,8 @@ export default function DashboardPageClient() {
         router.replace('/ingresar');
         return;
       }
+
+      setCompanyName(profile.company_name);
 
       const [entRes, invRes] = await Promise.all([
         fetchWithWebAuth('/auth/me/entitlement'),
@@ -228,46 +232,77 @@ export default function DashboardPageClient() {
   };
 
   return (
-    <div className="bg-gray-50 px-4 pb-12 pt-6">
-      <div className="mx-auto max-w-[92rem] space-y-8">
+    <div className="bg-gray-50 px-4 pb-8 pt-6 md:pb-12">
+      <div className="mx-auto max-w-[92rem] space-y-6 md:space-y-8">
+        <div className="flex items-center justify-between gap-3 md:hidden">
+          <p className="min-w-0 truncate text-lg font-medium text-gray-900">
+            Hola,{' '}
+            <span className="font-semibold text-gray-950">
+              {companyName ?? '…'}
+            </span>
+          </p>
+          {entitlement ? (
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">
+              <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
+              {formatPlanLabel(entitlement.subscription_plan)}
+            </span>
+          ) : null}
+        </div>
         {checklistModel ? (
-          <TrialOnboardingChecklist model={checklistModel} />
+          <div className="hidden md:block">
+            <TrialOnboardingChecklist model={checklistModel} />
+          </div>
         ) : null}
 
         {entitlementLoading && !error ? <DashboardStatCardsSkeleton /> : null}
 
         {entitlement ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-1 justify-items-center gap-3 sm:grid-cols-2 sm:justify-items-stretch sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
             <Link
               href="/panel/depositos"
-              className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40"
+              className="block min-h-28 w-full max-w-[22rem] rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40 md:min-h-0 md:max-w-none md:p-5"
               aria-labelledby="warehouses-card-heading"
             >
-              <div className="flex gap-3">
+              <div className="flex gap-2.5 md:gap-3">
                 <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 md:h-12 md:w-12"
                   aria-hidden
                 >
-                  <Warehouse className="h-7 w-7" strokeWidth={1.75} />
+                  <Warehouse
+                    className="h-5 w-5 md:h-7 md:w-7"
+                    strokeWidth={1.75}
+                  />
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 space-y-2">
                   <h2
                     id="warehouses-card-heading"
-                    className="text-sm font-semibold uppercase tracking-wide text-gray-500"
+                    className="text-xs font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
                   >
                     Depósitos
                   </h2>
-                  <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-gray-900">
+                  <p className="text-2xl font-bold tabular-nums leading-none tracking-tight text-gray-900 md:text-3xl md:leading-none">
                     {typeof entitlement.warehouse_count === 'number'
                       ? typeof entitlement.max_warehouses === 'number'
                         ? `${entitlement.warehouse_count} / ${entitlement.max_warehouses}`
                         : entitlement.warehouse_count
                       : '—'}
                   </p>
-                  <p className="mt-2 text-xs leading-snug text-gray-600">
-                    {typeof entitlement.max_warehouses === 'number'
-                      ? 'Usados frente al límite de tu plan.'
-                      : 'Depósitos configurados para tu empresa.'}
+                  <p className="text-xs leading-snug text-gray-600">
+                    {typeof entitlement.max_warehouses === 'number' ? (
+                      <>
+                        <span className="md:hidden">vs. límite del plan</span>
+                        <span className="hidden md:inline">
+                          Usados frente al límite de tu plan.
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="md:hidden">Configurados</span>
+                        <span className="hidden md:inline">
+                          Depósitos configurados para tu empresa.
+                        </span>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -275,30 +310,36 @@ export default function DashboardPageClient() {
 
             <Link
               href="/panel/dispositivos"
-              className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-orange-300 hover:bg-orange-50/40"
+              className="block min-h-28 w-full max-w-[22rem] rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40 md:min-h-0 md:max-w-none md:p-5"
               aria-labelledby="devices-card-heading"
             >
-              <div className="flex gap-3">
+              <div className="flex gap-2.5 md:gap-3">
                 <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-700"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 md:h-12 md:w-12"
                   aria-hidden
                 >
-                  <Smartphone className="h-7 w-7" strokeWidth={1.75} />
+                  <Smartphone
+                    className="h-5 w-5 md:h-7 md:w-7"
+                    strokeWidth={1.75}
+                  />
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 space-y-2">
                   <h2
                     id="devices-card-heading"
-                    className="text-sm font-semibold uppercase tracking-wide text-gray-500"
+                    className="text-xs font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
                   >
                     Dispositivos
                   </h2>
-                  <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-gray-900">
+                  <p className="text-2xl font-bold tabular-nums leading-none tracking-tight text-gray-900 md:text-3xl md:leading-none">
                     {typeof entitlement.device_count === 'number'
                       ? entitlement.device_count
                       : '—'}
                   </p>
-                  <p className="mt-2 text-xs leading-snug text-gray-600">
-                    Registrados para tu empresa en En Punto.
+                  <p className="text-xs leading-snug text-gray-600">
+                    <span className="md:hidden">En la empresa</span>
+                    <span className="hidden md:inline">
+                      Registrados para tu empresa en En Punto.
+                    </span>
                   </p>
                 </div>
               </div>
@@ -306,93 +347,118 @@ export default function DashboardPageClient() {
 
             <Link
               href="/panel/facturacion"
-              className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-violet-300 hover:bg-violet-50/40"
+              className="block min-h-28 w-full max-w-[22rem] rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40 md:min-h-0 md:max-w-none md:p-5"
               aria-labelledby="users-card-heading"
             >
-              <div className="flex gap-3">
+              <div className="flex gap-2.5 md:gap-3">
                 <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 md:h-12 md:w-12"
                   aria-hidden
                 >
-                  <Users className="h-7 w-7" strokeWidth={1.75} />
+                  <Users className="h-5 w-5 md:h-7 md:w-7" strokeWidth={1.75} />
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 space-y-2">
                   <h2
                     id="users-card-heading"
-                    className="text-sm font-semibold uppercase tracking-wide text-gray-500"
+                    className="text-xs font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
                   >
                     Usuarios
                   </h2>
-                  <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-gray-900">
+                  <p className="text-2xl font-bold tabular-nums leading-none tracking-tight text-gray-900 md:text-3xl md:leading-none">
                     {typeof entitlement.user_count === 'number'
                       ? typeof entitlement.max_users === 'number'
                         ? `${entitlement.user_count} / ${entitlement.max_users}`
                         : entitlement.user_count
                       : '—'}
                   </p>
-                  <p className="mt-2 text-xs leading-snug text-gray-600">
-                    {typeof entitlement.max_users === 'number'
-                      ? 'Cuentas de la empresa frente al límite del plan.'
-                      : 'Cuentas de la empresa con acceso web o app.'}
+                  <p className="text-xs leading-snug text-gray-600">
+                    {typeof entitlement.max_users === 'number' ? (
+                      <>
+                        <span className="md:hidden">vs. límite del plan</span>
+                        <span className="hidden md:inline">
+                          Cuentas de la empresa frente al límite del plan.
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="md:hidden">Web y app</span>
+                        <span className="hidden md:inline">
+                          Cuentas de la empresa con acceso web o app.
+                        </span>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
             </Link>
 
             <section
-              className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+              className="min-h-28 w-full max-w-[22rem] rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:min-h-0 md:max-w-none md:p-5"
               aria-labelledby="documents-card-heading"
             >
-              <div className="flex gap-3">
+              <div className="flex gap-2.5 md:gap-3">
                 <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 md:h-12 md:w-12"
                   aria-hidden
                 >
-                  <ScanLine className="h-7 w-7" strokeWidth={1.75} />
+                  <ScanLine className="h-5 w-5 md:h-7 md:w-7" strokeWidth={1.75} />
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 space-y-2">
                   <h2
                     id="documents-card-heading"
-                    className="text-sm font-semibold uppercase tracking-wide text-gray-500"
+                    className="text-xs font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
                   >
                     Documentos
                   </h2>
-                  <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-gray-900">
+                  <p className="text-2xl font-bold tabular-nums leading-none tracking-tight text-gray-900 md:text-3xl md:leading-none">
                     {typeof entitlement.remitos_processed_last_30_days ===
                     'number'
                       ? entitlement.remitos_processed_last_30_days
                       : '—'}
                   </p>
-                  <p className="mt-2 text-xs leading-snug text-gray-600">
-                    Este mes (últimos 30 días), sincronizados desde la app.
+                  <p className="text-xs leading-snug text-gray-600">
+                    Últimos 30 días, sincronizados desde la app.
                   </p>
                 </div>
               </div>
             </section>
 
             <section
-              className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+              className="hidden rounded-xl border border-gray-200 bg-white p-3 shadow-sm md:block md:p-5"
               aria-labelledby="plan-card-heading"
             >
-              <div className="flex gap-3">
+              <div className="flex gap-2.5 md:gap-3">
                 <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 md:h-12 md:w-12 md:rounded-xl"
                   aria-hidden
                 >
-                  <BadgeCheck className="h-7 w-7" strokeWidth={1.75} />
+                  <BadgeCheck className="h-4 w-4 md:h-7 md:w-7" strokeWidth={1.75} />
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 space-y-1.5 md:space-y-2">
                   <h2
                     id="plan-card-heading"
-                    className="text-sm font-semibold uppercase tracking-wide text-gray-500"
+                    className="text-[9px] font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
+                    aria-label="Plan actual"
                   >
-                    Plan actual
+                    <span className="md:hidden" aria-hidden="true">
+                      Plan
+                    </span>
+                    <span className="hidden md:inline" aria-hidden="true">
+                      Plan actual
+                    </span>
                   </h2>
-                  <p className="mt-1 truncate text-2xl font-bold tracking-tight text-gray-900">
+                  <p className="truncate text-base font-bold leading-none tracking-tight text-gray-900 md:text-2xl md:leading-tight">
                     {formatPlanLabel(entitlement.subscription_plan)}
                   </p>
-                  <p className="mt-2 text-xs leading-snug text-gray-600">
-                    {billing?.billingStatusSummary}
+                  <p className="text-[10px] leading-snug text-gray-600 md:text-xs md:leading-snug">
+                    <span className="md:hidden">
+                      {billing?.billingStatusSummary
+                        ? shortBillingStatusSummary(billing.billingStatusSummary)
+                        : '—'}
+                    </span>
+                    <span className="hidden md:inline">
+                      {billing?.billingStatusSummary ?? '—'}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -401,38 +467,44 @@ export default function DashboardPageClient() {
         ) : null}
 
         {entitlementLoading && !error ? (
-          <DashboardDocumentUsageSkeleton />
+          <div className="hidden md:block">
+            <DashboardDocumentUsageSkeleton />
+          </div>
         ) : null}
 
         {entitlement ? (
-          <DocumentUsageSection
-            mtd={
-              typeof entitlement.documents_usage_mtd === 'number'
-                ? entitlement.documents_usage_mtd
-                : 0
-            }
-            limit={entitlement.documents_monthly_limit ?? null}
-            series={(entitlement.documents_usage_series ?? []).map((p) => ({
-              date: p.date,
-              cumulative: Number(p.cumulative),
-            }))}
-            warehouseRows={(entitlement.documents_usage_by_warehouse_mtd ?? []).map(
-              (r) => ({
+          <div className="hidden md:block">
+            <DocumentUsageSection
+              mtd={
+                typeof entitlement.documents_usage_mtd === 'number'
+                  ? entitlement.documents_usage_mtd
+                  : 0
+              }
+              limit={entitlement.documents_monthly_limit ?? null}
+              series={(entitlement.documents_usage_series ?? []).map((p) => ({
+                date: p.date,
+                cumulative: Number(p.cumulative),
+              }))}
+              warehouseRows={(
+                entitlement.documents_usage_by_warehouse_mtd ?? []
+              ).map((r) => ({
                 warehouse_id: r.warehouse_id,
                 name: r.name,
                 count: Number(r.count),
-              }),
-            )}
-          />
+              }))}
+            />
+          </div>
         ) : null}
 
         {entitlement && invoicesLoading ? (
-          <DashboardInvoicesSkeleton />
+          <div className="hidden md:block">
+            <DashboardInvoicesSkeleton />
+          </div>
         ) : null}
 
         {entitlement && !invoicesLoading ? (
           <section
-            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            className="hidden md:block rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
             aria-labelledby="invoices-heading"
           >
             <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
@@ -500,10 +572,10 @@ export default function DashboardPageClient() {
                           <button
                             type="button"
                             onClick={() => handleDownloadInvoice(inv)}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50"
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
                             aria-label={`Descargar factura ${inv.id}`}
                           >
-                            <Download className="h-4 w-4" aria-hidden />
+                            <Download className="h-4 w-4 text-blue-600" aria-hidden />
                             Descargar
                           </button>
                         </td>

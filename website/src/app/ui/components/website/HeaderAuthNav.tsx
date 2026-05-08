@@ -79,6 +79,7 @@ export default function HeaderAuthNav() {
   /** Sidebar replaces these links on desktop; hide them in the dropdown only there. */
   const navLinksMobileOnlyInDropdown =
     pathname.startsWith('/panel');
+  const isPanelRoute = pathname.startsWith('/panel');
 
   async function handleLogout() {
     await logoutWebSession();
@@ -90,11 +91,19 @@ export default function HeaderAuthNav() {
 
   return (
     <nav
-      className="flex shrink-0 items-center gap-2 sm:gap-3"
+      className={`flex items-center gap-2 sm:gap-4 ${
+        session
+          ? 'w-auto max-w-full shrink-0 sm:min-w-0'
+          : 'w-auto shrink-0 justify-end'
+      }`}
       aria-label="Principal"
     >
       {session ? (
-        <div className="relative" ref={accountMenuRef}>
+        <>
+          <div
+            className={`relative ${isPanelRoute ? 'hidden md:block' : ''}`}
+            ref={accountMenuRef}
+          >
           <button
             type="button"
             onClick={() => setAccountMenuOpen((open) => !open)}
@@ -187,29 +196,32 @@ export default function HeaderAuthNav() {
             </div>
           ) : null}
         </div>
+        </>
       ) : (
-        <>
+        <div className="hidden items-center gap-2 sm:gap-4 lg:flex">
+          {/* Desktop: plain login + pill signup; mobile uses full-screen menu in Header */}
+          <Link
+            href="/ingresar"
+            aria-label="Iniciar sesión"
+            className={`whitespace-nowrap px-1 py-2 text-sm font-medium transition-colors sm:px-2 ${
+              loginActive
+                ? 'text-blue-700'
+                : 'text-gray-700 hover:text-gray-900'
+            }`}
+          >
+            Iniciar sesión
+          </Link>
           <Link
             href="/registro"
-            className={`inline-flex items-center rounded-lg px-3 py-2 text-sm font-semibold transition-colors sm:px-4 ${
+            className={`inline-flex shrink-0 items-center rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition-colors sm:px-5 sm:py-2.5 ${
               signupActive
-                ? 'bg-blue-700 text-white'
+                ? 'bg-blue-700 text-white hover:bg-blue-800'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
             Registro
           </Link>
-          <Link
-            href="/ingresar"
-            className={`inline-flex items-center rounded-lg border px-3 py-2 text-sm font-semibold transition-colors sm:px-4 ${
-              loginActive
-                ? 'border-blue-600 text-blue-700'
-                : 'border-gray-300 bg-white text-gray-800 hover:bg-gray-50'
-            }`}
-          >
-            Iniciar sesión
-          </Link>
-        </>
+        </div>
       )}
     </nav>
   );

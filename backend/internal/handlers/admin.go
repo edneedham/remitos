@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -47,7 +48,7 @@ func NewAdminHandler(
 }
 
 type CreateOperatorRequest struct {
-	Email      *string `json:"email" validate:"omitempty"`
+	Username   string  `json:"username" validate:"required,min=3,max=100"`
 	Password   string  `json:"password" validate:"required,min=8,max=72"`
 	DeviceName string  `json:"device_name" validate:"omitempty"`
 }
@@ -68,22 +69,21 @@ func (h *AdminHandler) CreateOperator(w http.ResponseWriter, r *http.Request) {
 	adminClaims := middleware.GetUserClaims(r)
 	logger.Log.Info().Str("admin_id", adminClaims.UserID).Msg("Admin creating operator")
 
-	// Check for existing user by email if email provided
-	if req.Email != nil && *req.Email != "" {
-		existing, err := h.userRepo.GetByEmail(ctx, *req.Email)
-		if err != nil {
-			RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
-			return
-		}
-		if existing != nil {
-			RespondWithError(w, r, ErrCodeConflict, "El usuario ya existe", http.StatusConflict)
-			return
-		}
-	}
+	req.Username = strings.TrimSpace(req.Username)
 
 	companyID, err := uuid.Parse(adminClaims.CompanyID)
 	if err != nil {
 		RespondWithError(w, r, ErrCodeInvalidRequest, "ID de empresa inválido", http.StatusBadRequest)
+		return
+	}
+
+	existingByUsername, err := h.userRepo.GetByUsernameAndCompanyID(ctx, req.Username, companyID)
+	if err != nil {
+		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
+		return
+	}
+	if existingByUsername != nil {
+		RespondWithError(w, r, ErrCodeConflict, "El usuario ya existe", http.StatusConflict)
 		return
 	}
 
@@ -126,7 +126,7 @@ func (h *AdminHandler) CreateOperator(w http.ResponseWriter, r *http.Request) {
 	user := &models.User{
 		ID:           uuid.New(),
 		CompanyID:    companyID,
-		Email:        req.Email,
+		Username:     &req.Username,
 		PasswordHash: string(hash),
 		Role:         "operator",
 		Status:       "active",

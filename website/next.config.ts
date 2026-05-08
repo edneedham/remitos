@@ -30,6 +30,7 @@ const nextConfig: NextConfig = {
       'https://api.mercadopago.com',
       'https://www.mercadopago.com',
       'https://secure.mlstatic.com',
+      'https://*.mlstatic.com',
       'https://*.googleapis.com',
       'https://*.gstatic.com',
     ]
@@ -42,11 +43,15 @@ const nextConfig: NextConfig = {
       "frame-ancestors 'none'",
       `connect-src ${connectSrc}`,
       "img-src 'self' data: blob: https:",
-      "font-src 'self' data:",
-      "style-src 'self' 'unsafe-inline'",
+      "font-src 'self' data: https://fonts.gstatic.com https://*.mlstatic.com",
+      // Bricks load CSS from mlstatic / Mercado Pago CDNs.
+      "style-src 'self' 'unsafe-inline' https://*.mlstatic.com https://*.mercadopago.com",
+      // Mercado Pago Bricks loads https://sdk.mercadopago.com/js/v2 and scripts from mlstatic.
       // Next.js dev/prod may rely on inline scripts; tighten further when using nonce-based CSP.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      'frame-src https://*.mercadopago.com https://www.mercadopago.com https://secure.mlstatic.com',
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.mercadopago.com https://*.mercadopago.com https://*.mlstatic.com",
+      // Workers used by Checkout Bricks (blob URLs).
+      "worker-src 'self' blob:",
+      'frame-src https://*.mercadopago.com https://www.mercadopago.com https://secure.mlstatic.com https://*.mlstatic.com',
     ].join('; ');
 
     return [
