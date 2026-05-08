@@ -70,20 +70,21 @@ It appears on: **Facturación** (dashboard), **Activar suscripción**, **pricing
 | `NEXT_PUBLIC_SIGNUP_USE_MOCK_PAYMENT` | Website | Dev UI without Brick |
 | `SIGNUP_ALLOW_MOCK_PAYMENT` | API | Dev: mock card paths |
 | Webhook URL | MP dashboard | `POST https://<api>/webhooks/mercadopago`, topic **`payment`** |
+| `AFIP_BILLING_ENABLED`, `AFIP_PADRON_ENABLED`, `AFIP_*` | API | Direct AFIP/ARCA: CAE emission after MP payment, padrón CUIT verify (`backend/.env.example`) |
 
 ---
 
 ## What’s left (recommended order)
 
-1. **Legal / tax** — Align copy and implementation with counsel: IVA, factura tipo, Régimen de información, and whether “MEP” must cite a specific official source beyond the bolsa feed you use (e.g. dolarapi).
-2. **Persist FX on each invoice** — Store `ars_per_usd`, `fx_source`, `fx_effective_date` (and optionally `usd_list_amount`) on `billing_invoices` so PDFs and support match what was charged.
+1. **Legal / tax** — Counsel sign-off: IVA treatment for SaaS, factura tipo matrix vs. your empresa’s inscripción, Régimen de información, and whether “MEP” must cite a specific official source beyond the bolsa feed you use (e.g. dolarapi). AFIP **factura electrónica** is implemented server-side (CAE after MP approval) but business rules (alícuotas, notas de crédito) need accountant review.
+2. **FX on subscription invoices** — Renewal and webhook paths already persist FX snapshot columns when the amount is derived from catalog USD × MEP; extend any remaining code paths (e.g. legacy one-shot `InsertPaidInvoice`) if you still use them in production.
 3. **Charge reliability** — Tune **`POST /v1/payments`** / issuer rules per Mercado Pago (some regions expect payment profiles / Orders API for merchant-initiated recurring); retries and dunning.
 4. **Activation = first invoice** — Optionally create a **paid** (or **pending** then settled) invoice row on activation with the same ARS amount as the Brick.
 5. **Corporativo** — Self-serve or sales-only; custom USD price and limits if not catalog.
 6. **Rate caching** — Short TTL cache for MEP fetch to reduce API load and smooth spikes (still “billing date” semantics if you snapshot at invoice time).
 7. **Admin / ops** — Manual override of rate, invoice void/credit notes, export for accountant.
 8. **Android / sync** — Confirm any server-side limits beyond web entitlement (e.g. document caps) match billing state.
-9. **Tests** — Contract tests for pricing + integration test against a mocked bolsa HTTP response in CI.
+9. **Tests** — Contract tests for pricing + integration test against a mocked bolsa HTTP response in CI; optional AFIP homologación E2E behind env flag.
 
 ---
 
@@ -101,6 +102,8 @@ It appears on: **Facturación** (dashboard), **Activar suscripción**, **pricing
 | Internal renewal | `backend/internal/handlers/billing_renewal.go` |
 | MP webhook | `backend/internal/handlers/mercadopago_webhook.go` |
 | Renewal sweep job | `backend/internal/jobs/billing_renewal_sweep.go` |
+| AFIP TA + factura emit | `backend/internal/payments/afip/`, `backend/internal/billing/factura_emitter.go`, `backend/internal/jobs/billing_factura_emit.go` |
+| CUIT verify / PDF | `backend/internal/handlers/auth_cuit_verify.go`, `auth_invoice_pdf.go` |
 | Legal string (TS) | `website/src/app/lib/billingLegalNotice.ts` |
 | Activate UI | `website/src/app/dashboard/activate-subscription/` |
 | Gate | `website/src/app/dashboard/ActivateSubscriptionGate.tsx` |

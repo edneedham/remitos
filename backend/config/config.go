@@ -16,7 +16,7 @@ type Config struct {
 	DBSSLMode  string
 	// DBPoolMaxConns caps PostgreSQL pool size (pgx). Zero means derive from CPU count (4–32).
 	DBPoolMaxConns int
-	JWTSecret string
+	JWTSecret      string
 
 	// Mercado Pago (server-side). Public key is only for the website (NEXT_PUBLIC_*).
 	MercadoPagoAccessToken string
@@ -60,18 +60,50 @@ type Config struct {
 	EmailFrom     string
 	EmailReplyTo  string
 	PublicSiteURL string // optional; used for links in welcome emails (no trailing slash)
+
+	// AFIP / ARCA direct integration. Empty/disabled by default until cert + emisor data are provisioned.
+	// Env: "homo" (default) or "prod". Selects WSAA / WSFEv1 / Padron endpoints.
+	AfipEnv string
+	// Master switch for emitting factura electrónica after subscription payments.
+	AfipBillingEnabled bool
+	// Master switch for resolving CUIT padrón data (razón social / condición IVA / domicilio).
+	AfipPadronEnabled bool
+	// Issuer (Remitos) CUIT, no dashes (e.g. "30715975111").
+	AfipCUIT string
+	// Punto de venta registered for webservices (FECAESolicitar).
+	AfipPuntoVenta int
+	// Issuer condición IVA. One of: RESPONSABLE_INSCRIPTO, MONOTRIBUTO, EXENTO. Drives factura tipo selection.
+	AfipIssuerCondicionIVA string
+	// FECAE Concepto: 1=Productos, 2=Servicios (default), 3=Productos y Servicios.
+	AfipConcepto int
+	// FECAE alícuota IVA percent for SaaS items (default 21).
+	AfipDefaultAlicuotaIVA float64
+	// X.509 client certificate / private key sources. PEM env wins over file path; both fall back to GCP Secret Manager refs in prod.
+	AfipCertPEM        string
+	AfipCertPath       string
+	AfipKeyPEM         string
+	AfipKeyPath        string
+	AfipCertSecretName string // e.g. "projects/<id>/secrets/afip-cert/versions/latest"
+	AfipKeySecretName  string
+	// Optional override for SOAP endpoints (testing).
+	AfipWSAAURL   string
+	AfipWSFEv1URL string
+	AfipPadronURL string
+	// AfipPadronCacheHours: reuse companies.* padron snapshot for WSFE emission without calling
+	// getPersona while PadronSyncedAt is newer than this many hours. 0 = always refresh padron.
+	AfipPadronCacheHours int
 }
 
 func Load() *Config {
 	return &Config{
-		DBHost:     getEnv("DB_HOST", "localhost"),
-		DBPort:     getEnvAsInt("DB_PORT", 5432),
-		DBUser:     getEnv("DB_USER", "postgres"),
-		DBPassword: getEnv("DB_PASSWORD", "postgres"),
-		DBName:     getEnv("DB_NAME", "server"),
+		DBHost:         getEnv("DB_HOST", "localhost"),
+		DBPort:         getEnvAsInt("DB_PORT", 5432),
+		DBUser:         getEnv("DB_USER", "postgres"),
+		DBPassword:     getEnv("DB_PASSWORD", "postgres"),
+		DBName:         getEnv("DB_NAME", "server"),
 		DBSSLMode:      getEnv("DB_SSLMODE", "disable"),
 		DBPoolMaxConns: getEnvAsInt("DB_POOL_MAX_CONNS", 0),
-		JWTSecret: strings.TrimSpace(getEnv("JWT_SECRET", "")),
+		JWTSecret:      strings.TrimSpace(getEnv("JWT_SECRET", "")),
 
 		MercadoPagoAccessToken:         getEnv("MERCADOPAGO_ACCESS_TOKEN", ""),
 		MercadoPagoWebhookSecret:       strings.TrimSpace(getEnv("MERCADOPAGO_WEBHOOK_SECRET", "")),
@@ -96,7 +128,37 @@ func Load() *Config {
 		EmailFrom:     getEnv("EMAIL_FROM", ""),
 		EmailReplyTo:  getEnv("EMAIL_REPLY_TO", ""),
 		PublicSiteURL: strings.TrimRight(strings.TrimSpace(getEnv("PUBLIC_SITE_URL", "")), "/"),
+
+		AfipEnv:                strings.ToLower(strings.TrimSpace(getEnv("AFIP_ENV", "homo"))),
+		AfipBillingEnabled:     getEnv("AFIP_BILLING_ENABLED", "") == "true",
+		AfipPadronEnabled:      getEnv("AFIP_PADRON_ENABLED", "") == "true",
+		AfipCUIT:               digitsOnly(getEnv("AFIP_CUIT", "")),
+		AfipPuntoVenta:         getEnvAsInt("AFIP_PUNTO_VENTA", 0),
+		AfipIssuerCondicionIVA: strings.ToUpper(strings.TrimSpace(getEnv("AFIP_ISSUER_CONDICION_IVA", "RESPONSABLE_INSCRIPTO"))),
+		AfipConcepto:           getEnvAsInt("AFIP_CONCEPTO", 2),
+		AfipDefaultAlicuotaIVA: getEnvAsFloat64("AFIP_DEFAULT_ALICUOTA_IVA", 21.0),
+		AfipCertPEM:            getEnv("AFIP_CERT_PEM", ""),
+		AfipCertPath:           strings.TrimSpace(getEnv("AFIP_CERT_PATH", "")),
+		AfipKeyPEM:             getEnv("AFIP_KEY_PEM", ""),
+		AfipKeyPath:            strings.TrimSpace(getEnv("AFIP_KEY_PATH", "")),
+		AfipCertSecretName:     strings.TrimSpace(getEnv("AFIP_CERT_SECRET_NAME", "")),
+		AfipKeySecretName:      strings.TrimSpace(getEnv("AFIP_KEY_SECRET_NAME", "")),
+		AfipWSAAURL:            strings.TrimSpace(getEnv("AFIP_WSAA_URL", "")),
+		AfipWSFEv1URL:          strings.TrimSpace(getEnv("AFIP_WSFEV1_URL", "")),
+		AfipPadronURL:          strings.TrimSpace(getEnv("AFIP_PADRON_URL", "")),
+		AfipPadronCacheHours:   getEnvAsInt("AFIP_PADRON_CACHE_HOURS", 168),
 	}
+}
+
+// digitsOnly strips non-digit characters from a CUIT/CUIL string (handles "30-71597511-1" → "30715975111").
+func digitsOnly(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if r >= '0' && r <= '9' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func splitCommaTrim(s string) []string {

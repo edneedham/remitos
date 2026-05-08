@@ -58,7 +58,20 @@ Reference: **`To-Prod.md`** §3 and §4, **`backend/config/config.go`**.
 
 ---
 
-## 5. CI / deploy
+## 5. AFIP / ARCA (factura electrónica)
+
+- **Secrets**: Client certificate + private key (PEM). Local: `AFIP_CERT_PEM` / `AFIP_KEY_PEM` or `*_PATH`. Production: **GCP Secret Manager** via `AFIP_CERT_SECRET_NAME` and `AFIP_KEY_SECRET_NAME`. Rotate before the cert expires and **restart** API instances so the in-process cert cache refreshes (WSAA ticket cache also lives in Postgres: `afip_tickets`).
+- **Automatic retries**: After Mercado Pago settles a row, emission runs asynchronously. A **10-minute** sweep (`StartBillingFacturaEmitLoop`) picks up paid invoices with no `factura_emitted_at` and `factura_attempts < 10`. Manual retry (same secret as renewal): `POST /internal/billing/invoices/{invoice_id}/emit-factura` with header **`X-Billing-Secret`**.
+- **Operational query** (alerts / support): count invoices stuck without CAE for more than a day:
+
+  `SELECT COUNT(*) FROM billing_invoices WHERE status = 'paid' AND factura_emitted_at IS NULL AND issued_at < NOW() - INTERVAL '24 hours' AND factura_attempts < 10;`
+
+- **AFIP or padrón down**: Rows accumulate `factura_last_error` and `billing_invoice_factura_attempts` audit lines; the emitter falls back to stored `companies.condicion_iva` when padrón is unavailable (see `internal/billing/factura_emitter.go`).
+- **Padron cache (factura emission only)**: When `AFIP_PADRON_CACHE_HOURS` \> 0 (default **168**), if `companies.padron_synced_at` is within that window and `condicion_iva` is set, WSFE emission **skips** `getPersona` and uses stored receptor metadata (razón social / estado / domicilio remain whatever was last synced—signup, manual verify, or a prior emit refresh). Set **`AFIP_PADRON_CACHE_HOURS=0`** to call AFIP padron on every factura attempt.
+
+---
+
+## 6. CI / deploy
 
 The **`backend.yml`** workflow builds, tests, and deploys Cloud Run on pushes to `main` under `backend/**`. After deploy, run the **To-Prod §9** smoke checks (health, webhook GET, optional login). Optionally add a step that **`curl`s `/health/ready`** against the public URL using a GitHub secret (not committed).
 

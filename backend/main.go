@@ -25,6 +25,9 @@ import (
 	"server/internal/middleware"
 	"server/internal/models"
 	notifymail "server/internal/notifications/email"
+	"server/internal/payments/afip"
+	"server/internal/payments/afip/certprovider"
+	"server/internal/payments/afip/wsaa"
 	"server/internal/payments/mercadopago"
 	"server/internal/repository"
 )
@@ -76,6 +79,8 @@ func main() {
 	jwtSvc := jwt.NewService(cfg.JWTSecret)
 	mpClient := mercadopago.New(cfg.MercadoPagoAccessToken)
 
+	afipClient, afipBillingActive, afipPadronActive := initAfipClient(cfg)
+
 	var authReleases *handlers.AuthReleasesConfig
 	if cfg.GCSReleasesBucket != "" && cfg.AndroidReleaseObject != "" {
 		releaseClient, err := storage.NewClient(context.Background())
@@ -103,6 +108,35 @@ func main() {
 
 	syncRepo := repository.NewSyncRepository(db.Pool)
 	invoiceRepo := repository.NewInvoiceRepository(db.Pool)
+	afipTicketRepo := repository.NewAfipTicketRepository(db.Pool)
+
+	var afipTAManager *afip.TAManager
+	if afipClient != nil {
+		afipTAManager = newAfipTAManager(afipClient, afipTicketRepo)
+		logger.Log.Info().Msg("AFIP TA manager initialized (afip_tickets cache backed)")
+	}
+	var facturaEmitter *billing.FacturaEmitter
+	if afipClient != nil && afipTAManager != nil {
+		var padronCacheTTL time.Duration
+		if cfg.AfipPadronCacheHours > 0 {
+			padronCacheTTL = time.Duration(cfg.AfipPadronCacheHours) * time.Hour
+		}
+		facturaEmitter = &billing.FacturaEmitter{
+			Afip:           afipClient,
+			TAMgr:          afipTAManager,
+			Invoices:       invoiceRepo,
+			Companies:      companyRepo,
+			BillingEnabled: cfg.AfipBillingEnabled,
+			PadronEnabled:  cfg.AfipPadronEnabled,
+			PadronCacheTTL: padronCacheTTL,
+		}
+	}
+	if facturaEmitter != nil && cfg.AfipBillingEnabled {
+		jobs.StartBillingFacturaEmitLoop(context.Background(), facturaEmitter, invoiceRepo, 10*time.Minute)
+		logger.Log.Info().Msg("Billing AFIP factura retry loop enabled (10m)")
+	}
+	_ = afipBillingActive
+	_ = afipPadronActive
 	billingFx := &billing.MEPWithFallback{
 		HTTP: &http.Client{
 			Timeout: 20 * time.Second,
@@ -136,7 +170,7 @@ func main() {
 		}()
 		logger.Log.Info().Msg("Subscription lapse notice emails enabled (1h ticker)")
 	}
-	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, userWarehouseRepo, refreshTokenRepo, passwordResetTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction)
+	authHandler := handlers.NewAuthHandler(userRepo, companyRepo, warehouseRepo, syncRepo, invoiceRepo, deviceRepo, userWarehouseRepo, refreshTokenRepo, passwordResetTokenRepo, transferRepo, subscriptionRepo, db.Pool, jwtSvc, mpClient, cfg.SignupAllowMockPayment, authReleases, mailSender, cfg.PublicSiteURL, billingFx, cfg.BillingFXBufferFraction, facturaEmitter, afipClient)
 	mpWebhookHandler := handlers.NewMercadoPagoWebhookHandler(
 		db.Pool,
 		invoiceRepo,
@@ -147,6 +181,7 @@ func main() {
 		cfg.PublicSiteURL,
 		cfg.BillingFXBufferFraction,
 		cfg.MercadoPagoWebhookSecret,
+		facturaEmitter,
 	)
 	warehouseHandler := handlers.NewWarehouseHandler(warehouseRepo, companyRepo, deviceRepo, userWarehouseRepo, jwtSvc)
 	deviceHandler := handlers.NewDeviceHandler(deviceRepo, userWarehouseRepo, jwtSvc)
@@ -211,13 +246,18 @@ func main() {
 			cfg.BillingFXBufferFraction,
 			mailSender,
 			cfg.PublicSiteURL,
+			facturaEmitter,
 		)
 	}
 	if cfg.BillingRenewalSecret != "" && renewalSvc != nil {
 		billingRenewalHandler := handlers.NewBillingRenewalHandler(renewalSvc)
+		billingFacturaHandler := handlers.NewBillingFacturaHandler(facturaEmitter)
 		h.Route("/internal/billing", func(r chi.Router) {
 			r.Use(middleware.BillingRenewalSecret(cfg.BillingRenewalSecret))
 			r.Post("/trigger-renewal", billingRenewalHandler.PostTriggerRenewal)
+			if facturaEmitter != nil {
+				r.Post("/invoices/{invoiceID}/emit-factura", billingFacturaHandler.PostEmitFactura)
+			}
 		})
 		logger.Log.Info().Msg("Billing renewal endpoint enabled at POST /internal/billing/trigger-renewal")
 	}
@@ -282,6 +322,84 @@ func runMigrations(cfg *config.Config) error {
 
 	logger.Log.Info().Msg("Migrations completed successfully")
 	return nil
+}
+
+// initAfipClient builds the AFIP/ARCA client when AFIP_BILLING_ENABLED or AFIP_PADRON_ENABLED is set.
+// Returns nil when neither flag is enabled or when required emisor/cert configuration is missing
+// (server keeps booting; the dependent features simply stay off).
+func initAfipClient(cfg *config.Config) (*afip.Client, bool, bool) {
+	billingOn := cfg.AfipBillingEnabled
+	padronOn := cfg.AfipPadronEnabled
+	if !billingOn && !padronOn {
+		return nil, false, false
+	}
+	if cfg.AfipCUIT == "" || cfg.AfipPuntoVenta <= 0 {
+		logger.Log.Warn().Msg("AFIP feature flag set but AFIP_CUIT / AFIP_PUNTO_VENTA missing; AFIP integration disabled")
+		return nil, false, false
+	}
+
+	var provider certprovider.CertProvider
+	if cfg.AfipCertSecretName != "" && cfg.AfipKeySecretName != "" {
+		provider = certprovider.NewGCPSecret(cfg.AfipCertSecretName, cfg.AfipKeySecretName)
+	} else {
+		provider = certprovider.NewEnv(cfg.AfipCertPEM, cfg.AfipCertPath, cfg.AfipKeyPEM, cfg.AfipKeyPath)
+	}
+
+	client, err := afip.New(afip.Config{
+		Env:             cfg.AfipEnv,
+		CUIT:            cfg.AfipCUIT,
+		PuntoVenta:      cfg.AfipPuntoVenta,
+		IssuerCondicion: cfg.AfipIssuerCondicionIVA,
+		Concepto:        cfg.AfipConcepto,
+		DefaultAlicuota: cfg.AfipDefaultAlicuotaIVA,
+		Certs:           provider,
+		WSAAURL:         cfg.AfipWSAAURL,
+		WSFEv1URL:       cfg.AfipWSFEv1URL,
+		PadronURL:       cfg.AfipPadronURL,
+	})
+	if err != nil {
+		logger.Log.Warn().Err(err).Msg("AFIP client init failed; integration disabled")
+		return nil, false, false
+	}
+	logger.Log.Info().
+		Str("env", string(client.Env)).
+		Str("cuit", client.CUIT).
+		Int("pto_vta", client.PuntoVenta).
+		Bool("billing", billingOn).
+		Bool("padron", padronOn).
+		Msg("AFIP/ARCA integration enabled")
+	return client, billingOn, padronOn
+}
+
+// newAfipTAManager wires the AfipTicketRepository into the afip.TAManager via a closure-based
+// store, keeping the repository package free of afip imports.
+func newAfipTAManager(client *afip.Client, repo *repository.AfipTicketRepository) *afip.TAManager {
+	wsaaClient := wsaa.New(client.WSAAURL(), nil, client.Certs)
+	store := &afip.FuncTAStore{
+		GetFn: func(ctx context.Context, service string) (*afip.StoredTA, error) {
+			row, err := repo.Get(ctx, service)
+			if err != nil || row == nil {
+				return nil, err
+			}
+			return &afip.StoredTA{
+				Service:        row.Service,
+				Token:          row.Token,
+				Sign:           row.Sign,
+				GenerationTime: row.GenerationTime,
+				ExpirationTime: row.ExpirationTime,
+			}, nil
+		},
+		UpsertFn: func(ctx context.Context, ta afip.StoredTA) error {
+			return repo.Upsert(ctx, repository.AfipTicket{
+				Service:        ta.Service,
+				Token:          ta.Token,
+				Sign:           ta.Sign,
+				GenerationTime: ta.GenerationTime,
+				ExpirationTime: ta.ExpirationTime,
+			})
+		},
+	}
+	return afip.NewTAManager(wsaaClient, store)
 }
 
 func seedLocalDevUsers(ctx context.Context) error {

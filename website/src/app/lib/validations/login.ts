@@ -3,7 +3,7 @@
  * `LoginRequest` (server/internal/models/login.go) and NormalizeLoginRequest.
  */
 
-import { validateCompanyCode } from './signupTrial';
+import { validateCompanyCode } from './signup';
 
 export type LoginFormField = 'company_code' | 'username' | 'password';
 

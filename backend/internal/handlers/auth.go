@@ -22,6 +22,7 @@ import (
 	"server/internal/middleware"
 	"server/internal/models"
 	notifymail "server/internal/notifications/email"
+	"server/internal/payments/afip"
 	"server/internal/payments/mercadopago"
 	"server/internal/releases"
 	"server/internal/repository"
@@ -57,9 +58,11 @@ type AuthHandler struct {
 	billingRateQuoter       billing.USDARSQuoter
 	billingFXBufferFraction float64
 	passwordResetTokenRepo  *repository.PasswordResetTokenRepository
+	facturaEmitter          *billing.FacturaEmitter
+	afipClient              *afip.Client
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, userWarehouseRepo *repository.UserWarehouseRepository, refreshTokenRepo *repository.RefreshTokenRepository, passwordResetTokenRepo *repository.PasswordResetTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64) *AuthHandler {
+func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository.CompanyRepository, warehouseRepo *repository.WarehouseRepository, syncRepo *repository.SyncRepository, invoiceRepo *repository.InvoiceRepository, deviceRepo *repository.DeviceRepository, userWarehouseRepo *repository.UserWarehouseRepository, refreshTokenRepo *repository.RefreshTokenRepository, passwordResetTokenRepo *repository.PasswordResetTokenRepository, transferRepo *repository.WebSessionTransferRepository, subscriptionRepo *repository.SubscriptionRepository, db *pgxpool.Pool, jwtSvc *jwt.Service, mp *mercadopago.Client, signupAllowMock bool, releases *AuthReleasesConfig, mailer notifymail.Sender, publicSiteURL string, billingRateQuoter billing.USDARSQuoter, billingFXBufferFraction float64, facturaEmitter *billing.FacturaEmitter, afipClient *afip.Client) *AuthHandler {
 	return &AuthHandler{
 		userRepo:                userRepo,
 		companyRepo:             companyRepo,
@@ -81,6 +84,8 @@ func NewAuthHandler(userRepo *repository.UserRepository, companyRepo *repository
 		publicSiteURL:           publicSiteURL,
 		billingRateQuoter:       billingRateQuoter,
 		billingFXBufferFraction: billingFXBufferFraction,
+		facturaEmitter:          facturaEmitter,
+		afipClient:              afipClient,
 	}
 }
 
@@ -671,13 +676,18 @@ type meEntitlementResponse struct {
 }
 
 type meProfileResponse struct {
-	ID          string  `json:"id"`
-	Username    string  `json:"username"`
-	Email       *string `json:"email,omitempty"`
-	CompanyID   string  `json:"company_id"`
-	CompanyName string  `json:"company_name"`
-	CompanyCode string  `json:"company_code"`
-	Role        string  `json:"role"`
+	ID              string  `json:"id"`
+	Username        string  `json:"username"`
+	Email           *string `json:"email,omitempty"`
+	CompanyID       string  `json:"company_id"`
+	CompanyName     string  `json:"company_name"`
+	CompanyCode     string  `json:"company_code"`
+	Role            string  `json:"role"`
+	Cuit            string  `json:"cuit,omitempty"`
+	RazonSocial     string  `json:"razon_social,omitempty"`
+	CondicionIVA    string  `json:"condicion_iva,omitempty"`
+	DomicilioFiscal string  `json:"domicilio_fiscal,omitempty"`
+	CuitEstado      string  `json:"cuit_estado,omitempty"`
 }
 
 func canAccessWebManagement(role string) bool {
@@ -752,13 +762,18 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondWithJSON(w, http.StatusOK, meProfileResponse{
-		ID:          user.ID.String(),
-		Username:    username,
-		Email:       user.Email,
-		CompanyID:   companyID.String(),
-		CompanyName: company.Name,
-		CompanyCode: company.Code,
-		Role:        claims.Role,
+		ID:              user.ID.String(),
+		Username:        username,
+		Email:           user.Email,
+		CompanyID:       companyID.String(),
+		CompanyName:     company.Name,
+		CompanyCode:     company.Code,
+		Role:            claims.Role,
+		Cuit:            strings.TrimSpace(company.Cuit),
+		RazonSocial:     strings.TrimSpace(company.RazonSocial),
+		CondicionIVA:    strings.TrimSpace(company.CondicionIVA),
+		DomicilioFiscal: strings.TrimSpace(company.DomicilioFiscal),
+		CuitEstado:      strings.TrimSpace(company.CuitEstado),
 	})
 }
 
@@ -856,6 +871,15 @@ type invoiceListItem struct {
 	Description string    `json:"description,omitempty"`
 	IssuedAt    time.Time `json:"issued_at"`
 	MpPaymentID *string   `json:"mp_payment_id,omitempty"`
+	// AFIP factura (optional until emitted).
+	FacturaTipo      *int32  `json:"factura_tipo,omitempty"`
+	FacturaPtoVta    *int32  `json:"factura_pto_vta,omitempty"`
+	FacturaNumero    *int64  `json:"factura_numero,omitempty"`
+	FacturaCAE       *string `json:"factura_cae,omitempty"`
+	FacturaCAEVto    *string `json:"factura_cae_vto,omitempty"`
+	FacturaEmittedAt *string `json:"factura_emitted_at,omitempty"`
+	FacturaPending   bool    `json:"factura_pending"`
+	FacturaLastError *string `json:"factura_last_error,omitempty"`
 }
 
 // GetMeInvoices lists billing invoices for the authenticated user's company (newest first).
@@ -881,7 +905,7 @@ func (h *AuthHandler) GetMeInvoices(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]invoiceListItem, len(rows))
 	for i, inv := range rows {
-		out[i] = invoiceListItem{
+		item := invoiceListItem{
 			ID:          inv.ID,
 			AmountMinor: inv.AmountMinor,
 			Currency:    inv.Currency,
@@ -890,6 +914,37 @@ func (h *AuthHandler) GetMeInvoices(w http.ResponseWriter, r *http.Request) {
 			IssuedAt:    inv.IssuedAt,
 			MpPaymentID: inv.MpPaymentID,
 		}
+		if inv.FacturaTipo.Valid {
+			v := inv.FacturaTipo.Int32
+			item.FacturaTipo = &v
+		}
+		if inv.FacturaPtoVta.Valid {
+			v := inv.FacturaPtoVta.Int32
+			item.FacturaPtoVta = &v
+		}
+		if inv.FacturaNumero.Valid {
+			v := inv.FacturaNumero.Int64
+			item.FacturaNumero = &v
+		}
+		if inv.FacturaCAE.Valid {
+			s := inv.FacturaCAE.String
+			item.FacturaCAE = &s
+		}
+		if inv.FacturaCAEVto.Valid {
+			s := inv.FacturaCAEVto.Time.Format("2006-01-02")
+			item.FacturaCAEVto = &s
+		}
+		if inv.FacturaEmittedAt.Valid {
+			s := inv.FacturaEmittedAt.Time.UTC().Format(time.RFC3339)
+			item.FacturaEmittedAt = &s
+		}
+		if inv.FacturaLastError.Valid {
+			s := inv.FacturaLastError.String
+			item.FacturaLastError = &s
+		}
+		item.FacturaPending = inv.Status == "paid" && inv.MpPaymentID != nil &&
+			!inv.FacturaEmittedAt.Valid && inv.FacturaAttempts < repository.MaxFacturaAttempts
+		out[i] = item
 	}
 	RespondWithJSON(w, http.StatusOK, out)
 }
@@ -1140,8 +1195,8 @@ func (h *AuthHandler) Routes() *chi.Mux {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthEndpointsRateLimit())
 		r.Post("/registrarse", h.Register)
-		r.Post("/signup", h.SignupTrial)
-		r.Post("/signup/trial", h.SignupTrial)
+		r.Post("/signup", h.Signup)
+		r.Post("/signup/trial", h.Signup)
 		r.Post("/login", h.Login)
 		r.Post("/forgot-password", h.ForgotPassword)
 		r.Post("/reset-password", h.ResetPassword)
@@ -1162,6 +1217,8 @@ func (h *AuthHandler) Routes() *chi.Mux {
 		r.Get("/user/status", h.GetUserStatus)
 		r.Get("/me/entitlement", h.GetMeEntitlement)
 		r.Get("/me/invoices", h.GetMeInvoices)
+		r.Get("/me/invoices/{invoiceID}/factura.pdf", h.GetMeInvoiceFacturaPDF)
+		r.Post("/me/cuit/verify", h.PostMeVerifyCUIT)
 		r.Get("/me/plan-catalog-limits", h.GetMePlanCatalogLimits)
 		r.Get("/me/plan-pricing", h.GetMePlanPricing)
 		r.Get("/downloads/android", h.GetAndroidDownloadURL)

@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"server/internal/billing"
 	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/models"
@@ -19,22 +20,23 @@ import (
 	"server/internal/validation"
 )
 
+// Limits for the initial trial period granted at signup (subscription_plan=trial).
 const (
-	signupTrialDays          = 7
-	signupTrialMaxWarehouses = 2
-	signupTrialMaxUsers      = 2
-	signupTrialDocsLimit     = 500
+	trialPeriodDays    = 7
+	trialMaxWarehouses = 2
+	trialMaxUsers      = 2
+	trialDocsLimit     = 500
 )
 
-// SignupTrial creates one company (trial), one warehouse, the first user (company_owner), and subscription row.
-func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
-	var req models.SignupTrialRequest
+// Signup creates one company (trial tier), one warehouse, the first user (company_owner), and subscription row.
+func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
+	var req models.SignupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
 		return
 	}
 
-	validation.NormalizeSignupTrialRequest(&req)
+	validation.NormalizeSignupRequest(&req)
 
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {
 		RespondWithValidationError(w, r, "Revisá los datos del formulario.", fields, http.StatusBadRequest)
@@ -62,6 +64,32 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.facturaEmitter == nil || !h.facturaEmitter.PadronEnabled {
+		RespondWithError(w, r, ErrCodeInternalError, "No podemos verificar el CUIT con AFIP en este momento. Intentá de nuevo más tarde.", http.StatusServiceUnavailable)
+		return
+	}
+	persona, err := billing.LookupPadronPersona(ctx, h.facturaEmitter, req.CompanyCUIT)
+	if err != nil {
+		logger.Log.Warn().Err(err).Str("cuit", req.CompanyCUIT).Msg("signup padron lookup failed")
+		msg := "No pudimos validar el CUIT con AFIP. Revisá el número o probá más tarde."
+		if strings.Contains(err.Error(), "checksum") {
+			msg = "El dígito verificador del CUIT no es válido."
+		}
+		RespondWithError(w, r, ErrCodeInvalidRequest, msg, http.StatusBadRequest, err)
+		return
+	}
+	estado := strings.TrimSpace(persona.EstadoClave)
+	if strings.EqualFold(estado, "INACTIVO") {
+		RespondWithError(w, r, ErrCodeInvalidRequest, "El CUIT no está activo en AFIP (clave inactiva). No podemos crear la cuenta con este número.", http.StatusBadRequest)
+		return
+	}
+	stamp := time.Now().UTC()
+	cuitStr := req.CompanyCUIT
+	razonSocial := persona.RazonSocial
+	condicionIVA := string(persona.CondicionIVA)
+	domicilio := persona.DomicilioFiscal
+	cuitVerifiedAt := &stamp
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		RespondWithError(w, r, ErrCodeInternalError, "Error interno del servidor", http.StatusInternalServerError, err)
@@ -82,15 +110,22 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 	companyID := uuid.New()
 	warehouseID := uuid.New()
 	userID := uuid.New()
-	trialEnd := time.Now().UTC().Add(signupTrialDays * 24 * time.Hour)
-	maxWarehouses := signupTrialMaxWarehouses
-	maxUsers := signupTrialMaxUsers
-	docLimit := signupTrialDocsLimit
+	trialEnd := time.Now().UTC().Add(trialPeriodDays * 24 * time.Hour)
+	maxWarehouses := trialMaxWarehouses
+	maxUsers := trialMaxUsers
+	docLimit := trialDocsLimit
 
 	company := &models.Company{
 		ID:                    companyID,
 		Code:                  companyCode,
 		Name:                  companyName,
+		Cuit:                  cuitStr,
+		RazonSocial:           razonSocial,
+		CondicionIVA:          condicionIVA,
+		DomicilioFiscal:       domicilio,
+		CuitEstado:            estado,
+		CuitVerifiedAt:        cuitVerifiedAt,
+		PadronSyncedAt:        cuitVerifiedAt,
 		TrialEndsAt:           &trialEnd,
 		MaxWarehouses:         &maxWarehouses,
 		MaxUsers:              &maxUsers,
@@ -202,7 +237,7 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type signupTrialResponse struct {
+	type signupResponse struct {
 		Message       string `json:"message"`
 		UserID        string `json:"user_id"`
 		CompanyID     string `json:"company_id"`
@@ -221,8 +256,8 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 
 	if wantsWebCookies(r) {
 		middleware.SetWebSessionCookies(w, token, refreshToken, middleware.RequestIsHTTPS(r))
-		RespondWithJSON(w, http.StatusCreated, signupTrialResponse{
-			Message:       fmt.Sprintf("Cuenta creada. Tenés %d días de prueba.", signupTrialDays),
+		RespondWithJSON(w, http.StatusCreated, signupResponse{
+			Message:       fmt.Sprintf("Cuenta creada. Tenés %d días de prueba.", trialPeriodDays),
 			UserID:        user.ID.String(),
 			CompanyID:     companyID.String(),
 			CompanyCode:   companyCode,
@@ -236,8 +271,8 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJSON(w, http.StatusCreated, signupTrialResponse{
-		Message:       fmt.Sprintf("Cuenta creada. Tenés %d días de prueba.", signupTrialDays),
+	RespondWithJSON(w, http.StatusCreated, signupResponse{
+		Message:       fmt.Sprintf("Cuenta creada. Tenés %d días de prueba.", trialPeriodDays),
 		UserID:        user.ID.String(),
 		CompanyID:     companyID.String(),
 		CompanyCode:   companyCode,
@@ -252,7 +287,7 @@ func (h *AuthHandler) SignupTrial(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) queueSignupWelcomeEmail(recipient, companyName, companyCode string, trialEnd time.Time) {
-	msg := notifymail.SignupTrialWelcome(recipient, companyCode, companyName, trialEnd, h.publicSiteURL)
+	msg := notifymail.SignupWelcome(recipient, companyCode, companyName, trialEnd, h.publicSiteURL)
 	go func(m notifymail.Message) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()

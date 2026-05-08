@@ -40,4 +40,12 @@ export type BillingInvoiceRow = {
   description?: string;
   issued_at: string;
   mp_payment_id?: string;
+  factura_tipo?: number;
+  factura_pto_vta?: number;
+  factura_numero?: number;
+  factura_cae?: string | null;
+  factura_cae_vto?: string | null;
+  factura_emitted_at?: string | null;
+  factura_pending?: boolean;
+  factura_last_error?: string | null;
 };

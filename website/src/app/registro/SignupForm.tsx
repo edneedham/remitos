@@ -5,31 +5,33 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import {
-  SIGNUP_TRIAL_API_FIELD_MAP,
-  validateSignupTrialAccount,
-  validateSignupTrialAccountField,
-  type SignupTrialAccountErrors,
-  type SignupTrialAccountField,
-} from '../lib/validations/signupTrial';
+  SIGNUP_API_FIELD_MAP,
+  validateSignupAccount,
+  validateSignupAccountField,
+  type SignupAccountErrors,
+  type SignupAccountField,
+} from '../lib/validations/signup';
 import {
   saveWebSession,
   useWebCookieSession,
   webCookieFetchInit,
 } from '../lib/webAuth';
 
-export type SignupTrialFormVariant = 'card' | 'embedded';
+export type SignupFormVariant = 'card' | 'embedded';
 
-const ACCOUNT_FIELD_IDS: SignupTrialAccountField[] = [
+const ACCOUNT_FIELD_IDS: SignupAccountField[] = [
   'companyName',
   'companyCode',
+  'companyCuit',
   'email',
   'password',
   'passwordConfirm',
 ];
 
-const ACCOUNT_FIELD_DOM_ID: Record<SignupTrialAccountField, string> = {
+const ACCOUNT_FIELD_DOM_ID: Record<SignupAccountField, string> = {
   companyName: 'su-company',
   companyCode: 'su-code',
+  companyCuit: 'su-cuit',
   email: 'su-email',
   password: 'su-password',
   passwordConfirm: 'su-password-confirm',
@@ -51,17 +53,18 @@ function scrollAndFocusById(elementId: string) {
   });
 }
 
-export default function SignupTrialForm({
+export default function SignupForm({
   variant = 'card',
   onSignupSuccess,
 }: {
-  variant?: SignupTrialFormVariant;
+  variant?: SignupFormVariant;
   onSignupSuccess?: () => void;
 }) {
   const router = useRouter();
 
   const [companyName, setCompanyName] = useState('');
   const [companyCode, setCompanyCode] = useState('');
+  const [companyCuit, setCompanyCuit] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -69,11 +72,12 @@ export default function SignupTrialForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accountFieldErrors, setAccountFieldErrors] =
-    useState<SignupTrialAccountErrors>({});
+    useState<SignupAccountErrors>({});
 
   const accountValuesRef = useRef({
     companyName,
     companyCode,
+    companyCuit,
     email,
     password,
     passwordConfirm,
@@ -81,13 +85,14 @@ export default function SignupTrialForm({
   accountValuesRef.current = {
     companyName,
     companyCode,
+    companyCuit,
     email,
     password,
     passwordConfirm,
   };
 
   const accountDebounceTimersRef = useRef<
-    Partial<Record<SignupTrialAccountField, ReturnType<typeof setTimeout>>>
+    Partial<Record<SignupAccountField, ReturnType<typeof setTimeout>>>
   >({});
 
   useEffect(() => {
@@ -105,7 +110,7 @@ export default function SignupTrialForm({
   );
 
   const scrollFirstAccountErrorIntoView = useCallback(
-    (errs: SignupTrialAccountErrors) => {
+    (errs: SignupAccountErrors) => {
       for (const key of ACCOUNT_FIELD_IDS) {
         if (errs[key]) {
           scrollAndFocusById(ACCOUNT_FIELD_DOM_ID[key]);
@@ -117,7 +122,7 @@ export default function SignupTrialForm({
   );
 
   const cancelAccountFieldDebounce = useCallback(
-    (field: SignupTrialAccountField) => {
+    (field: SignupAccountField) => {
       const t = accountDebounceTimersRef.current[field];
       if (t) {
         clearTimeout(t);
@@ -139,16 +144,16 @@ export default function SignupTrialForm({
   }, []);
 
   const applyDebouncedAccountFieldValidation = useCallback(
-    (field: SignupTrialAccountField) => {
+    (field: SignupAccountField) => {
       const values = accountValuesRef.current;
-      const fields: SignupTrialAccountField[] =
+      const fields: SignupAccountField[] =
         field === 'password' || field === 'passwordConfirm'
           ? ['password', 'passwordConfirm']
           : [field];
       setAccountFieldErrors((prev) => {
         const next = { ...prev };
         for (const f of fields) {
-          const err = validateSignupTrialAccountField(f, values);
+          const err = validateSignupAccountField(f, values);
           if (err) next[f] = err;
           else delete next[f];
         }
@@ -159,7 +164,7 @@ export default function SignupTrialForm({
   );
 
   const scheduleDebouncedAccountValidation = useCallback(
-    (field: SignupTrialAccountField) => {
+    (field: SignupAccountField) => {
       const prev = accountDebounceTimersRef.current[field];
       if (prev) clearTimeout(prev);
       accountDebounceTimersRef.current[field] = setTimeout(() => {
@@ -171,9 +176,10 @@ export default function SignupTrialForm({
   );
 
   const runAccountValidation = useCallback(() => {
-    const errs = validateSignupTrialAccount({
+    const errs = validateSignupAccount({
       companyName,
       companyCode,
+      companyCuit,
       email,
       password,
       passwordConfirm,
@@ -183,12 +189,13 @@ export default function SignupTrialForm({
   }, [
     companyCode,
     companyName,
+    companyCuit,
     email,
     password,
     passwordConfirm,
   ]);
 
-  const clearAccountFieldError = useCallback((field: SignupTrialAccountField) => {
+  const clearAccountFieldError = useCallback((field: SignupAccountField) => {
     setAccountFieldErrors((prev) => {
       if (!prev[field]) return prev;
       const next = { ...prev };
@@ -198,7 +205,7 @@ export default function SignupTrialForm({
   }, []);
 
   const handleAccountBlur = useCallback(
-    (field: SignupTrialAccountField) => {
+    (field: SignupAccountField) => {
       cancelAccountFieldDebounce(field);
       if (field === 'password') {
         cancelAccountFieldDebounce('passwordConfirm');
@@ -207,7 +214,7 @@ export default function SignupTrialForm({
         cancelAccountFieldDebounce('password');
       }
 
-      const fieldsToValidate: SignupTrialAccountField[] =
+      const fieldsToValidate: SignupAccountField[] =
         field === 'password' || field === 'passwordConfirm'
           ? ['password', 'passwordConfirm']
           : [field];
@@ -216,7 +223,7 @@ export default function SignupTrialForm({
         const next = { ...prev };
         const values = accountValuesRef.current;
         for (const f of fieldsToValidate) {
-          const err = validateSignupTrialAccountField(f, values);
+          const err = validateSignupAccountField(f, values);
           if (err) next[f] = err;
           else delete next[f];
         }
@@ -250,6 +257,7 @@ export default function SignupTrialForm({
 
       setLoading(true);
       try {
+        const cuitDigits = companyCuit.replace(/\D/g, '');
         const res = await fetch(`${api}/auth/signup`, {
           method: 'POST',
           ...webCookieFetchInit({ 'Content-Type': 'application/json' }),
@@ -258,6 +266,7 @@ export default function SignupTrialForm({
             password,
             company_name: companyName.trim(),
             company_code: companyCode.trim().toUpperCase(),
+            company_cuit: cuitDigits,
           }),
         });
         const data = (await res.json().catch(() => ({}))) as {
@@ -270,9 +279,9 @@ export default function SignupTrialForm({
         };
         if (!res.ok) {
           if (data.fields && typeof data.fields === 'object') {
-            const fromApi: SignupTrialAccountErrors = {};
+            const fromApi: SignupAccountErrors = {};
             for (const [k, v] of Object.entries(data.fields)) {
-              const formKey = SIGNUP_TRIAL_API_FIELD_MAP[k];
+              const formKey = SIGNUP_API_FIELD_MAP[k];
               if (formKey && typeof v === 'string' && v.length > 0) {
                 fromApi[formKey] = v;
               }
@@ -317,6 +326,7 @@ export default function SignupTrialForm({
     },
     [
       companyCode,
+      companyCuit,
       companyName,
       email,
       cancelAllAccountDebounces,
@@ -344,7 +354,7 @@ export default function SignupTrialForm({
 
   const mainStackClass = variant === 'embedded' ? 'space-y-6' : 'space-y-6';
 
-  const accountInputClass = (field: SignupTrialAccountField) =>
+  const accountInputClass = (field: SignupAccountField) =>
     `w-full px-4 py-3 border rounded-lg ${
       accountFieldErrors[field]
         ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-red-500'
@@ -441,6 +451,49 @@ export default function SignupTrialForm({
             <p className="mt-1 text-xs text-gray-500">
               Letras, números, guiones o guiones bajos.
             </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="su-cuit"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              CUIT de la empresa
+            </label>
+            <input
+              id="su-cuit"
+              inputMode="numeric"
+              autoComplete="off"
+              value={companyCuit}
+              onChange={(e) => {
+                setCompanyCuit(e.target.value);
+                clearAccountFieldError('companyCuit');
+                scheduleDebouncedAccountValidation('companyCuit');
+              }}
+              onBlur={() => handleAccountBlur('companyCuit')}
+              placeholder="XX-XXXXXXXX-X"
+              maxLength={13}
+              spellCheck={false}
+              aria-required
+              aria-invalid={Boolean(accountFieldErrors.companyCuit)}
+              aria-describedby={
+                accountFieldErrors.companyCuit ? 'su-cuit-error' : 'su-cuit-hint'
+              }
+              className={`${accountInputClass('companyCuit')} font-mono`}
+            />
+            {accountFieldErrors.companyCuit ? (
+              <p
+                id="su-cuit-error"
+                className="mt-1.5 text-sm text-red-600"
+                role="alert"
+              >
+                {accountFieldErrors.companyCuit}
+              </p>
+            ) : (
+              <p id="su-cuit-hint" className="mt-1 text-xs text-gray-500">
+                Lo validamos con AFIP antes de crear la cuenta.
+              </p>
+            )}
           </div>
 
           <div>

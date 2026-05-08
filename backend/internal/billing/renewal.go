@@ -28,6 +28,7 @@ type RenewalService struct {
 	FXBufferFraction float64      // applied on reference MEP before USD→ARS (e.g. 0.07)
 	Mailer           notifymail.Sender
 	PublicSiteURL    string
+	Factura          *FacturaEmitter
 }
 
 type RenewalRunInput struct {
@@ -57,6 +58,7 @@ func NewRenewalService(
 	fxBufferFraction float64,
 	mailer notifymail.Sender,
 	publicSiteURL string,
+	factura *FacturaEmitter,
 ) *RenewalService {
 	return &RenewalService{
 		Pool:             pool,
@@ -69,6 +71,7 @@ func NewRenewalService(
 		FXBufferFraction: fxBufferFraction,
 		Mailer:           mailer,
 		PublicSiteURL:    publicSiteURL,
+		Factura:          factura,
 	}
 }
 
@@ -243,6 +246,9 @@ func (s *RenewalService) Run(ctx context.Context, in RenewalRunInput) (*RenewalR
 			s.Invoices, s.Users, s.Companies, s.Mailer, s.PublicSiteURL,
 			LegalNoticeAR(s.FXBufferFraction), invoiceID,
 		)
+	}
+	if s.Factura != nil && updated {
+		s.Factura.ScheduleEmit(invoiceID)
 	}
 
 	expiresRFC := newEnds.UTC().Format(time.RFC3339)

@@ -12,7 +12,7 @@ import { trackTrialOnboardingEvent } from '../lib/trialOnboardingAnalytics';
 import LoadingSpinner from '../ui/components/shared/LoadingSpinner';
 import SignupMarketingAside from './SignupMarketingAside';
 import SignupPlanSelector from './SignupPlanSelector';
-import SignupTrialForm from './SignupTrialForm';
+import SignupForm from './SignupForm';
 
 export default function SignupGate() {
   const router = useRouter();
@@ -163,7 +163,7 @@ export default function SignupGate() {
               </div>
 
               <div className="min-h-0 min-w-0 flex-1">
-                <SignupTrialForm
+                <SignupForm
                   variant="embedded"
                   onSignupSuccess={async () => {
                     if (!hasPreselectedPlan) {

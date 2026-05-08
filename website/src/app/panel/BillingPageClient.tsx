@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getApiBaseUrl } from '../lib/apiUrl';
@@ -50,6 +50,37 @@ export default function BillingPageClient() {
   const [invoicesError, setInvoicesError] = useState<string | null>(null);
   const [nextBillingEstimateMinor, setNextBillingEstimateMinor] = useState<number | null>(null);
   const [nextBillingEstimateCurrency, setNextBillingEstimateCurrency] = useState<string>('ARS');
+
+  const downloadFacturaPdf = useCallback(
+    async (invoiceId: string) => {
+      try {
+        const res = await fetchWithWebAuth(
+          `/auth/me/invoices/${invoiceId}/factura.pdf`,
+        );
+        if (res.status === 401) {
+          clearWebSession();
+          router.replace('/ingresar');
+          return;
+        }
+        if (!res.ok) {
+          window.alert(
+            'El PDF todavía no está disponible o hubo un error al descargarlo.',
+          );
+          return;
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `remitos-factura-${invoiceId}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch {
+        window.alert('Error al descargar el PDF.');
+      }
+    },
+    [router],
+  );
 
   useEffect(() => {
     if (!hasWebSession()) {
@@ -570,6 +601,25 @@ export default function BillingPageClient() {
                         <p className="mt-1 text-xs font-medium text-gray-600">
                           {invoiceStatusLabel(inv.status)}
                         </p>
+                        {inv.factura_pending ? (
+                          <p className="mt-1 text-xs font-medium text-amber-800">
+                            Factura AFIP: pendiente CAE
+                          </p>
+                        ) : null}
+                        {inv.factura_cae ? (
+                          <p className="mt-1 text-xs text-gray-600">
+                            CAE {inv.factura_cae}
+                          </p>
+                        ) : null}
+                        {inv.factura_cae && inv.factura_emitted_at ? (
+                          <button
+                            type="button"
+                            className="mt-1 text-xs font-medium text-blue-600 underline"
+                            onClick={() => void downloadFacturaPdf(inv.id)}
+                          >
+                            Descargar PDF
+                          </button>
+                        ) : null}
                       </article>
                     ))}
                   </div>
@@ -589,6 +639,9 @@ export default function BillingPageClient() {
                         <th scope="col" className="px-4 py-3 font-semibold text-gray-700">
                           Concepto
                         </th>
+                        <th scope="col" className="px-4 py-3 font-semibold text-gray-700">
+                          Factura AFIP
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white">
@@ -607,6 +660,32 @@ export default function BillingPageClient() {
                             {inv.description?.trim()
                               ? inv.description
                               : '—'}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-gray-900">
+                            {inv.factura_pending ? (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
+                                Pendiente CAE
+                              </span>
+                            ) : null}
+                            {inv.factura_cae ? (
+                              <span className="block text-xs text-gray-600">
+                                CAE {inv.factura_cae}
+                              </span>
+                            ) : null}
+                            {inv.factura_cae && inv.factura_emitted_at ? (
+                              <button
+                                type="button"
+                                className="mt-1 text-xs font-medium text-blue-600 underline"
+                                onClick={() => void downloadFacturaPdf(inv.id)}
+                              >
+                                Descargar PDF
+                              </button>
+                            ) : null}
+                            {!inv.factura_pending &&
+                            !inv.factura_cae &&
+                            inv.status === 'paid' ? (
+                              <span className="text-xs text-gray-500">—</span>
+                            ) : null}
                           </td>
                         </tr>
                       ))}

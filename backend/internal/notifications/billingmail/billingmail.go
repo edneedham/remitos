@@ -2,6 +2,7 @@ package billingmail
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -61,6 +62,18 @@ func sendPaymentReceipt(
 		return
 	}
 
+	afipNote := ""
+	if inv.FacturaCAE.Valid && inv.FacturaEmittedAt.Valid {
+		tipoStr := "?"
+		if inv.FacturaTipo.Valid {
+			tipoStr = fmt.Sprintf("%d", inv.FacturaTipo.Int32)
+		}
+		vto := ""
+		if inv.FacturaCAEVto.Valid {
+			vto = inv.FacturaCAEVto.Time.Format("02/01/2006")
+		}
+		afipNote = fmt.Sprintf("Factura electrónica tipo %s — CAE %s (vto. %s).", tipoStr, inv.FacturaCAE.String, vto)
+	}
 	msg := notifymail.PaymentReceipt(
 		to,
 		co.Name,
@@ -72,6 +85,7 @@ func sendPaymentReceipt(
 		inv.ID.String(),
 		strings.TrimSpace(*inv.MpPaymentID),
 		legalFooterAR,
+		afipNote,
 	)
 	if err := mailer.Send(ctx, msg); err != nil {
 		logger.Log.Error().Err(err).Str("invoice_id", invoiceID.String()).Msg("payment receipt: send failed")

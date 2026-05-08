@@ -8,14 +8,15 @@ import (
 	"sync"
 
 	"github.com/go-playground/validator/v10"
+	"server/internal/cuit"
 )
 
-// Matches website/src/app/lib/validations/signupTrial.ts (COMPANY_CODE_RE), after trim/uppercase.
+// Matches website/src/app/lib/validations/signup.ts (COMPANY_CODE_RE), after trim/uppercase.
 var companyCodeCharsetRe = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
 var (
-	validate   *validator.Validate
-	initOnce   sync.Once
+	validate *validator.Validate
+	initOnce sync.Once
 )
 
 func companyCodeChars(fl validator.FieldLevel) bool {
@@ -24,6 +25,15 @@ func companyCodeChars(fl validator.FieldLevel) bool {
 		return true
 	}
 	return companyCodeCharsetRe.MatchString(s)
+}
+
+// cuit_ar: exactly 11 digits with valid Argentine CUIT/CUIL verifier digit.
+func cuitAR(fl validator.FieldLevel) bool {
+	s := fl.Field().String()
+	if s == "" {
+		return true
+	}
+	return cuit.ValidChecksum(s)
 }
 
 func InitValidate() {
@@ -39,6 +49,9 @@ func InitValidate() {
 		if err := validate.RegisterValidation("company_code_chars", companyCodeChars); err != nil {
 			panic(fmt.Sprintf("validation: register company_code_chars: %v", err))
 		}
+		if err := validate.RegisterValidation("cuit_ar", cuitAR); err != nil {
+			panic(fmt.Sprintf("validation: register cuit_ar: %v", err))
+		}
 	})
 }
 
@@ -52,6 +65,9 @@ func messageForFieldError(fe validator.FieldError) string {
 
 	switch tag {
 	case "required":
+		if field == "company_cuit" {
+			return "El CUIT de la empresa es obligatorio."
+		}
 		return fmt.Sprintf("%s es requerido", field)
 	case "email":
 		return fmt.Sprintf("%s debe ser un email válido", field)
@@ -63,6 +79,8 @@ func messageForFieldError(fe validator.FieldError) string {
 		return fmt.Sprintf("%s debe ser uno de: %s", field, fe.Param())
 	case "company_code_chars":
 		return "Usá solo letras, números, guiones o guiones bajos."
+	case "cuit_ar":
+		return "El CUIT no es válido (revisá los 11 dígitos y el dígito verificador)."
 	default:
 		return fmt.Sprintf("validación fallida para %s: %s", field, tag)
 	}
