@@ -234,13 +234,19 @@ export default function DashboardPageClient() {
   return (
     <div className="bg-gray-50 px-4 pb-8 pt-6 md:pb-12">
       <div className="mx-auto max-w-[92rem] space-y-6 md:space-y-8">
-        <div className="md:hidden">
-          <p className="truncate text-lg font-medium text-gray-900">
+        <div className="flex items-center justify-between gap-3 md:hidden">
+          <p className="min-w-0 truncate text-lg font-medium text-gray-900">
             Hola,{' '}
             <span className="font-semibold text-gray-950">
               {companyName ?? '…'}
             </span>
           </p>
+          {entitlement ? (
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">
+              <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
+              {formatPlanLabel(entitlement.subscription_plan)}
+            </span>
+          ) : null}
         </div>
         {checklistModel ? (
           <div className="hidden md:block">
@@ -251,37 +257,37 @@ export default function DashboardPageClient() {
         {entitlementLoading && !error ? <DashboardStatCardsSkeleton /> : null}
 
         {entitlement ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-1 justify-items-center gap-3 sm:grid-cols-2 sm:justify-items-stretch sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
             <Link
               href="/panel/depositos"
-              className="block rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40 md:p-5"
+              className="block min-h-28 w-full max-w-[22rem] rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40 md:min-h-0 md:max-w-none md:p-5"
               aria-labelledby="warehouses-card-heading"
             >
               <div className="flex gap-2.5 md:gap-3">
                 <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 md:h-12 md:w-12 md:rounded-xl"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 md:h-12 md:w-12"
                   aria-hidden
                 >
                   <Warehouse
-                    className="h-4 w-4 md:h-7 md:w-7"
+                    className="h-5 w-5 md:h-7 md:w-7"
                     strokeWidth={1.75}
                   />
                 </div>
-                <div className="min-w-0 flex-1 space-y-1.5 md:space-y-2">
+                <div className="min-w-0 flex-1 space-y-2">
                   <h2
                     id="warehouses-card-heading"
-                    className="text-[9px] font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
+                    className="text-xs font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
                   >
                     Depósitos
                   </h2>
-                  <p className="text-lg font-bold tabular-nums leading-none tracking-tight text-gray-900 md:text-3xl md:leading-none">
+                  <p className="text-2xl font-bold tabular-nums leading-none tracking-tight text-gray-900 md:text-3xl md:leading-none">
                     {typeof entitlement.warehouse_count === 'number'
                       ? typeof entitlement.max_warehouses === 'number'
                         ? `${entitlement.warehouse_count} / ${entitlement.max_warehouses}`
                         : entitlement.warehouse_count
                       : '—'}
                   </p>
-                  <p className="text-[10px] leading-snug text-gray-600 md:text-xs md:leading-snug">
+                  <p className="text-xs leading-snug text-gray-600">
                     {typeof entitlement.max_warehouses === 'number' ? (
                       <>
                         <span className="md:hidden">vs. límite del plan</span>
@@ -304,32 +310,32 @@ export default function DashboardPageClient() {
 
             <Link
               href="/panel/dispositivos"
-              className="block rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40 md:p-5"
+              className="block min-h-28 w-full max-w-[22rem] rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40 md:min-h-0 md:max-w-none md:p-5"
               aria-labelledby="devices-card-heading"
             >
               <div className="flex gap-2.5 md:gap-3">
                 <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 md:h-12 md:w-12 md:rounded-xl"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 md:h-12 md:w-12"
                   aria-hidden
                 >
                   <Smartphone
-                    className="h-4 w-4 md:h-7 md:w-7"
+                    className="h-5 w-5 md:h-7 md:w-7"
                     strokeWidth={1.75}
                   />
                 </div>
-                <div className="min-w-0 flex-1 space-y-1.5 md:space-y-2">
+                <div className="min-w-0 flex-1 space-y-2">
                   <h2
                     id="devices-card-heading"
-                    className="text-[9px] font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
+                    className="text-xs font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
                   >
                     Dispositivos
                   </h2>
-                  <p className="text-lg font-bold tabular-nums leading-none tracking-tight text-gray-900 md:text-3xl md:leading-none">
+                  <p className="text-2xl font-bold tabular-nums leading-none tracking-tight text-gray-900 md:text-3xl md:leading-none">
                     {typeof entitlement.device_count === 'number'
                       ? entitlement.device_count
                       : '—'}
                   </p>
-                  <p className="text-[10px] leading-snug text-gray-600 md:text-xs md:leading-snug">
+                  <p className="text-xs leading-snug text-gray-600">
                     <span className="md:hidden">En la empresa</span>
                     <span className="hidden md:inline">
                       Registrados para tu empresa en En Punto.
@@ -341,31 +347,31 @@ export default function DashboardPageClient() {
 
             <Link
               href="/panel/facturacion"
-              className="block rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40 md:p-5"
+              className="block min-h-28 w-full max-w-[22rem] rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40 md:min-h-0 md:max-w-none md:p-5"
               aria-labelledby="users-card-heading"
             >
               <div className="flex gap-2.5 md:gap-3">
                 <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 md:h-12 md:w-12 md:rounded-xl"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 md:h-12 md:w-12"
                   aria-hidden
                 >
-                  <Users className="h-4 w-4 md:h-7 md:w-7" strokeWidth={1.75} />
+                  <Users className="h-5 w-5 md:h-7 md:w-7" strokeWidth={1.75} />
                 </div>
-                <div className="min-w-0 flex-1 space-y-1.5 md:space-y-2">
+                <div className="min-w-0 flex-1 space-y-2">
                   <h2
                     id="users-card-heading"
-                    className="text-[9px] font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
+                    className="text-xs font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
                   >
                     Usuarios
                   </h2>
-                  <p className="text-lg font-bold tabular-nums leading-none tracking-tight text-gray-900 md:text-3xl md:leading-none">
+                  <p className="text-2xl font-bold tabular-nums leading-none tracking-tight text-gray-900 md:text-3xl md:leading-none">
                     {typeof entitlement.user_count === 'number'
                       ? typeof entitlement.max_users === 'number'
                         ? `${entitlement.user_count} / ${entitlement.max_users}`
                         : entitlement.user_count
                       : '—'}
                   </p>
-                  <p className="text-[10px] leading-snug text-gray-600 md:text-xs md:leading-snug">
+                  <p className="text-xs leading-snug text-gray-600">
                     {typeof entitlement.max_users === 'number' ? (
                       <>
                         <span className="md:hidden">vs. límite del plan</span>
@@ -387,30 +393,30 @@ export default function DashboardPageClient() {
             </Link>
 
             <section
-              className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm md:p-5"
+              className="min-h-28 w-full max-w-[22rem] rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:min-h-0 md:max-w-none md:p-5"
               aria-labelledby="documents-card-heading"
             >
               <div className="flex gap-2.5 md:gap-3">
                 <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 md:h-12 md:w-12 md:rounded-xl"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 md:h-12 md:w-12"
                   aria-hidden
                 >
-                  <ScanLine className="h-4 w-4 md:h-7 md:w-7" strokeWidth={1.75} />
+                  <ScanLine className="h-5 w-5 md:h-7 md:w-7" strokeWidth={1.75} />
                 </div>
-                <div className="min-w-0 flex-1 space-y-1.5 md:space-y-2">
+                <div className="min-w-0 flex-1 space-y-2">
                   <h2
                     id="documents-card-heading"
-                    className="text-[9px] font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
+                    className="text-xs font-semibold uppercase leading-none tracking-wide text-gray-500 md:text-sm md:leading-normal"
                   >
                     Documentos
                   </h2>
-                  <p className="text-lg font-bold tabular-nums leading-none tracking-tight text-gray-900 md:text-3xl md:leading-none">
+                  <p className="text-2xl font-bold tabular-nums leading-none tracking-tight text-gray-900 md:text-3xl md:leading-none">
                     {typeof entitlement.remitos_processed_last_30_days ===
                     'number'
                       ? entitlement.remitos_processed_last_30_days
                       : '—'}
                   </p>
-                  <p className="text-[10px] leading-snug text-gray-600 md:text-xs md:leading-snug">
+                  <p className="text-xs leading-snug text-gray-600">
                     Últimos 30 días, sincronizados desde la app.
                   </p>
                 </div>
@@ -418,7 +424,7 @@ export default function DashboardPageClient() {
             </section>
 
             <section
-              className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm md:p-5"
+              className="hidden rounded-xl border border-gray-200 bg-white p-3 shadow-sm md:block md:p-5"
               aria-labelledby="plan-card-heading"
             >
               <div className="flex gap-2.5 md:gap-3">
