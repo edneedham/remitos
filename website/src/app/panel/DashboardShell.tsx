@@ -268,7 +268,7 @@ export default function DashboardShell({
       <div className="flex min-h-screen w-full min-w-0 flex-1 flex-col md:pl-64">
         <header className="sticky top-0 z-[60] h-24 shrink-0 border-b border-gray-200 bg-white shadow-sm">
           <div className="mx-auto h-full w-full max-w-[90vw] px-4 sm:px-6 md:max-w-[calc(90vw-16rem)] lg:px-8">
-            <div className="flex h-full w-full items-center gap-2">
+            <div className="flex h-full w-full items-center gap-3">
               <button
                 type="button"
                 className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-700 transition-colors hover:bg-gray-100 md:hidden"
@@ -283,7 +283,7 @@ export default function DashboardShell({
                   <Menu className="h-6 w-6" aria-hidden strokeWidth={2} />
                 )}
               </button>
-              <div className="flex min-w-0 flex-1 items-center justify-center gap-2 md:hidden">
+              <div className="flex min-w-0 flex-1 items-center justify-start gap-3 md:hidden">
                 <Link href="/" className="flex shrink-0 items-center" prefetch={false}>
                   <Image
                     src="/enpunto-new.svg"
