@@ -14,6 +14,7 @@ import com.remitos.app.network.AuthInterceptor
 import com.remitos.app.network.AuthNetworkSideEffects
 import com.remitos.app.network.RemitosApiService
 import com.remitos.app.notifications.OperationalNotifier
+import com.remitos.app.dev.DevSeedDefaults
 import com.remitos.app.workers.ImageUploadWorkerScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.flow.first
@@ -105,8 +106,8 @@ class RemitosApplication : Application() {
             currentRepository = currentDatabase?.let { RemitosRepository(it) }
             sessionManager.resetSession()
             
-            // Auto-generate demo data for admin user on first login
-            if (userId == "admin") {
+            // Auto-generate demo data for local seed owner (or legacy offline admin) on first login
+            if (DevSeedDefaults.isSeedOwnerForDemoData(userId)) {
                 currentRepository?.let { repo ->
                     val existingNotes = repo.observeInboundNotes().first()
                     if (existingNotes.isEmpty()) {

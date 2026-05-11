@@ -45,6 +45,7 @@ import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTextFieldVariant
 import com.remitos.app.ui.theme.Spacing
+import com.remitos.app.dev.DevSeedDefaults
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,9 +65,9 @@ fun DeviceSetupScreen(
     var authToken by remember { mutableStateOf<String?>(null) }
     
     // Form state
-    var companyCode by remember { mutableStateOf("LOGSUR") }
-    var username by remember { mutableStateOf("admin") }
-    var password by remember { mutableStateOf("") }
+    var companyCode by remember { mutableStateOf(DevSeedDefaults.prefillCompany) }
+    var username by remember { mutableStateOf(DevSeedDefaults.prefillOwnerUsername) }
+    var password by remember { mutableStateOf(DevSeedDefaults.prefillPassword) }
     var passwordVisible by remember { mutableStateOf(false) }
     var deviceName by remember { mutableStateOf("Terminal Móvil #1") }
     var selectedWarehouse by remember { mutableStateOf<WarehouseDto?>(null) }
@@ -409,7 +410,7 @@ fun DeviceSetupScreen(
                                             database.localDeviceDao().insert(
                                                 LocalDeviceEntity(
                                                     deviceId = deviceUuid,
-                                                    companyId = "LOGSUR",
+                                                    companyId = companyCode.trim().uppercase(),
                                                     warehouseId = warehouse.id,
                                                     registeredAt = System.currentTimeMillis()
                                                 )

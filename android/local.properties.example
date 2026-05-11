@@ -14,3 +14,6 @@
 #
 # Release builds use the production URL in app/build.gradle.kts. Use the "debug" build variant
 # in Android Studio to hit your local Go server with seed data.
+#
+# Debug builds pre-fill login / device setup to match backend/db/seed/local_dev_users.sql:
+#   company SEEDTRIAL, user trial_owner, password LocalSeed123! (operator toggle: trial_operator).
