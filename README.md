@@ -23,9 +23,9 @@ App para escaneo de remitos con OCR, notas de ingreso, listas de reparto y segui
 
 ### Estado actual (referencia)
 
-**Versión beta offline (0.1.15)** — operaciones locales completas; sync condicionado por flags.
+**Versión en desarrollo:** `0.2.0-alpha04` (`versionCode` 21 en `android/app/build.gradle.kts`) — offline-first con sync/OCR/imagenes al backend cuando `BACKEND_BASE_URL` y flags lo permiten.
 
-**Tag de referencia:** `v0.1.15-offline-beta`
+**Tag histórico offline beta:** `v0.1.15-offline-beta` (referencia anterior).
 
 ### Características principales
 

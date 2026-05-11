@@ -15,5 +15,8 @@
 # Release builds use the production URL in app/build.gradle.kts. Use the "debug" build variant
 # in Android Studio to hit your local Go server with seed data.
 #
+# google-services.json: the repo may ship a placeholder under android/app/. Do not commit a real
+# Firebase / OAuth client file with production keys; keep secrets out of git (see team policy).
+#
 # Debug builds pre-fill login / device setup to match backend/db/seed/local_dev_users.sql:
 #   company SEEDTRIAL, user trial_owner, password LocalSeed123! (operator toggle: trial_operator).

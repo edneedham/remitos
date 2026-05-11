@@ -216,7 +216,7 @@ fun DeviceSetupScreen(
                                 errorMessage = null
                                 try {
                                     val response = withContext(Dispatchers.IO) {
-                                        ApiClient.getUnauthenticatedApiService().login(
+                                        ApiClient.getPublicApiService().login(
                                             LoginRequest(
                                                 companyCode = companyCode,
                                                 username = username,
@@ -393,7 +393,7 @@ fun DeviceSetupScreen(
                                         val deviceUuid = UUID.randomUUID().toString()
                                         
                                         val response = withContext(Dispatchers.IO) {
-                                            ApiClient.getUnauthenticatedApiService().registerDevice(
+                                            ApiClient.getPublicApiService().registerDevice(
                                                 RegisterDeviceRequest(
                                                     deviceUuid = deviceUuid,
                                                     platform = "android",

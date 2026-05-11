@@ -1,7 +1,7 @@
 package com.remitos.app.data
 
 import android.content.Context
-import androidx.room.Room
+import com.remitos.app.BuildConfig
 import com.remitos.app.data.db.AppDatabase
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -70,12 +70,10 @@ object DatabaseManager {
     }
     
     private fun createDatabase(context: Context, userId: String): AppDatabase {
-        return Room.databaseBuilder(
+        return AppDatabase.build(
             context.applicationContext,
-            AppDatabase::class.java,
-            "remitos_$userId"
+            "remitos_$userId",
+            allowDestructiveMigration = BuildConfig.DEBUG,
         )
-            .fallbackToDestructiveMigration()
-            .build()
     }
 }

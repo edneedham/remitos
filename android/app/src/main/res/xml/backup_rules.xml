@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Exclude encrypted auth prefs and local Room DBs from full backup (restore can mismatch keys / schema). -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="remitos_auth.xml" />
+    <exclude domain="database" path="." />
+</full-backup-content>

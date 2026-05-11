@@ -27,6 +27,9 @@ interface AuthNetworkSideEffects {
  * OkHttp interceptor that adds JWT authentication header to requests.
  * Handles token expiration and refresh.
  * On refresh failure (device revoked), triggers re-registration flow.
+ *
+ * Token reads and refresh use [runBlocking] on OkHttp worker threads (not the main thread); keep
+ * refresh calls bounded so this stays acceptable under slow networks.
  */
 class AuthInterceptor(
     private val authManager: AuthManager,

@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 sealed class SyncState {
     data object Idle : SyncState()
@@ -29,6 +30,7 @@ class SyncManager(
     private val authManager: AuthManager,
     private val networkMonitor: NetworkMonitor,
     private val operationalNotifier: OperationalNotifier? = null,
+    private val externalScope: CoroutineScope,
 ) {
     companion object {
         private const val TAG = "SyncManager"
@@ -55,8 +57,11 @@ class SyncManager(
 
     private var wasOffline = false
 
+    private var monitoringJob: Job? = null
+
     fun startMonitoring() {
-        CoroutineScope(Dispatchers.IO).launch {
+        monitoringJob?.cancel()
+        monitoringJob = externalScope.launch(Dispatchers.IO) {
             networkMonitor.isOnline.collect { isOnline ->
                 if (isOnline) {
                     delay(2500)

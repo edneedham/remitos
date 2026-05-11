@@ -146,8 +146,14 @@ fun DashboardScreen(
     // Initialize sync manager
     val app = context.applicationContext as RemitosApplication
     val operationalNotifier = remember(context) { context.operationalNotifier() }
-    val syncManager = remember(operationalNotifier) {
-        SyncManager(context, app.authManager, NetworkMonitor(context), operationalNotifier)
+    val syncManager = remember(operationalNotifier, app) {
+        SyncManager(
+            context,
+            app.authManager,
+            NetworkMonitor(context),
+            operationalNotifier,
+            app.applicationScope,
+        )
     }
     
     // Start network monitoring for sync

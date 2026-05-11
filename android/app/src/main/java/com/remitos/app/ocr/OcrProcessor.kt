@@ -190,7 +190,7 @@ class OcrProcessor {
     ): OcrResult {
         return try {
             val apiService = try {
-                ApiClient.getUnauthenticatedApiService()
+                ApiClient.getPublicApiService()
             } catch (e: Exception) {
                 return mlKitResult
             }

@@ -24,7 +24,7 @@ fun debugBackendBaseUrl(): String {
 
 android {
     namespace = "com.remitos.app"
-    compileSdk = 34
+    compileSdk = 35
 
     ksp {
         arg("room.schemaLocation", "$projectDir/schemas")
@@ -33,7 +33,7 @@ android {
     defaultConfig {
         applicationId = "com.remitos.app"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 21
         versionName = "0.2.0-alpha04"
     }
@@ -63,7 +63,7 @@ android {
                 "BACKEND_BASE_URL",
                 "\"https://remitos-api-865349418409.southamerica-east1.run.app/\"",
             )
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -123,6 +123,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // Security
+    // 1.1.x stable not yet on Maven for MasterKey + AES256_SIV; keep alpha until stable matches AuthManager API.
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // WorkManager

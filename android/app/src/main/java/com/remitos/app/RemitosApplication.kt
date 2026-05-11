@@ -17,12 +17,26 @@ import com.remitos.app.notifications.OperationalNotifier
 import com.remitos.app.dev.DevSeedDefaults
 import com.remitos.app.workers.ImageUploadWorkerScheduler
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @HiltAndroidApp
 class RemitosApplication : Application() {
+
+    private val applicationJob = SupervisorJob()
+    private val userContextMutex = Mutex()
+
+    /**
+     * App-wide scope for startup and background work tied to process lifetime.
+     * Uses [SupervisorJob] so one child failure does not cancel siblings.
+     */
+    val applicationScope: CoroutineScope = CoroutineScope(applicationJob + Dispatchers.Default)
 
     @Inject
     lateinit var authManager: AuthManager
@@ -86,26 +100,27 @@ class RemitosApplication : Application() {
             }
         }
 
-        // Initialize with existing session if available
-        runBlocking {
+        // Initialize with existing session if available (non-blocking; Splash may also call this)
+        applicationScope.launch {
             initializeCurrentUserContext()
         }
 
-        // Schedule background image upload worker
-        ImageUploadWorkerScheduler.schedule(this)
+        // Schedule background image upload worker (re-enqueues if periodic interval changed)
+        ImageUploadWorkerScheduler.scheduleOrUpdate(this)
     }
 
     /**
      * Initialize database and repository for the current logged-in user.
-     * Call this after successful login.
+     * Call this after successful login. Serialized so concurrent callers (e.g. Application scope
+     * and Splash) do not race on [currentRepository].
      */
-    suspend fun initializeCurrentUserContext(): Boolean {
+    suspend fun initializeCurrentUserContext(): Boolean = userContextMutex.withLock {
         val userId = authManager.getCurrentUser()
-        return if (userId != null) {
+        return@withLock if (userId != null) {
             currentDatabase = DatabaseManager.getDatabase(this, userId)
             currentRepository = currentDatabase?.let { RemitosRepository(it) }
             sessionManager.resetSession()
-            
+
             // Auto-generate demo data for local seed owner (or legacy offline admin) on first login
             if (DevSeedDefaults.isSeedOwnerForDemoData(userId)) {
                 currentRepository?.let { repo ->
@@ -117,7 +132,7 @@ class RemitosApplication : Application() {
                     }
                 }
             }
-            
+
             true
         } else {
             currentDatabase = DatabaseManager.getOfflineDatabase(this)
