@@ -34,21 +34,21 @@ const (
 
 // Default SOAP endpoints (homologación + producción). Overridable via Client.URLOverrides for tests.
 const (
-	WSAAHomoURL    = "https://wsaahomo.afip.gov.ar/ws/services/LoginCms"
-	WSAAProdURL    = "https://wsaa.afip.gov.ar/ws/services/LoginCms"
-	WSFEv1HomoURL  = "https://wswhomo.afip.gov.ar/wsfev1/service.asmx"
-	WSFEv1ProdURL  = "https://servicios1.afip.gov.ar/wsfev1/service.asmx"
-	PadronHomoURL  = "https://awshomo.afip.gov.ar/sr-padron/webservices/personaServiceA5"
-	PadronProdURL  = "https://aws.afip.gov.ar/sr-padron/webservices/personaServiceA5"
+	WSAAHomoURL   = "https://wsaahomo.afip.gov.ar/ws/services/LoginCms"
+	WSAAProdURL   = "https://wsaa.afip.gov.ar/ws/services/LoginCms"
+	WSFEv1HomoURL = "https://wswhomo.afip.gov.ar/wsfev1/service.asmx"
+	WSFEv1ProdURL = "https://servicios1.afip.gov.ar/wsfev1/service.asmx"
+	PadronHomoURL = "https://awshomo.afip.gov.ar/sr-padron/webservices/personaServiceA5"
+	PadronProdURL = "https://aws.afip.gov.ar/sr-padron/webservices/personaServiceA5"
 )
 
 // IssuerCondicion represents Remitos' tax category for factura tipo selection.
 type IssuerCondicion string
 
 const (
-	IssuerRI         IssuerCondicion = "RESPONSABLE_INSCRIPTO"
+	IssuerRI          IssuerCondicion = "RESPONSABLE_INSCRIPTO"
 	IssuerMonotributo IssuerCondicion = "MONOTRIBUTO"
-	IssuerExento    IssuerCondicion = "EXENTO"
+	IssuerExento      IssuerCondicion = "EXENTO"
 )
 
 // URLOverrides lets tests replace SOAP endpoints with httptest servers.

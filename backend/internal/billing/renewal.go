@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"server/internal/models"
 	"server/internal/notifications/billingmail"
-	"server/internal/notifications/inapp"
 	notifymail "server/internal/notifications/email"
+	"server/internal/notifications/inapp"
 	"server/internal/payments/mercadopago"
 	"server/internal/repository"
 )

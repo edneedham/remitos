@@ -215,7 +215,7 @@ func extractLoginCmsReturn(soap []byte) (string, error) {
 
 // loginTicketResponse mirrors the inner XML returned by AFIP after successful sign-in.
 type loginTicketResponse struct {
-	XMLName     xml.Name `xml:"loginTicketResponse"`
+	XMLName     xml.Name  `xml:"loginTicketResponse"`
 	Header      ltrHeader `xml:"header"`
 	Credentials struct {
 		Token string `xml:"token"`

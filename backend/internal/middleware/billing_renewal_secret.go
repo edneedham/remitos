@@ -4,6 +4,7 @@ import (
 	"crypto/subtle"
 	"net/http"
 
+	"server/internal/apierror"
 	"server/internal/logger"
 )
 
@@ -20,7 +21,7 @@ func BillingRenewalSecret(secret string) func(http.Handler) http.Handler {
 					Str("method", r.Method).
 					Str("request_id", GetRequestID(r)).
 					Msg("billing renewal: unauthorized (missing or invalid secret)")
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				apierror.Write(w, http.StatusUnauthorized, string(apierror.Unauthorized), "Unauthorized", nil)
 				return
 			}
 			next.ServeHTTP(w, r)

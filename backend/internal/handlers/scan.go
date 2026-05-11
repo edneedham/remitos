@@ -3,15 +3,17 @@ package handlers
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"io"
+	"mime"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	vision "cloud.google.com/go/vision/apiv1"
 	"cloud.google.com/go/vision/v2/apiv1/visionpb"
 	"github.com/go-chi/chi/v5"
+	"server/internal/httputil"
 	"server/internal/logger"
 )
 
@@ -44,12 +46,18 @@ type ScanResponse struct {
 	ProcessedAt time.Time          `json:"processed_at"`
 }
 
+// MultipartFormDataContentType reports whether ct is a multipart request (e.g. multipart/form-data; boundary=...).
+func MultipartFormDataContentType(ct string) bool {
+	mediaType, _, err := mime.ParseMediaType(ct)
+	return err == nil && strings.HasPrefix(strings.ToLower(mediaType), "multipart/")
+}
+
 func (h *ScanHandler) Scan(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
 	contentType := r.Header.Get("Content-Type")
-	isMultipart := len(contentType) > 19 && contentType[0:19] == "multipart/form-data"
+	isMultipart := MultipartFormDataContentType(contentType)
 
 	var imageData []byte = nil
 	var filename string
@@ -70,8 +78,7 @@ func (h *ScanHandler) Scan(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		var req ScanRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+		if !decodeJSONBody(w, r, httputil.MaxJSONScanBody, &req) {
 			return
 		}
 

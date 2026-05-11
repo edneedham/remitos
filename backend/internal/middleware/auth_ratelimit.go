@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"golang.org/x/time/rate"
+	"server/internal/apierror"
 )
 
 const authEndpointBurst = 24
@@ -30,7 +31,7 @@ func AuthEndpointsRateLimit() func(http.Handler) http.Handler {
 			mu.Unlock()
 
 			if !limiter.Allow() {
-				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+				apierror.Write(w, http.StatusTooManyRequests, string(apierror.TooManyRequests), "Too many requests", nil)
 				return
 			}
 			next.ServeHTTP(w, r)

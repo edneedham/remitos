@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -9,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"server/internal/httputil"
 	"server/internal/jwt"
 	"server/internal/logger"
 	"server/internal/middleware"
@@ -52,15 +52,14 @@ func NewAdminHandler(
 }
 
 type CreateOperatorRequest struct {
-	Username   string  `json:"username" validate:"required,min=3,max=100"`
-	Password   string  `json:"password" validate:"required,min=8,max=72"`
-	DeviceName string  `json:"device_name" validate:"omitempty"`
+	Username   string `json:"username" validate:"required,min=3,max=100"`
+	Password   string `json:"password" validate:"required,min=8,max=72"`
+	DeviceName string `json:"device_name" validate:"omitempty"`
 }
 
 func (h *AdminHandler) CreateOperator(w http.ResponseWriter, r *http.Request) {
 	var req CreateOperatorRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAPIBody, &req) {
 		return
 	}
 
@@ -213,8 +212,7 @@ func (h *AdminHandler) UpdateOperatorStatus(w http.ResponseWriter, r *http.Reque
 	}
 
 	var req UpdateStatusRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAPIBody, &req) {
 		return
 	}
 
@@ -261,8 +259,7 @@ func (h *AdminHandler) UpdateOperatorPassword(w http.ResponseWriter, r *http.Req
 	}
 
 	var req UpdatePasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAPIBody, &req) {
 		return
 	}
 

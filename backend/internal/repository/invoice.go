@@ -38,15 +38,15 @@ type BillingInvoice struct {
 	ReceiptEmailSentAt         sql.NullTime
 	RenewalFailureNoticeSentAt sql.NullTime
 	// AFIP factura electrónica (populated by billing.FacturaEmitter).
-	FacturaTipo       sql.NullInt32
-	FacturaPtoVta     sql.NullInt32
-	FacturaNumero     sql.NullInt64
-	FacturaCAE        sql.NullString
-	FacturaCAEVto     sql.NullTime
-	FacturaEmittedAt  sql.NullTime
-	FacturaRequestID  sql.NullString
-	FacturaLastError  sql.NullString
-	FacturaAttempts   int
+	FacturaTipo      sql.NullInt32
+	FacturaPtoVta    sql.NullInt32
+	FacturaNumero    sql.NullInt64
+	FacturaCAE       sql.NullString
+	FacturaCAEVto    sql.NullTime
+	FacturaEmittedAt sql.NullTime
+	FacturaRequestID sql.NullString
+	FacturaLastError sql.NullString
+	FacturaAttempts  int
 }
 
 // InvoiceFXSnapshot stores conversion metadata captured at invoice issuance time.

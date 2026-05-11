@@ -7,8 +7,8 @@ import (
 
 	"server/internal/billing"
 	"server/internal/logger"
-	"server/internal/notifications/inapp"
 	notifymail "server/internal/notifications/email"
+	"server/internal/notifications/inapp"
 	"server/internal/repository"
 )
 

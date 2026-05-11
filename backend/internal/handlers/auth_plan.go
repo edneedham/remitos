@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
 	"server/internal/billing"
+	"server/internal/httputil"
 	"server/internal/middleware"
 	"server/internal/validation"
 )
@@ -37,8 +37,7 @@ func (h *AuthHandler) SelectMyPlan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req SignupPlanSelectionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAuthBody, &req) {
 		return
 	}
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {

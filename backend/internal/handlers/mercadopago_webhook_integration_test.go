@@ -9,11 +9,11 @@ import (
 	"sync"
 	"testing"
 
+	"server/internal/logger"
 	notifymail "server/internal/notifications/email"
 	"server/internal/payments/mercadopago"
 	"server/internal/repository"
 	"server/internal/testutil/integration"
-	"server/internal/logger"
 )
 
 func TestMain(m *testing.M) {
@@ -53,12 +53,12 @@ func TestHandlePayment_FirstApprovedPayment_SendsReceipt_Integration(t *testing.
 		}
 		w.Header().Set("Content-Type", "application/json")
 		payload := map[string]any{
-			"id":                   mpID,
-			"status":               "approved",
-			"currency_id":          "ARS",
-			"transaction_amount":   100.0,
-			"metadata":             map[string]any{"company_id": companyID.String()},
-			"external_reference":   "",
+			"id":                 mpID,
+			"status":             "approved",
+			"currency_id":        "ARS",
+			"transaction_amount": 100.0,
+			"metadata":           map[string]any{"company_id": companyID.String()},
+			"external_reference": "",
 		}
 		_ = json.NewEncoder(w).Encode(payload)
 	}))

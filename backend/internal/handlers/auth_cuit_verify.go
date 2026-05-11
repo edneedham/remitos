@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/google/uuid"
 	"server/internal/billing"
+	"server/internal/httputil"
 	"server/internal/middleware"
 )
 
@@ -31,8 +31,7 @@ func (h *AuthHandler) PostMeVerifyCUIT(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req postMeVerifyCUITRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAuthBody, &req) {
 		return
 	}
 	cuit := strings.TrimSpace(req.CUIT)

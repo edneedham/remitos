@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"server/internal/billing"
+	"server/internal/httputil"
 	"server/internal/logger"
 )
 
@@ -29,8 +30,7 @@ type triggerRenewalRequest struct {
 // PostTriggerRenewal runs invoice → charge → extend access for one company (paid plans only).
 func (h *BillingRenewalHandler) PostTriggerRenewal(w http.ResponseWriter, r *http.Request) {
 	var req triggerRenewalRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONInternalBody, &req) {
 		return
 	}
 	companyID, err := uuid.Parse(req.CompanyID)

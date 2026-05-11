@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"server/internal/apierror"
 	"server/internal/logger"
 )
 
@@ -59,10 +60,10 @@ func Router(h http.Handler, corsAllowedOrigins []string) *chi.Mux {
 	r.Use(chimiddleware.RealIP)
 	r.Use(Logger)
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Not Found", http.StatusNotFound)
+		apierror.Write(w, http.StatusNotFound, string(apierror.NotFound), "Not Found", nil)
 	})
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		apierror.Write(w, http.StatusMethodNotAllowed, string(apierror.MethodNotAllowed), "Method Not Allowed", nil)
 	})
 	r.Mount("/", h)
 	return r

@@ -8,20 +8,22 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
+	"server/internal/apierror"
 	"server/internal/logger"
 	"server/internal/middleware"
 )
 
-type ErrorCode string
+// ErrorCode is the API JSON error discriminator (central definition in apierror).
+type ErrorCode = apierror.Code
 
 const (
-	ErrCodeInvalidRequest  ErrorCode = "INVALID_REQUEST"
-	ErrCodeUnauthorized    ErrorCode = "UNAUTHORIZED"
-	ErrCodeForbidden       ErrorCode = "FORBIDDEN"
-	ErrCodeConflict        ErrorCode = "CONFLICT"
-	ErrCodeNotFound        ErrorCode = "NOT_FOUND"
-	ErrCodeInternalError   ErrorCode = "INTERNAL_ERROR"
-	ErrCodePaymentRequired ErrorCode = "PAYMENT_REQUIRED"
+	ErrCodeInvalidRequest  = apierror.InvalidRequest
+	ErrCodeUnauthorized    = apierror.Unauthorized
+	ErrCodeForbidden       = apierror.Forbidden
+	ErrCodeConflict        = apierror.Conflict
+	ErrCodeNotFound        = apierror.NotFound
+	ErrCodeInternalError   = apierror.InternalError
+	ErrCodePaymentRequired = apierror.PaymentRequired
 )
 
 type ErrorResponse struct {
@@ -53,7 +55,7 @@ func RespondWithError(w http.ResponseWriter, r *http.Request, code ErrorCode, me
 		ev = ev.Err(causeErr)
 	}
 	ev.Msg(logMsg)
-	_ = json.NewEncoder(w).Encode(ErrorResponse{Error: code, Message: message})
+	apierror.Write(w, status, string(code), message, nil)
 }
 
 func firstCause(cause []error) error {
@@ -100,11 +102,7 @@ func RespondWithValidationError(w http.ResponseWriter, r *http.Request, message 
 		ev = ev.Interface("fields", fields)
 	}
 	ev.Msg("validation error")
-	_ = json.NewEncoder(w).Encode(ErrorResponse{
-		Error:   ErrCodeInvalidRequest,
-		Message: message,
-		Fields:  fields,
-	})
+	apierror.Write(w, status, string(ErrCodeInvalidRequest), message, fields)
 }
 
 func RespondWithJSON(w http.ResponseWriter, status int, data interface{}) {

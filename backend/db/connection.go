@@ -1,3 +1,7 @@
+// Package db holds the global PostgreSQL pool used by the binary.
+//
+// Prefer passing *pgxpool.Pool into constructors from new code (see internal/server.Build)
+// so tests and alternate entrypoints can inject a pool without mutating this package.
 package db
 
 import (

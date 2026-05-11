@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"server/internal/httputil"
 	"server/internal/middleware"
 	"server/internal/repository"
 )
@@ -66,8 +66,7 @@ func (h *SubscriptionHandler) LinkDevice(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req LinkDeviceRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Invalid request body", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAPIBody, &req) {
 		return
 	}
 

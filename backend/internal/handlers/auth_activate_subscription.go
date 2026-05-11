@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"server/internal/billing"
+	"server/internal/httputil"
 	"server/internal/middleware"
 	"server/internal/payments/mercadopago"
 	"server/internal/validation"
@@ -50,8 +50,7 @@ func (h *AuthHandler) PostMeActivateSubscription(w http.ResponseWriter, r *http.
 	}
 
 	var req activateSubscriptionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAuthBody, &req) {
 		return
 	}
 	req.PlanID = strings.TrimSpace(req.PlanID)
