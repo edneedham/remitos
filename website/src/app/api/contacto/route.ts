@@ -9,6 +9,9 @@ import { sendContactAckEmail } from '../../lib/sendContactAck';
 
 const FORMSPREE_FORM_ID = process.env.FORMSPREE_FORM_ID;
 
+/** Cap JSON body for the public contact endpoint (defense in depth). */
+const MAX_CONTACT_JSON_BYTES = 64 * 1024;
+
 export async function POST(request: NextRequest) {
   const clientIp = getContactoClientIP(request);
   if (!allowContactoSubmission(clientIp)) {
@@ -33,7 +36,26 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const raw = await request.arrayBuffer();
+    if (raw.byteLength > MAX_CONTACT_JSON_BYTES) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'La solicitud es demasiado grande.',
+        },
+        { status: 413 },
+      );
+    }
+
+    let body: unknown;
+    try {
+      body = JSON.parse(new TextDecoder().decode(raw)) as unknown;
+    } catch {
+      return NextResponse.json(
+        { success: false, message: 'Cuerpo JSON inválido.' },
+        { status: 400 },
+      );
+    }
 
     const validatedFields = ContactFormSchema.safeParse(body);
     if (!validatedFields.success) {

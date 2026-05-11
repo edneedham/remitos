@@ -19,7 +19,7 @@ import {
   fetchWithWebAuth,
   hasWebSession,
   saveWebSession,
-  useWebCookieSession,
+  isWebCookieSession,
   webCookieFetchInit,
 } from '../lib/webAuth';
 
@@ -202,7 +202,7 @@ export default function LoginForm() {
       }
 
       const cookieSession =
-        useWebCookieSession() && data.session === 'cookie';
+        isWebCookieSession() && data.session === 'cookie';
       if (
         !cookieSession &&
         (!data.token || !data.refresh_token)

@@ -24,7 +24,10 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: (props: any) => <img alt={props.alt} />,
+  default: (props: any) => (
+    // eslint-disable-next-line @next/next/no-img-element -- lightweight stub for next/image in tests
+    <img alt={props.alt} />
+  ),
 }));
 
 vi.mock('../../../lib/webAuth', () => ({

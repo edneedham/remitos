@@ -41,14 +41,16 @@ function PanelMobileDesktopHint() {
   const [closingAck, setClosingAck] = useState(false);
 
   useEffect(() => {
-    try {
-      setDismissed(
-        window.localStorage.getItem(PANEL_MOBILE_DESKTOP_HINT_STORAGE_KEY) ===
-          '1',
-      );
-    } catch {
-      setDismissed(false);
-    }
+    queueMicrotask(() => {
+      try {
+        setDismissed(
+          window.localStorage.getItem(PANEL_MOBILE_DESKTOP_HINT_STORAGE_KEY) ===
+            '1',
+        );
+      } catch {
+        setDismissed(false);
+      }
+    });
   }, []);
 
   if (dismissed !== false) {
@@ -202,7 +204,7 @@ export default function DashboardShell({
   const router = useRouter();
 
   useEffect(() => {
-    setMobileNavOpen(false);
+    queueMicrotask(() => setMobileNavOpen(false));
   }, [pathname]);
 
   async function handleDrawerLogout() {

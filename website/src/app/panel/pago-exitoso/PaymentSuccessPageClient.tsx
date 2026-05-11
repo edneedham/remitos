@@ -1,14 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
 import { getPlanById } from '../../lib/planCatalog';
-import {
-  hasWebSession,
-  refreshWebSession,
-} from '../../lib/webAuth';
+import { usePanelBootstrap } from '../lib/usePanelBootstrap';
 
 type PaymentSuccessContexto = 'activacion' | 'renovacion' | 'otro';
 
@@ -18,7 +14,7 @@ function normalizeContexto(raw: string | null): PaymentSuccessContexto {
 }
 
 export default function PaymentSuccessPageClient() {
-  const router = useRouter();
+  usePanelBootstrap();
   const searchParams = useSearchParams();
   const contexto = normalizeContexto(searchParams.get('contexto'));
   const planId = searchParams.get('plan')?.trim().toLowerCase() ?? '';
@@ -26,14 +22,6 @@ export default function PaymentSuccessPageClient() {
     planId === 'pyme' || planId === 'empresa'
       ? getPlanById(planId)
       : null;
-
-  useEffect(() => {
-    if (!hasWebSession()) {
-      router.replace('/ingresar');
-      return;
-    }
-    void refreshWebSession();
-  }, [router]);
 
   let heading = 'Pago confirmado';
   let body: string;

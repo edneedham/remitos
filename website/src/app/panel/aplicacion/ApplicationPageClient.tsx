@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { ApplicationContentSkeleton } from '../components/PanelSkeletons';
@@ -10,22 +9,23 @@ import { getApiBaseUrl } from '../../lib/apiUrl';
 import { detectDevicePlatform, type DevicePlatform } from '../../lib/mobileDevice';
 import { getPublicSiteOrigin } from '../../lib/siteUrl';
 import {
-  canAccessWebManagement,
   clearWebSession,
-  fetchProfile,
   fetchWithWebAuth,
   getWebAccessToken,
   getWebRefreshToken,
-  hasWebSession,
   postWithWebAuth,
   refreshWebSession,
-  useWebCookieSession,
+  isWebCookieSession,
 } from '../../lib/webAuth';
 import { CHECKLIST_DOWNLOAD_PAGE_VISITED_KEY } from '../../lib/trialOnboardingChecklist';
 import type { Entitlement } from '../lib/entitlementTypes';
+import { usePanelBootstrap } from '../lib/usePanelBootstrap';
+import { useRouterRef } from '../lib/useRouterRef';
 
 export default function ApplicationPageClient() {
-  const router = useRouter();
+  const routerRef = useRouterRef();
+  const cookieSession = isWebCookieSession();
+  const { status, errorMessage: configError } = usePanelBootstrap();
   const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -52,39 +52,24 @@ export default function ApplicationPageClient() {
   }, [entitlementLoading, loadError]);
 
   useEffect(() => {
-    if (!hasWebSession()) {
-      router.replace('/ingresar');
+    if (status === 'config_error') {
+      setLoadError(configError);
+      setEntitlementLoading(false);
+      return;
+    }
+    if (status !== 'ready') {
       return;
     }
 
     let cancelled = false;
 
     async function load() {
-      const api = getApiBaseUrl();
-      if (!api) {
-        setLoadError(
-          'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
-        );
-        setEntitlementLoading(false);
-        return;
-      }
-
-      await refreshWebSession();
-
-      const profile = await fetchProfile();
-      if (cancelled) return;
-      if (!profile || !canAccessWebManagement(profile.role)) {
-        clearWebSession();
-        router.replace('/ingresar');
-        return;
-      }
-
       const res = await fetchWithWebAuth('/auth/me/entitlement');
       if (cancelled) return;
 
       if (res.status === 401) {
         clearWebSession();
-        router.replace('/ingresar');
+        routerRef.current.replace('/ingresar');
         return;
       }
 
@@ -105,11 +90,13 @@ export default function ApplicationPageClient() {
       setEntitlementLoading(false);
     }
 
+    setEntitlementLoading(true);
+    setLoadError(null);
     void load();
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [status, configError, routerRef]);
 
   const handleStartTransfer = useCallback(async () => {
     setTransferError(null);
@@ -125,21 +112,19 @@ export default function ApplicationPageClient() {
 
       await refreshWebSession();
 
-      if (!useWebCookieSession()) {
+      if (!cookieSession) {
         const accessToken = getWebAccessToken();
         const refreshToken = getWebRefreshToken();
         if (!accessToken || !refreshToken) {
           clearWebSession();
-          router.replace('/ingresar');
+          routerRef.current.replace('/ingresar');
           return;
         }
       }
 
       const res = await postWithWebAuth(
         '/auth/transfer/start',
-        useWebCookieSession()
-          ? {}
-          : { refresh_token: getWebRefreshToken()! },
+        cookieSession ? {} : { refresh_token: getWebRefreshToken()! },
       );
 
       const body = (await res.json().catch(() => ({}))) as {
@@ -149,7 +134,7 @@ export default function ApplicationPageClient() {
 
       if (res.status === 401) {
         clearWebSession();
-        router.replace('/ingresar');
+        routerRef.current.replace('/ingresar');
         return;
       }
 
@@ -173,7 +158,7 @@ export default function ApplicationPageClient() {
     } finally {
       setTransferBusy(false);
     }
-  }, [router]);
+  }, [routerRef, cookieSession]);
 
   useEffect(() => {
     if (
@@ -339,6 +324,7 @@ export default function ApplicationPageClient() {
                       aria-hidden
                     >
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- small static SVG inside QR overlay */}
                         <img
                           src="/enpunto-simple.svg"
                           alt=""

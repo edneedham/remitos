@@ -4,15 +4,28 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockReplace = vi.fn();
 const mockFetchWithWebAuth = vi.fn();
 const mockPostWithWebAuth = vi.fn();
-const mockHasWebSession = vi.fn();
-const mockRefreshWebSession = vi.fn();
 const mockGetApiBaseUrl = vi.fn();
 const mockGetWebAccessToken = vi.fn();
 const mockGetWebRefreshToken = vi.fn();
 const mockDetectDevicePlatform = vi.fn();
 const mockGetPublicSiteOrigin = vi.fn();
-const mockFetchWebProfile = vi.fn();
-const mockCanAccessWebManagement = vi.fn();
+
+const { mockUsePanelBootstrap } = vi.hoisted(() => ({
+  mockUsePanelBootstrap: vi.fn(() => ({
+    status: 'ready' as const,
+    profile: {
+      id: 'u1',
+      username: 'admin',
+      email: 'a@b.com',
+      company_id: 'c1',
+      company_name: 'Acme',
+      company_code: 'ACME',
+      role: 'admin',
+    },
+    errorMessage: null,
+    refresh: vi.fn(),
+  })),
+}));
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -23,15 +36,15 @@ vi.mock('next/navigation', () => ({
 vi.mock('../../lib/webAuth', () => ({
   fetchWithWebAuth: (...args: unknown[]) => mockFetchWithWebAuth(...args),
   postWithWebAuth: (...args: unknown[]) => mockPostWithWebAuth(...args),
-  useWebCookieSession: () => false,
-  hasWebSession: () => mockHasWebSession(),
-  refreshWebSession: () => mockRefreshWebSession(),
+  isWebCookieSession: () => false,
+  refreshWebSession: () => Promise.resolve(true),
   getWebAccessToken: () => mockGetWebAccessToken(),
   getWebRefreshToken: () => mockGetWebRefreshToken(),
-  fetchProfile: () => mockFetchWebProfile(),
-  canAccessWebManagement: (...args: unknown[]) =>
-    mockCanAccessWebManagement(...args),
   clearWebSession: vi.fn(),
+}));
+
+vi.mock('../lib/usePanelBootstrap', () => ({
+  usePanelBootstrap: () => mockUsePanelBootstrap(),
 }));
 
 vi.mock('../../lib/apiUrl', () => ({
@@ -55,11 +68,7 @@ async function renderApplicationPageClient() {
 describe('ApplicationPageClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockHasWebSession.mockReturnValue(true);
-    mockRefreshWebSession.mockResolvedValue(true);
     mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
-    mockFetchWebProfile.mockResolvedValue({ role: 'admin' });
-    mockCanAccessWebManagement.mockReturnValue(true);
     mockFetchWithWebAuth.mockImplementation(async () => {
       return new Response(
         JSON.stringify({
@@ -87,8 +96,6 @@ describe('ApplicationPageClient', () => {
 describe('ApplicationPageClient desktop QR transfer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockHasWebSession.mockReturnValue(true);
-    mockRefreshWebSession.mockResolvedValue(true);
     mockGetWebAccessToken.mockReturnValue('access-token');
     mockGetWebRefreshToken.mockReturnValue('refresh-token');
     mockPostWithWebAuth.mockImplementation(
@@ -103,8 +110,6 @@ describe('ApplicationPageClient desktop QR transfer', () => {
     mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
     mockDetectDevicePlatform.mockReturnValue('desktop');
     mockGetPublicSiteOrigin.mockReturnValue('https://enpunto.com.ar');
-    mockFetchWebProfile.mockResolvedValue({ role: 'admin' });
-    mockCanAccessWebManagement.mockReturnValue(true);
     mockFetchWithWebAuth.mockImplementation(async () =>
       new Response(
         JSON.stringify({
@@ -146,11 +151,7 @@ describe('ApplicationPageClient desktop QR transfer', () => {
 describe('ApplicationPageClient iOS guard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockHasWebSession.mockReturnValue(true);
-    mockRefreshWebSession.mockResolvedValue(true);
     mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
-    mockFetchWebProfile.mockResolvedValue({ role: 'admin' });
-    mockCanAccessWebManagement.mockReturnValue(true);
     mockDetectDevicePlatform.mockReturnValue('ios');
     mockFetchWithWebAuth.mockImplementation(async () =>
       new Response(

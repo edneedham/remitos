@@ -80,7 +80,9 @@ describe('SignupGate', () => {
     );
 
     await renderSignupGate();
-    fireEvent.click(screen.getByRole('button', { name: 'Completar registro' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Completar registro' }),
+    );
 
     await waitFor(() => expect(mockPostWithWebAuth).toHaveBeenCalledTimes(1));
     expect(mockPostWithWebAuth).toHaveBeenCalledWith(
@@ -99,7 +101,9 @@ describe('SignupGate', () => {
     mockPostWithWebAuth.mockResolvedValue(new Response(null, { status: 500 }));
 
     await renderSignupGate();
-    fireEvent.click(screen.getByRole('button', { name: 'Completar registro' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Completar registro' }),
+    );
 
     await waitFor(() =>
       expect(screen.getByTestId('signup-plan-selector')).toBeInTheDocument(),
@@ -109,7 +113,9 @@ describe('SignupGate', () => {
 
   it('shows plan selector when no preselected plan is present', async () => {
     await renderSignupGate();
-    fireEvent.click(screen.getByRole('button', { name: 'Completar registro' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Completar registro' }),
+    );
 
     await waitFor(() =>
       expect(screen.getByTestId('signup-plan-selector')).toBeInTheDocument(),

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ensureGsapScrollTrigger } from '../../../lib/gsapClient';
 
 type Step = {
   id: string;
@@ -73,7 +73,19 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
       return;
     }
 
-    gsap.registerPlugin(ScrollTrigger);
+    const prefersReduce =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduce) {
+      gsap.set([headerRef.current, visualRef.current], {
+        x: 0,
+        opacity: 1,
+      });
+      gsap.set(textRef.current, { opacity: 1 });
+      return;
+    }
+
+    ensureGsapScrollTrigger();
 
     const slideFromX = visualOnRight ? 48 : -48;
     const ctx = gsap.context(() => {

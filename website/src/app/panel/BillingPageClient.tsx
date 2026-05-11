@@ -1,17 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getApiBaseUrl } from '../lib/apiUrl';
 import {
-  canAccessWebManagement,
   canManageBillingSubscriptions,
   clearWebSession,
-  fetchProfile,
   fetchWithWebAuth,
-  hasWebSession,
-  refreshWebSession,
   type WebProfile,
 } from '../lib/webAuth';
 import {
@@ -38,12 +32,16 @@ import {
   resolveUsageUpgradeAction,
   subscriptionTier,
 } from './lib/selfServePlan';
+import { useBillingClockMs } from './lib/useBillingClockMs';
+import { usePanelBootstrap } from './lib/usePanelBootstrap';
+import { useRouterRef } from './lib/useRouterRef';
 
 export default function BillingPageClient() {
-  const router = useRouter();
+  const routerRef = useRouterRef();
+  const now = useBillingClockMs();
+  const { status, profile, errorMessage: configError } = usePanelBootstrap();
   const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [invoicesLoading, setInvoicesLoading] = useState(true);
-  const [profile, setProfile] = useState<WebProfile | null>(null);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<BillingInvoiceRow[]>([]);
@@ -59,7 +57,7 @@ export default function BillingPageClient() {
         );
         if (res.status === 401) {
           clearWebSession();
-          router.replace('/ingresar');
+          routerRef.current.replace('/ingresar');
           return;
         }
         if (!res.ok) {
@@ -79,42 +77,28 @@ export default function BillingPageClient() {
         window.alert('Error al descargar el PDF.');
       }
     },
-    [router],
+    [routerRef],
   );
 
   useEffect(() => {
-    if (!hasWebSession()) {
-      router.replace('/ingresar');
+    if (status === 'config_error') {
+      queueMicrotask(() => {
+        setError(configError);
+        setEntitlementLoading(false);
+        setInvoicesLoading(false);
+      });
+      return;
+    }
+    if (status !== 'ready' || !profile) {
       return;
     }
 
     let cancelled = false;
 
     async function load() {
-      const api = getApiBaseUrl();
-      if (!api) {
-        setError(
-          'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
-        );
-        setEntitlementLoading(false);
-        setInvoicesLoading(false);
-        return;
-      }
-
       setEntitlementLoading(true);
       setInvoicesLoading(true);
       setError(null);
-
-      await refreshWebSession();
-
-      const userProfile = await fetchProfile();
-      if (cancelled) return;
-      if (!userProfile || !canAccessWebManagement(userProfile.role)) {
-        clearWebSession();
-        router.replace('/ingresar');
-        return;
-      }
-      setProfile(userProfile);
 
       const [entRes, invRes] = await Promise.all([
         fetchWithWebAuth('/auth/me/entitlement'),
@@ -124,7 +108,7 @@ export default function BillingPageClient() {
 
       if (entRes.status === 401 || invRes.status === 401) {
         clearWebSession();
-        router.replace('/ingresar');
+        routerRef.current.replace('/ingresar');
         return;
       }
 
@@ -203,9 +187,8 @@ export default function BillingPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [status, configError, profile, routerRef]);
 
-  const now = Date.now();
   const billing = entitlement
     ? deriveBillingPresentation(entitlement, now)
     : null;

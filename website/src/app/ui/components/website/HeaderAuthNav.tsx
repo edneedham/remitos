@@ -23,13 +23,15 @@ export default function HeaderAuthNav() {
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    setSession(hasWebSession());
+    queueMicrotask(() => setSession(hasWebSession()));
   }, [pathname]);
 
   useEffect(() => {
     if (!session) {
-      setProfile(null);
-      setAccountMenuOpen(false);
+      queueMicrotask(() => {
+        setProfile(null);
+        setAccountMenuOpen(false);
+      });
       return;
     }
 
