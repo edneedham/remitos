@@ -7,6 +7,7 @@ import android.net.Uri
 import android.util.Log
 import com.remitos.app.data.db.entity.UploadStatus
 import com.remitos.app.network.RemitosApiService
+import com.remitos.app.notifications.OperationalNotifier
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -29,6 +30,7 @@ class ImageUploadManager @Inject constructor(
     private val repository: RemitosRepository,
     private val settingsStore: SettingsStore,
     private val apiService: RemitosApiService,
+    private val operationalNotifier: OperationalNotifier,
 ) {
     companion object {
         private const val TAG = "ImageUploadManager"
@@ -189,6 +191,7 @@ class ImageUploadManager @Inject constructor(
         if (newRetryCount >= MAX_RETRY_COUNT) {
             repository.updateUploadStatus(noteId, UploadStatus.FAILED, newRetryCount)
             Log.e(TAG, "Upload failed permanently for note $noteId: $errorMessage")
+            operationalNotifier.notifyImageUploadPermanentFailure(noteId, errorMessage)
         } else {
             repository.updateUploadStatus(noteId, UploadStatus.PENDING, newRetryCount)
             Log.w(TAG, "Upload failed for note $noteId (attempt $newRetryCount): $errorMessage")

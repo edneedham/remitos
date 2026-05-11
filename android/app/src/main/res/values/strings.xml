@@ -105,4 +105,31 @@
     <string name="sync_uploads_blocked_entitlement">Se bajaron datos del servidor, pero no se pudieron enviar tus cambios (plan o suscripción sin acceso a la app). Los datos siguen en el dispositivo. El administrador puede regularizarla en el panel web.</string>
     <string name="settings_sync_title">Sincronización con la nube</string>
     <string name="settings_sync_body">Con conexión, la app sube cambios y luego descarga lo nuevo del servidor. Si dos dispositivos editan el mismo remito sin conexión, prevalece la última subida que llegue al servidor. Si no tenés acceso activo, podés seguir trabajando en el teléfono y los cambios quedan pendientes hasta que el administrador regularice la suscripción.</string>
+
+    <!-- Operational local notifications (Android) -->
+    <string name="notif_channel_sync_name">Sincronización</string>
+    <string name="notif_channel_sync_desc">Errores de sync y cambios pendientes de subir</string>
+    <string name="notif_channel_account_name">Cuenta y sesión</string>
+    <string name="notif_channel_account_desc">Dispositivo revocado, sesión o cuenta</string>
+    <string name="notif_channel_work_name">Trabajo en depósito</string>
+    <string name="notif_channel_work_desc">Subida de imágenes y guardado de ingresos</string>
+    <string name="notif_sync_failed_title">No se pudo sincronizar</string>
+    <string name="notif_sync_failed_body">Reintentá cuando tengas buena conexión o abrí la app para ver el detalle.</string>
+    <string name="notif_pending_sync_title">Cambios pendientes</string>
+    <string name="notif_pending_sync_body">Volviste a tener conexión: tenés %1$d cambios locales pendientes de subir. Abrí la app para sincronizar.</string>
+    <string name="notif_account_suspended_title">Cuenta desactivada</string>
+    <string name="notif_account_suspended_body">Tu usuario quedó inactivo. Contactá al administrador de la empresa.</string>
+    <string name="notif_device_revoked_title">Dispositivo revocado</string>
+    <string name="notif_device_revoked_body">Este equipo ya no puede sincronizar. Pedí al administrador que lo reactive o registrá el dispositivo de nuevo.</string>
+    <string name="notif_auth_session_title">Sesión cerrada</string>
+    <string name="notif_auth_session_body">La sesión expiró o hubo un problema de autenticación. Volvé a iniciar sesión.</string>
+    <string name="notif_inactivity_title">Sesión cerrada por inactividad</string>
+    <string name="notif_inactivity_body">Por seguridad cerramos la sesión. Volvé a ingresar para seguir trabajando.</string>
+    <string name="notif_entitlement_title">Cambios sin subir</string>
+    <string name="notif_entitlement_body">El plan o la suscripción no permite enviar cambios a la nube por ahora. Los datos siguen en el teléfono.</string>
+    <string name="notif_image_upload_failed_title">No se pudo subir la imagen</string>
+    <string name="notif_image_upload_failed_body">Ingreso #%1$d: %2$s. Revisá Wi‑Fi o reintentá desde el detalle del ingreso.</string>
+    <string name="notif_inbound_save_failed_title">Error al guardar ingreso</string>
+    <string name="notif_inbound_save_failed_body">No se pudo guardar el ingreso. Revisá los datos o intentá de nuevo.</string>
+    <string name="notif_permission_rationale">Activá las notificaciones para avisos de sincronización, cuenta y subida de fotos cuando no estés en la app.</string>
 </resources>

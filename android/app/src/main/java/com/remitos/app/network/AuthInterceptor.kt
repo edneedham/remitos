@@ -16,18 +16,28 @@ sealed class RefreshResult {
 }
 
 /**
+ * Optional hooks for auth failures (e.g. local notifications). Set from [RemitosApplication].
+ */
+interface AuthNetworkSideEffects {
+    fun onDeviceRevokedFromRefresh()
+    fun onRefreshTokenFailed()
+}
+
+/**
  * OkHttp interceptor that adds JWT authentication header to requests.
  * Handles token expiration and refresh.
  * On refresh failure (device revoked), triggers re-registration flow.
  */
 class AuthInterceptor(
     private val authManager: AuthManager,
-    private val onDeviceRevoked: (() -> Unit)? = null
 ) : Interceptor {
 
     companion object {
         private const val AUTHORIZATION_HEADER = "Authorization"
         private const val BEARER_PREFIX = "Bearer "
+
+        @Volatile
+        var sideEffects: AuthNetworkSideEffects? = null
     }
 
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -74,11 +84,12 @@ class AuthInterceptor(
                 is RefreshResult.DeviceRevoked -> {
                     // Device revoked - clear all and trigger re-registration
                     runBlocking { authManager.revokeDeviceAndReRegister(userId) }
-                    onDeviceRevoked?.invoke()
+                    sideEffects?.onDeviceRevokedFromRefresh()
                 }
                 is RefreshResult.Failed -> {
                     // Refresh failed for other reasons - clear session
                     runBlocking { authManager.removeToken(userId) }
+                    sideEffects?.onRefreshTokenFailed()
                 }
             }
         }

@@ -9,7 +9,10 @@ import com.remitos.app.data.SessionManager
 import com.remitos.app.data.SettingsStore
 import com.remitos.app.data.TestDataGenerator
 import com.remitos.app.data.db.AppDatabase
+import com.remitos.app.network.AuthInterceptor
+import com.remitos.app.network.AuthNetworkSideEffects
 import com.remitos.app.network.RemitosApiService
+import com.remitos.app.notifications.OperationalNotifier
 import com.remitos.app.workers.ImageUploadWorkerScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.flow.first
@@ -27,6 +30,9 @@ class RemitosApplication : Application() {
     
     @Inject
     lateinit var apiService: RemitosApiService
+
+    @Inject
+    lateinit var operationalNotifier: OperationalNotifier
 
     // Session manager for auto-logout
     lateinit var sessionManager: SessionManager
@@ -55,9 +61,22 @@ class RemitosApplication : Application() {
             authManager = authManager,
             onSessionExpired = {
                 clearCurrentUserContext()
-            }
+            },
+            onBeforeAutoLogout = {
+                operationalNotifier.notifyInactivityLogout()
+            },
         )
         sessionManager.initialize(this)
+
+        AuthInterceptor.sideEffects = object : AuthNetworkSideEffects {
+            override fun onDeviceRevokedFromRefresh() {
+                operationalNotifier.notifyDeviceRevoked()
+            }
+
+            override fun onRefreshTokenFailed() {
+                operationalNotifier.notifyAuthSessionLost()
+            }
+        }
 
         // Initialize with existing session if available
         runBlocking {
