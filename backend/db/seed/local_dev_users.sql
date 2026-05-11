@@ -635,6 +635,8 @@ ON CONFLICT (id) DO UPDATE SET
 -- Registered devices (phones used to scan remitos in the app)
 -- Every company that has inbound_notes seeded below must have at least one device
 -- so dashboard “Dispositivos” matches the story that scans come from phones.
+-- Trial plan allows only one *active* device per warehouse; keep the trial seed row
+-- as revoked so local Android “Asignar dispositivo” can register a new phone without 403.
 -- ---------------------------------------------------------------------------
 INSERT INTO devices (
   id, company_id, warehouse_id,
@@ -651,7 +653,7 @@ INSERT INTO devices (
     'Samsung Galaxy A54',
     '14',
     '1.4.0',
-    'active',
+    'revoked',
     'a3000000-0000-4000-8000-000000000001',
     NOW() - INTERVAL '90 days',
     NOW() - INTERVAL '90 days',

@@ -256,7 +256,15 @@ private fun AppNavHost(navController: NavHostController) {
                 ?.get<Uri>("captured_photo_uri")
 
             InboundScanScreen(
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    // After splash/login we often `popUpTo` the previous route inclusive, so
+                    // InboundScan can be the sole destination — plain popBackStack() is a no-op.
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Routes.Dashboard) {
+                            popUpTo(Routes.InboundScan) { inclusive = true }
+                        }
+                    }
+                },
                 onOpenCamera = { navController.navigate(Routes.InboundCamera) },
                 capturedUri = capturedUri,
                 onCapturedUriHandled = {

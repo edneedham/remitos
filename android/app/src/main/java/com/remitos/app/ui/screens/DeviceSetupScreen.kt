@@ -34,7 +34,10 @@ import com.remitos.app.data.AuthManager
 import com.remitos.app.data.DatabaseManager
 import com.remitos.app.data.TokenData
 import com.remitos.app.data.db.entity.LocalDeviceEntity
+import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import com.remitos.app.network.ApiClient
+import com.remitos.app.network.ErrorResponse
 import com.remitos.app.network.LoginRequest
 import com.remitos.app.network.RegisterDeviceRequest
 import com.remitos.app.network.WarehouseDto
@@ -434,7 +437,19 @@ fun DeviceSetupScreen(
                                             
                                             onDeviceRegistered()
                                         } else {
-                                            errorMessage = "Error al registrar dispositivo: ${response.code()}"
+                                            val raw = response.errorBody()?.string()?.trim().orEmpty()
+                                            val parsed = if (raw.isNotEmpty()) {
+                                                try {
+                                                    Gson().fromJson(raw, ErrorResponse::class.java)
+                                                        ?.message?.trim()?.takeIf { it.isNotEmpty() }
+                                                } catch (_: JsonSyntaxException) {
+                                                    null
+                                                }
+                                            } else {
+                                                null
+                                            }
+                                            errorMessage = parsed
+                                                ?: "Error al registrar dispositivo: ${response.code()}"
                                         }
                                     } catch (e: Exception) {
                                         errorMessage = e.message ?: "Error de conexión"

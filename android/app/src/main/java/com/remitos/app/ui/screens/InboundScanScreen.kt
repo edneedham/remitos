@@ -3,6 +3,7 @@ package com.remitos.app.ui.screens
 import androidx.compose.ui.res.stringResource
 import com.remitos.app.R
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -120,6 +121,8 @@ fun InboundScanScreen(
 
     val missing = draft.missingFields()
     val missingForDisplay = if (uiState.showMissingErrors) missing else emptyList()
+
+    BackHandler(onBack = onBack)
 
     fun errorMessage(field: MissingField): String? {
         if (!missingForDisplay.contains(field)) return null
