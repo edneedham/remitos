@@ -1,8 +1,25 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
+}
+
+/** Debug API base: `-PBACKEND_BASE_URL=...` > android/local.properties > default emulator host. */
+val remitosLocalProperties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) {
+        f.inputStream().use { load(it) }
+    }
+}
+
+fun debugBackendBaseUrl(): String {
+    val fromCli = (project.findProperty("BACKEND_BASE_URL") as String?)?.trim()?.takeIf { it.isNotEmpty() }
+    val fromFile = remitosLocalProperties.getProperty("BACKEND_BASE_URL")?.trim()?.takeIf { it.isNotEmpty() }
+    val base = (fromCli ?: fromFile ?: "http://10.0.2.2:8080").trimEnd('/')
+    return "$base/"
 }
 
 android {
@@ -35,8 +52,10 @@ android {
 
     buildTypes {
         debug {
-            // Emulator: host machine API. For a physical device, use your LAN IP or adb reverse + 127.0.0.1.
-            buildConfigField("String", "BACKEND_BASE_URL", "\"http://10.0.2.2:8080/\"")
+            val backend = debugBackendBaseUrl()
+            println("app:debug BACKEND_BASE_URL = $backend")
+            val escaped = backend.replace("\\", "\\\\").replace("\"", "\\\"")
+            buildConfigField("String", "BACKEND_BASE_URL", "\"$escaped\"")
         }
         release {
             buildConfigField(

@@ -1,6 +1,7 @@
 package com.remitos.app
 
 import android.app.Application
+import android.util.Log
 import com.remitos.app.data.AuthManager
 import com.remitos.app.data.DatabaseManager
 import com.remitos.app.data.FeatureFlags
@@ -52,6 +53,12 @@ class RemitosApplication : Application() {
         get() = requireRepository()
 
     override fun onCreate() {
+        if (BuildConfig.DEBUG) {
+            Log.i(
+                "RemitosApplication",
+                "BACKEND_BASE_URL=${BuildConfig.BACKEND_BASE_URL} (use debug build for local API; release uses production)",
+            )
+        }
         FeatureFlags.configureBackendMode(BuildConfig.BACKEND_BASE_URL)
         super.onCreate()
 
