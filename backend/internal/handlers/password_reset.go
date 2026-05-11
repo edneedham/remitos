@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"net/http"
 	"net/url"
 	"strings"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"server/internal/httputil"
 	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/models"
@@ -32,8 +32,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req models.ForgotPasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAuthBody, &req) {
 		return
 	}
 	validation.NormalizeForgotPasswordRequest(&req)
@@ -137,8 +136,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 // ResetPassword sets a new password using a valid email token.
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req models.ResetPasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAuthBody, &req) {
 		return
 	}
 	req.Token = strings.TrimSpace(req.Token)
@@ -197,8 +195,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 // ChangePassword updates password for the authenticated user (any role).
 func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	var req models.ChangePasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAuthBody, &req) {
 		return
 	}
 	if fields := validation.StructFieldErrors(req); len(fields) > 0 {

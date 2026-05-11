@@ -59,4 +59,3 @@ func (r *AfipTicketRepository) Upsert(ctx context.Context, t AfipTicket) error {
 	`, t.Service, t.Token, t.Sign, t.GenerationTime, t.ExpirationTime)
 	return err
 }
-

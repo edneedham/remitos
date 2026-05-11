@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/google/uuid"
+	"server/internal/httputil"
 	"server/internal/middleware"
 	"server/internal/notifications/inapp"
 	"server/internal/payments/mercadopago"
@@ -41,8 +41,7 @@ func (h *AuthHandler) PostMeUpdatePaymentMethod(w http.ResponseWriter, r *http.R
 	}
 
 	var req updatePaymentMethodRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAuthBody, &req) {
 		return
 	}
 	req.CardToken = strings.TrimSpace(req.CardToken)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"server/internal/apierror"
 	"server/internal/jwt"
 	"server/internal/logger"
 	"server/internal/models"
@@ -52,7 +53,7 @@ func Auth(deps AuthDeps) func(http.Handler) http.Handler {
 				}
 			}
 			if tokenString == "" {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				apierror.Write(w, http.StatusUnauthorized, string(apierror.Unauthorized), "Unauthorized", nil)
 				return
 			}
 
@@ -63,7 +64,7 @@ func Auth(deps AuthDeps) func(http.Handler) http.Handler {
 					Str("request_id", GetRequestID(r)).
 					Str("client_ip", ClientIP(r)).
 					Msg("auth: invalid or expired JWT")
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				apierror.Write(w, http.StatusUnauthorized, string(apierror.Unauthorized), "Unauthorized", nil)
 				return
 			}
 
@@ -107,7 +108,7 @@ func Auth(deps AuthDeps) func(http.Handler) http.Handler {
 								Str("user_company", claims.CompanyID.String()).
 								Str("device_company", device.CompanyID.String()).
 								Msg("Device company mismatch")
-							http.Error(w, "Dispositivo no pertenece a la empresa", http.StatusForbidden)
+							apierror.Write(w, http.StatusForbidden, string(apierror.Forbidden), "Dispositivo no pertenece a la empresa", nil)
 							return
 						}
 
@@ -123,7 +124,7 @@ func Auth(deps AuthDeps) func(http.Handler) http.Handler {
 										Str("device_id", deviceID.String()).
 										Str("warehouse_id", device.WarehouseID.String()).
 										Msg("User does not have access to device warehouse")
-									http.Error(w, "No tienes acceso a este depósito", http.StatusForbidden)
+									apierror.Write(w, http.StatusForbidden, string(apierror.Forbidden), "No tienes acceso a este depósito", nil)
 									return
 								}
 							}
@@ -150,12 +151,12 @@ func RequireRole(role string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userClaims, ok := r.Context().Value(UserContextKey).(UserClaims)
 			if !ok {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				apierror.Write(w, http.StatusUnauthorized, string(apierror.Unauthorized), "Unauthorized", nil)
 				return
 			}
 
 			if userClaims.Role != role {
-				http.Error(w, "Forbidden", http.StatusForbidden)
+				apierror.Write(w, http.StatusForbidden, string(apierror.Forbidden), "Forbidden", nil)
 				return
 			}
 
@@ -174,11 +175,11 @@ func RequireRoles(roles ...string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userClaims, ok := r.Context().Value(UserContextKey).(UserClaims)
 			if !ok {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				apierror.Write(w, http.StatusUnauthorized, string(apierror.Unauthorized), "Unauthorized", nil)
 				return
 			}
 			if _, ok := allowed[userClaims.Role]; !ok {
-				http.Error(w, "Forbidden", http.StatusForbidden)
+				apierror.Write(w, http.StatusForbidden, string(apierror.Forbidden), "Forbidden", nil)
 				return
 			}
 			next.ServeHTTP(w, r)

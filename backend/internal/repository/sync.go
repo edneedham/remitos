@@ -22,7 +22,7 @@ func NewSyncRepository(pool *pgxpool.Pool) *SyncRepository {
 }
 
 type inboundUpsertWork struct {
-	note   models.SyncInboundNote
+	note    models.SyncInboundNote
 	cloudID string
 	insert  bool
 }
@@ -548,9 +548,9 @@ func (r *SyncRepository) GetOutboundListsSince(ctx context.Context, companyID st
 				AllocatedPackageIDs: allocatedPackageIDs.String,
 				Status:              lineStatus.String,
 				DeliveredQty:        int(deliveredQty.Int64),
-				ReturnedQty:        int(returnedQty.Int64),
-				MissingQty:         int(missingQty.Int64),
-				InboundNoteCloudID: inboundNoteCloudID,
+				ReturnedQty:         int(returnedQty.Int64),
+				MissingQty:          int(missingQty.Int64),
+				InboundNoteCloudID:  inboundNoteCloudID,
 			}
 			cur := &lists[len(lists)-1]
 			cur.Lines = append(cur.Lines, line)

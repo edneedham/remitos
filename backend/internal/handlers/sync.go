@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"server/internal/billing"
+	"server/internal/httputil"
 	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/models"
@@ -17,10 +18,10 @@ import (
 )
 
 type SyncHandler struct {
-	syncRepo       *repository.SyncRepository
-	companyRepo    *repository.CompanyRepository
+	syncRepo         *repository.SyncRepository
+	companyRepo      *repository.CompanyRepository
 	notificationRepo *repository.UserNotificationRepository
-	inApp          *inapp.Broadcaster
+	inApp            *inapp.Broadcaster
 }
 
 func projectedNewInboundNotes(totalIncoming int, existingByCloudID int64, newWithoutCloudID int) int64 {
@@ -38,10 +39,10 @@ func NewSyncHandler(
 	inApp *inapp.Broadcaster,
 ) *SyncHandler {
 	return &SyncHandler{
-		syncRepo:       syncRepo,
-		companyRepo:    companyRepo,
+		syncRepo:         syncRepo,
+		companyRepo:      companyRepo,
 		notificationRepo: notificationRepo,
-		inApp:          inApp,
+		inApp:            inApp,
 	}
 }
 
@@ -55,13 +56,18 @@ func (h *SyncHandler) Routes() http.Handler {
 func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 	userClaims := middleware.GetUserClaims(r)
 	if userClaims.UserID == "" {
-		RespondWithError(w, r, ErrCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 
+	httputil.LimitRequestBody(w, r, httputil.MaxSyncRequestBody)
 	var req models.SyncRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Invalid request body", http.StatusBadRequest)
+		if httputil.IsMaxBytesError(err) {
+			RespondWithError(w, r, ErrCodeInvalidRequest, "La solicitud de sincronización es demasiado grande.", http.StatusRequestEntityTooLarge, err)
+			return
+		}
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest, err)
 		return
 	}
 
@@ -81,7 +87,7 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 	}
 	company, err := h.companyRepo.GetByIDForBilling(ctx, companyID)
 	if err != nil {
-		RespondWithError(w, r, ErrCodeInternalError, "Failed to validate limits", http.StatusInternalServerError, err)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al validar límites del plan", http.StatusInternalServerError, err)
 		return
 	}
 	if company == nil {
@@ -92,7 +98,7 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 	if company.DocumentsMonthlyLimit != nil && len(req.InboundNotes) > 0 {
 		mtdTotal, err := h.syncRepo.InboundNotesMTDCount(ctx, companyID)
 		if err != nil {
-			RespondWithError(w, r, ErrCodeInternalError, "Failed to validate limits", http.StatusInternalServerError, err)
+			RespondWithError(w, r, ErrCodeInternalError, "Error al validar límites del plan", http.StatusInternalServerError, err)
 			return
 		}
 
@@ -107,7 +113,7 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		}
 		existingByCloudID, err := h.syncRepo.CountInboundNotesByCloudIDs(ctx, companyID, cloudIDs)
 		if err != nil {
-			RespondWithError(w, r, ErrCodeInternalError, "Failed to validate limits", http.StatusInternalServerError, err)
+			RespondWithError(w, r, ErrCodeInternalError, "Error al validar límites del plan", http.StatusInternalServerError, err)
 			return
 		}
 
@@ -138,13 +144,13 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 	if uploadsAllowed {
 		inboundNoteMappings, err = h.syncRepo.UpsertInboundNotes(ctx, userClaims.CompanyID, req.InboundNotes)
 		if err != nil {
-			RespondWithError(w, r, ErrCodeInternalError, "Failed to sync inbound notes", http.StatusInternalServerError, err)
+			RespondWithError(w, r, ErrCodeInternalError, "Error al sincronizar remitos de ingreso", http.StatusInternalServerError, err)
 			return
 		}
 
 		outboundListMappings, outboundLineMappings, err = h.syncRepo.UpsertOutboundLists(ctx, userClaims.CompanyID, req.OutboundLists)
 		if err != nil {
-			RespondWithError(w, r, ErrCodeInternalError, "Failed to sync outbound lists", http.StatusInternalServerError, err)
+			RespondWithError(w, r, ErrCodeInternalError, "Error al sincronizar listas de reparto", http.StatusInternalServerError, err)
 			return
 		}
 
@@ -185,13 +191,13 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 
 	serverInboundNotes, err := h.syncRepo.GetInboundNotesSince(ctx, userClaims.CompanyID, time.Unix(req.LastSyncTimestamp, 0))
 	if err != nil {
-		RespondWithError(w, r, ErrCodeInternalError, "Failed to fetch server changes", http.StatusInternalServerError, err)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al obtener cambios del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
 	serverOutboundLists, err := h.syncRepo.GetOutboundListsSince(ctx, userClaims.CompanyID, time.Unix(req.LastSyncTimestamp, 0))
 	if err != nil {
-		RespondWithError(w, r, ErrCodeInternalError, "Failed to fetch server changes", http.StatusInternalServerError, err)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al obtener cambios del servidor", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -204,8 +210,8 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 			OutboundLists: outboundListMappings,
 			OutboundLines: outboundLineMappings,
 		},
-		Conflicts:       []interface{}{},
-		UploadsApplied:  uploadsAllowed,
+		Conflicts:      []interface{}{},
+		UploadsApplied: uploadsAllowed,
 	}
 
 	RespondWithJSON(w, http.StatusOK, response)
@@ -214,13 +220,13 @@ func (h *SyncHandler) Sync(w http.ResponseWriter, r *http.Request) {
 func (h *SyncHandler) GetSyncStatus(w http.ResponseWriter, r *http.Request) {
 	userClaims := middleware.GetUserClaims(r)
 	if userClaims.UserID == "" {
-		RespondWithError(w, r, ErrCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
+		RespondWithError(w, r, ErrCodeUnauthorized, "No autorizado", http.StatusUnauthorized)
 		return
 	}
 
 	lastSyncStr := r.URL.Query().Get("last_sync")
 	if lastSyncStr == "" {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "last_sync parameter required", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Falta el parámetro last_sync", http.StatusBadRequest)
 		return
 	}
 
@@ -228,7 +234,7 @@ func (h *SyncHandler) GetSyncStatus(w http.ResponseWriter, r *http.Request) {
 	if ts, err := strconv.ParseInt(lastSyncStr, 10, 64); err == nil {
 		lastSync = time.Unix(ts, 0)
 	} else {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Invalid timestamp format", http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Formato de marca de tiempo inválido", http.StatusBadRequest)
 		return
 	}
 
@@ -236,13 +242,13 @@ func (h *SyncHandler) GetSyncStatus(w http.ResponseWriter, r *http.Request) {
 
 	inboundCount, err := h.syncRepo.GetInboundNotesCountSince(ctx, userClaims.CompanyID, lastSync)
 	if err != nil {
-		RespondWithError(w, r, ErrCodeInternalError, "Failed to query sync status", http.StatusInternalServerError, err)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al consultar el estado de sincronización", http.StatusInternalServerError, err)
 		return
 	}
 
 	outboundCount, err := h.syncRepo.GetOutboundListsCountSince(ctx, userClaims.CompanyID, lastSync)
 	if err != nil {
-		RespondWithError(w, r, ErrCodeInternalError, "Failed to query sync status", http.StatusInternalServerError, err)
+		RespondWithError(w, r, ErrCodeInternalError, "Error al consultar el estado de sincronización", http.StatusInternalServerError, err)
 		return
 	}
 

@@ -43,24 +43,24 @@ type Auth struct {
 type CondicionIVA string
 
 const (
-	CondicionRI            CondicionIVA = "RESPONSABLE_INSCRIPTO"
-	CondicionMonotributo   CondicionIVA = "MONOTRIBUTO"
-	CondicionExento        CondicionIVA = "EXENTO"
+	CondicionRI              CondicionIVA = "RESPONSABLE_INSCRIPTO"
+	CondicionMonotributo     CondicionIVA = "MONOTRIBUTO"
+	CondicionExento          CondicionIVA = "EXENTO"
 	CondicionConsumidorFinal CondicionIVA = "CONSUMIDOR_FINAL"
-	CondicionNoCategorizado CondicionIVA = "NO_CATEGORIZADO"
-	CondicionDesconocido   CondicionIVA = "DESCONOCIDO"
+	CondicionNoCategorizado  CondicionIVA = "NO_CATEGORIZADO"
+	CondicionDesconocido     CondicionIVA = "DESCONOCIDO"
 )
 
 // Persona is the trimmed-down padrón record we persist on companies and use at emission time.
 type Persona struct {
-	CUIT             string
-	TipoPersona      string // FISICA | JURIDICA
-	EstadoClave      string // ACTIVO | INACTIVO
-	RazonSocial      string
-	Nombre           string
-	Apellido         string
-	CondicionIVA     CondicionIVA
-	DomicilioFiscal  string
+	CUIT            string
+	TipoPersona     string // FISICA | JURIDICA
+	EstadoClave     string // ACTIVO | INACTIVO
+	RazonSocial     string
+	Nombre          string
+	Apellido        string
+	CondicionIVA    CondicionIVA
+	DomicilioFiscal string
 	// FetchedAt records when this snapshot was returned by AFIP (UTC).
 	FetchedAt time.Time
 	// RawXML is the inner getPersonaReturn body for audit/debug.
@@ -128,28 +128,28 @@ func (c *Client) callSOAP(ctx context.Context, soapAction, innerBody string) ([]
 type padronReturn struct {
 	XMLName xml.Name `xml:"personaReturn"`
 	Persona struct {
-		Cuit              string `xml:"idPersona"`
-		TipoPersona       string `xml:"tipoPersona"`
-		EstadoClave       string `xml:"estadoClave"`
-		Nombre            string `xml:"nombre"`
-		Apellido          string `xml:"apellido"`
-		RazonSocial       string `xml:"razonSocial"`
-		Domicilio         []struct {
-			Direccion  string `xml:"direccion"`
-			Localidad  string `xml:"localidad"`
-			Provincia  string `xml:"descripcionProvincia"`
-			CodPostal  string `xml:"codPostal"`
-			TipoDomic  string `xml:"tipoDomicilio"`
+		Cuit        string `xml:"idPersona"`
+		TipoPersona string `xml:"tipoPersona"`
+		EstadoClave string `xml:"estadoClave"`
+		Nombre      string `xml:"nombre"`
+		Apellido    string `xml:"apellido"`
+		RazonSocial string `xml:"razonSocial"`
+		Domicilio   []struct {
+			Direccion string `xml:"direccion"`
+			Localidad string `xml:"localidad"`
+			Provincia string `xml:"descripcionProvincia"`
+			CodPostal string `xml:"codPostal"`
+			TipoDomic string `xml:"tipoDomicilio"`
 		} `xml:"domicilio"`
 		DatosMonotributo *struct {
 			Categoria string `xml:"categoriaMonotributo"`
 		} `xml:"datosMonotributo"`
 		ImpuestosActivos struct {
 			Impuestos []struct {
-				IDImpuesto      int    `xml:"idImpuesto"`
-				Descripcion     string `xml:"descripcionImpuesto"`
-				EstadoImpuesto  string `xml:"estadoImpuesto"`
-				Periodo         string `xml:"periodo"`
+				IDImpuesto     int    `xml:"idImpuesto"`
+				Descripcion    string `xml:"descripcionImpuesto"`
+				EstadoImpuesto string `xml:"estadoImpuesto"`
+				Periodo        string `xml:"periodo"`
 			} `xml:"impuesto"`
 		} `xml:"impuestosActivos"`
 		CategoriasMonotributo struct {

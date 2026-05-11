@@ -6,10 +6,10 @@ import (
 	"sync"
 	"testing"
 
+	"server/internal/logger"
 	notifymail "server/internal/notifications/email"
 	"server/internal/repository"
 	"server/internal/testutil/integration"
-	"server/internal/logger"
 )
 
 func TestMain(m *testing.M) {

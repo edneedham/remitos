@@ -23,7 +23,7 @@ type notificationJSON struct {
 	Body      *string `json:"body,omitempty"`
 	ActionURL *string `json:"action_url,omitempty"`
 	ReadAt    *string `json:"read_at,omitempty"`
-	CreatedAt string `json:"created_at"`
+	CreatedAt string  `json:"created_at"`
 }
 
 type notificationsListJSON struct {

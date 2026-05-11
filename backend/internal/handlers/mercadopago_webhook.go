@@ -11,10 +11,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"server/internal/billing"
+	"server/internal/httputil"
 	"server/internal/logger"
 	"server/internal/notifications/billingmail"
-	"server/internal/notifications/inapp"
 	notifymail "server/internal/notifications/email"
+	"server/internal/notifications/inapp"
 	"server/internal/payments/mercadopago"
 	"server/internal/repository"
 )
@@ -23,17 +24,17 @@ import (
 // Merchant renewals set metadata (company_id, invoice_id); the handler updates the pending invoice
 // or no-ops if the payment was already recorded.
 type MercadoPagoWebhookHandler struct {
-	Pool               *pgxpool.Pool
-	Invoices           *repository.InvoiceRepository
-	Companies          *repository.CompanyRepository
-	Users              *repository.UserRepository
-	MP                 *mercadopago.Client
-	Mailer             notifymail.Sender
-	PublicSiteURL      string
-	FXBufferFraction   float64
-	WebhookSecret      string
-	Factura            *billing.FacturaEmitter
-	InApp              *inapp.Broadcaster
+	Pool             *pgxpool.Pool
+	Invoices         *repository.InvoiceRepository
+	Companies        *repository.CompanyRepository
+	Users            *repository.UserRepository
+	MP               *mercadopago.Client
+	Mailer           notifymail.Sender
+	PublicSiteURL    string
+	FXBufferFraction float64
+	WebhookSecret    string
+	Factura          *billing.FacturaEmitter
+	InApp            *inapp.Broadcaster
 }
 
 func NewMercadoPagoWebhookHandler(
@@ -82,10 +83,15 @@ func (h *MercadoPagoWebhookHandler) PostNotification(w http.ResponseWriter, r *h
 		return
 	}
 
+	httputil.LimitRequestBody(w, r, httputil.MaxMercadoPagoWebhookBody)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		if httputil.IsMaxBytesError(err) {
+			RespondWithError(w, r, ErrCodeInvalidRequest, httputil.MessageJSONBodyTooLarge, http.StatusRequestEntityTooLarge, err)
+			return
+		}
 		logger.Log.Warn().Err(err).Msg("mp webhook: failed to read body")
-		w.WriteHeader(http.StatusBadRequest)
+		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest, err)
 		return
 	}
 

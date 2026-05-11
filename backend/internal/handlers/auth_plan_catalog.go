@@ -8,9 +8,9 @@ import (
 )
 
 type planLimitPayload struct {
-	MaxWarehouses           *int `json:"max_warehouses,omitempty"`
-	MaxUsers                *int `json:"max_users,omitempty"`
-	DocumentsMonthlyLimit   *int `json:"documents_monthly_limit,omitempty"`
+	MaxWarehouses         *int `json:"max_warehouses,omitempty"`
+	MaxUsers              *int `json:"max_users,omitempty"`
+	DocumentsMonthlyLimit *int `json:"documents_monthly_limit,omitempty"`
 }
 
 // GetMePlanCatalogLimits returns enforced caps per catalog plan id from billing.PlanLimitsByID.

@@ -72,7 +72,7 @@ type SolicitarRequest struct {
 
 // IVAAliquot is one row of the FECAE IVA array.
 type IVAAliquot struct {
-	IDAlicuota int     // 5=21%, 4=10.5%, 6=27%, 8=5%, 9=2.5%, 3=0%
+	IDAlicuota int // 5=21%, 4=10.5%, 6=27%, 8=5%, 9=2.5%, 3=0%
 	BaseImp    float64
 	Importe    float64
 }
@@ -133,9 +133,9 @@ func (c *Client) FECompUltimoAutorizado(ctx context.Context, auth Auth, ptoVta, 
 		return 0, err
 	}
 	type result struct {
-		PtoVta   int    `xml:"PtoVta"`
-		CbteTipo int    `xml:"CbteTipo"`
-		CbteNro  int64  `xml:"CbteNro"`
+		PtoVta   int   `xml:"PtoVta"`
+		CbteTipo int   `xml:"CbteTipo"`
+		CbteNro  int64 `xml:"CbteNro"`
 		Errors   struct {
 			Err []ErrorEntry `xml:"Err"`
 		} `xml:"Errors"`

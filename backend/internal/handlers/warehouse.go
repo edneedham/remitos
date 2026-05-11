@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"server/internal/httputil"
 	"server/internal/jwt"
 	"server/internal/middleware"
 	"server/internal/models"
@@ -119,8 +119,7 @@ func (h *WarehouseHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req warehouseWriteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAPIBody, &req) {
 		return
 	}
 	normalizeWarehouseWriteRequest(&req)
@@ -196,8 +195,7 @@ func (h *WarehouseHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req warehouseWriteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithError(w, r, ErrCodeInvalidRequest, "Cuerpo de solicitud inválido", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, httputil.MaxJSONAPIBody, &req) {
 		return
 	}
 	normalizeWarehouseWriteRequest(&req)
