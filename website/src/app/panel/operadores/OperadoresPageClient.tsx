@@ -49,8 +49,10 @@ export default function OperadoresPageClient() {
 
   useEffect(() => {
     if (status === 'config_error') {
-      setLoadError(configError);
-      setEntitlementLoading(false);
+      queueMicrotask(() => {
+        setLoadError(configError);
+        setEntitlementLoading(false);
+      });
       return;
     }
     if (status !== 'ready' || !profile) {
@@ -92,8 +94,10 @@ export default function OperadoresPageClient() {
       setOperatorsLoading(false);
     }
 
-    setEntitlementLoading(true);
-    void load();
+    queueMicrotask(() => {
+      setEntitlementLoading(true);
+      void load();
+    });
     return () => {
       cancelled = true;
     };

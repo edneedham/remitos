@@ -29,9 +29,6 @@ export default function SignupGate() {
     preselectedPlanId === 'pyme' || preselectedPlanId === 'empresa';
 
   useEffect(() => {
-    const origin = getPublicSiteOrigin();
-    setMobileUrl(`${origin}/registro`);
-
     const mq =
       typeof window !== 'undefined' && typeof window.matchMedia === 'function'
         ? window.matchMedia('(min-width: 640px)')
@@ -39,13 +36,20 @@ export default function SignupGate() {
 
     const syncQrVisibility = () => {
       const wide = mq?.matches ?? false;
-      setShowSignupQr(!isLikelyMobileDevice() || wide);
+      queueMicrotask(() => {
+        setShowSignupQr(!isLikelyMobileDevice() || wide);
+      });
     };
 
-    syncQrVisibility();
-    mq?.addEventListener('change', syncQrVisibility);
-    setReady(true);
+    queueMicrotask(() => {
+      const origin = getPublicSiteOrigin();
+      setMobileUrl(`${origin}/registro`);
+      const wide = mq?.matches ?? false;
+      setShowSignupQr(!isLikelyMobileDevice() || wide);
+      setReady(true);
+    });
 
+    mq?.addEventListener('change', syncQrVisibility);
     return () => mq?.removeEventListener('change', syncQrVisibility);
   }, []);
 
@@ -146,6 +150,7 @@ export default function SignupGate() {
                         aria-hidden
                       >
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
+                          {/* eslint-disable-next-line @next/next/no-img-element -- small static SVG inside QR overlay */}
                           <img
                             src="/enpunto-simple.svg"
                             alt=""

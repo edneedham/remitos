@@ -48,7 +48,6 @@ export function trackTrialOnboardingEvent(
 
   if (isAnalyticsDebugEnabled()) {
     try {
-      // eslint-disable-next-line no-console -- intentional debug channel for staging/local validation
       console.info('[remitos:analytics]', detail);
     } catch {
       /* ignore */

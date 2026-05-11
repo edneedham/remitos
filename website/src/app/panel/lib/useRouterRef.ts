@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
 /**
  * Stable ref to next/navigation router so effects do not re-run when the router
@@ -10,6 +10,8 @@ import { useRef } from 'react';
 export function useRouterRef() {
   const router = useRouter();
   const ref = useRef(router);
-  ref.current = router;
+  useLayoutEffect(() => {
+    ref.current = router;
+  }, [router]);
   return ref;
 }

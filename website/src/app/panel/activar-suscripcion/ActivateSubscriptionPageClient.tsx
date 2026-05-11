@@ -99,7 +99,7 @@ export default function ActivateSubscriptionPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [planId, ready, useMockPayment, publicKey]);
+  }, [planId, ready]);
 
   useEffect(() => {
     if (status === 'config_error') {

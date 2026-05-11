@@ -11,8 +11,10 @@ export default function HomeGate({ children }: { children: React.ReactNode }) {
 
   useLayoutEffect(() => {
     if (hasWebSession()) {
-      setShowMarketing(false);
-      router.replace('/panel');
+      queueMicrotask(() => {
+        setShowMarketing(false);
+        router.replace('/panel');
+      });
     }
   }, [router]);
 

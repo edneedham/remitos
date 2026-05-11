@@ -25,6 +25,7 @@ import type { PlanCatalogLimitsResponse } from '../../lib/planCatalogLimits';
 import { formatInvoiceMoney } from '../../lib/invoiceFormat';
 import { BILLING_LEGAL_NOTICE_AR } from '../../../lib/billingLegalNotice';
 import { UpgradePlanBodySkeleton } from '../../components/PanelSkeletons';
+import { useBillingClockMs } from '../../lib/useBillingClockMs';
 import { usePanelBootstrap } from '../../lib/usePanelBootstrap';
 import { useRouterRef } from '../../lib/useRouterRef';
 import {
@@ -49,6 +50,7 @@ function pctRemainingLabel(fraction: number): string {
 
 export default function UpgradePlanPageClient() {
   const routerRef = useRouterRef();
+  const now = useBillingClockMs();
   const { status, profile, errorMessage: configError } = usePanelBootstrap();
   const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -145,8 +147,10 @@ export default function UpgradePlanPageClient() {
 
   useEffect(() => {
     if (status === 'config_error') {
-      setError(configError);
-      setEntitlementLoading(false);
+      queueMicrotask(() => {
+        setError(configError);
+        setEntitlementLoading(false);
+      });
       return;
     }
     if (status !== 'ready' || !profile) {
@@ -185,9 +189,11 @@ export default function UpgradePlanPageClient() {
       setEntitlementLoading(false);
     }
 
-    setEntitlementLoading(true);
-    setError(null);
-    void load();
+    queueMicrotask(() => {
+      setEntitlementLoading(true);
+      setError(null);
+      void load();
+    });
     return () => {
       cancelled = true;
     };
@@ -293,7 +299,6 @@ export default function UpgradePlanPageClient() {
     return null;
   }
 
-  const now = Date.now();
   const billing = deriveBillingPresentation(entitlement, now);
   const tier = subscriptionTier(
     entitlement?.subscription_plan,

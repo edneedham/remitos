@@ -41,6 +41,7 @@ import {
   FIRST_SCAN_ANALYTICS_SENT_KEY,
   trackTrialOnboardingEvent,
 } from '../lib/trialOnboardingAnalytics';
+import { useBillingClockMs } from './lib/useBillingClockMs';
 import { usePanelBootstrap } from './lib/usePanelBootstrap';
 import { useRouterRef } from './lib/useRouterRef';
 
@@ -68,6 +69,7 @@ function maybeEmitFirstScanCompleted(data: Entitlement): void {
 
 export default function DashboardPageClient() {
   const routerRef = useRouterRef();
+  const now = useBillingClockMs();
   const { status, profile, errorMessage: configError } = usePanelBootstrap();
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [entitlementLoading, setEntitlementLoading] = useState(true);
@@ -119,9 +121,11 @@ export default function DashboardPageClient() {
 
   useEffect(() => {
     if (status === 'config_error') {
-      setError(configError);
-      setEntitlementLoading(false);
-      setInvoicesLoading(false);
+      queueMicrotask(() => {
+        setError(configError);
+        setEntitlementLoading(false);
+        setInvoicesLoading(false);
+      });
       return;
     }
     if (status !== 'ready') {
@@ -184,7 +188,6 @@ export default function DashboardPageClient() {
 
   const companyName = profile?.company_name ?? null;
 
-  const now = Date.now();
   const billing = entitlement
     ? deriveBillingPresentation(entitlement, now)
     : null;

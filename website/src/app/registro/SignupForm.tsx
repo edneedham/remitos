@@ -13,7 +13,7 @@ import {
 } from '../lib/validations/signup';
 import {
   saveWebSession,
-  useWebCookieSession,
+  isWebCookieSession,
   webCookieFetchInit,
 } from '../lib/webAuth';
 
@@ -301,7 +301,7 @@ export default function SignupForm({
           return;
         }
         const cookieSession =
-          useWebCookieSession() && data.session === 'cookie';
+          isWebCookieSession() && data.session === 'cookie';
         if (
           !cookieSession &&
           (!data.token || !data.refresh_token)
@@ -331,7 +331,6 @@ export default function SignupForm({
       email,
       cancelAllAccountDebounces,
       password,
-      passwordConfirm,
       onSignupSuccess,
       router,
       scrollFirstAccountErrorIntoView,

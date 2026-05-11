@@ -32,11 +32,13 @@ import {
   resolveUsageUpgradeAction,
   subscriptionTier,
 } from './lib/selfServePlan';
+import { useBillingClockMs } from './lib/useBillingClockMs';
 import { usePanelBootstrap } from './lib/usePanelBootstrap';
 import { useRouterRef } from './lib/useRouterRef';
 
 export default function BillingPageClient() {
   const routerRef = useRouterRef();
+  const now = useBillingClockMs();
   const { status, profile, errorMessage: configError } = usePanelBootstrap();
   const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [invoicesLoading, setInvoicesLoading] = useState(true);
@@ -80,9 +82,11 @@ export default function BillingPageClient() {
 
   useEffect(() => {
     if (status === 'config_error') {
-      setError(configError);
-      setEntitlementLoading(false);
-      setInvoicesLoading(false);
+      queueMicrotask(() => {
+        setError(configError);
+        setEntitlementLoading(false);
+        setInvoicesLoading(false);
+      });
       return;
     }
     if (status !== 'ready' || !profile) {
@@ -185,7 +189,6 @@ export default function BillingPageClient() {
     };
   }, [status, configError, profile, routerRef]);
 
-  const now = Date.now();
   const billing = entitlement
     ? deriveBillingPresentation(entitlement, now)
     : null;

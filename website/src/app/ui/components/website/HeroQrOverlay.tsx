@@ -10,12 +10,14 @@ export default function HeroQrOverlay() {
   const [qrUrl, setQrUrl] = useState('');
 
   useEffect(() => {
-    if (isLikelyMobileDevice()) {
-      setVisible(false);
-      return;
-    }
-    setQrUrl(`${getPublicSiteOrigin()}/registro`);
-    setVisible(true);
+    queueMicrotask(() => {
+      if (isLikelyMobileDevice()) {
+        setVisible(false);
+        return;
+      }
+      setQrUrl(`${getPublicSiteOrigin()}/registro`);
+      setVisible(true);
+    });
   }, []);
 
   if (!visible || !qrUrl) {
@@ -42,6 +44,7 @@ export default function HeroQrOverlay() {
             aria-hidden
           >
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element -- small static SVG inside QR overlay */}
               <img
                 src="/enpunto-simple.svg"
                 alt=""

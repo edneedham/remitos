@@ -143,7 +143,7 @@ export default function BenefitsSection() {
       secondBenefitRevealedRef.current = true;
       thirdBenefitRevealedRef.current = true;
       panelSwapCompleteRef.current = true;
-      setPanelOnlyLayout(true);
+      queueMicrotask(() => setPanelOnlyLayout(true));
       return () => {};
     }
 

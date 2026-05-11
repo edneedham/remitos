@@ -51,9 +51,11 @@ export default function WarehousesPageClient() {
 
   useEffect(() => {
     if (status === 'config_error') {
-      setLoadError(configError);
-      setWarehousesLoading(false);
-      setEntitlementLoading(false);
+      queueMicrotask(() => {
+        setLoadError(configError);
+        setWarehousesLoading(false);
+        setEntitlementLoading(false);
+      });
       return;
     }
     if (status !== 'ready') {
@@ -93,10 +95,12 @@ export default function WarehousesPageClient() {
       setWarehousesLoading(false);
     }
 
-    setWarehousesLoading(true);
-    setEntitlementLoading(true);
-    setLoadError(null);
-    void load();
+    queueMicrotask(() => {
+      setWarehousesLoading(true);
+      setEntitlementLoading(true);
+      setLoadError(null);
+      void load();
+    });
     return () => {
       cancelled = true;
     };

@@ -21,7 +21,7 @@ vi.mock('../lib/webAuth', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/webAuth')>();
   return {
     ...actual,
-    useWebCookieSession: () => false,
+    isWebCookieSession: () => false,
     saveWebSession: (...args: unknown[]) => mockSaveWebSession(...args),
   };
 });

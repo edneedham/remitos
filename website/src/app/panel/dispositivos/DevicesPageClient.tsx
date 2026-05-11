@@ -72,8 +72,10 @@ export default function DevicesPageClient() {
 
   useEffect(() => {
     if (status === 'config_error') {
-      setLoadError(configError);
-      setDevicesLoading(false);
+      queueMicrotask(() => {
+        setLoadError(configError);
+        setDevicesLoading(false);
+      });
       return;
     }
     if (status !== 'ready') {
@@ -102,9 +104,11 @@ export default function DevicesPageClient() {
       setDevicesLoading(false);
     }
 
-    setDevicesLoading(true);
-    setLoadError(null);
-    void load();
+    queueMicrotask(() => {
+      setDevicesLoading(true);
+      setLoadError(null);
+      void load();
+    });
     return () => {
       cancelled = true;
     };

@@ -15,7 +15,7 @@ import {
   getWebRefreshToken,
   postWithWebAuth,
   refreshWebSession,
-  useWebCookieSession,
+  isWebCookieSession,
 } from '../../lib/webAuth';
 import { CHECKLIST_DOWNLOAD_PAGE_VISITED_KEY } from '../../lib/trialOnboardingChecklist';
 import type { Entitlement } from '../lib/entitlementTypes';
@@ -24,7 +24,7 @@ import { useRouterRef } from '../lib/useRouterRef';
 
 export default function ApplicationPageClient() {
   const routerRef = useRouterRef();
-  const cookieSession = useWebCookieSession();
+  const cookieSession = isWebCookieSession();
   const { status, errorMessage: configError } = usePanelBootstrap();
   const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
@@ -324,6 +324,7 @@ export default function ApplicationPageClient() {
                       aria-hidden
                     >
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- small static SVG inside QR overlay */}
                         <img
                           src="/enpunto-simple.svg"
                           alt=""

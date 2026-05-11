@@ -24,7 +24,7 @@ export const WEB_ALLOWED_ROLES = [
 ] as const;
 
 /** When false (env NEXT_PUBLIC_WEB_COOKIE_SESSION=false), legacy sessionStorage tokens are used. */
-export function useWebCookieSession(): boolean {
+export function isWebCookieSession(): boolean {
   return process.env.NEXT_PUBLIC_WEB_COOKIE_SESSION !== 'false';
 }
 
@@ -32,7 +32,7 @@ export function useWebCookieSession(): boolean {
 export function webCookieFetchInit(
   headers: Record<string, string> = {},
 ): Pick<RequestInit, 'credentials' | 'headers'> {
-  if (!useWebCookieSession()) {
+  if (!isWebCookieSession()) {
     return { headers };
   }
   return {
@@ -68,10 +68,10 @@ function hasSessionHintCookie(): boolean {
   });
 }
 
-/** Legacy: store Bearer tokens (avoid when useWebCookieSession() is true). */
+/** Legacy: store Bearer tokens (avoid when cookie-session mode is enabled). */
 export function saveWebSession(accessToken: string, refreshToken: string): void {
   if (typeof window === 'undefined') return;
-  if (useWebCookieSession()) return;
+  if (isWebCookieSession()) return;
   sessionStorage.setItem(ACCESS_KEY, accessToken);
   sessionStorage.setItem(REFRESH_KEY, refreshToken);
 }
@@ -80,7 +80,7 @@ export function clearWebSession(): void {
   if (typeof window === 'undefined') return;
   sessionStorage.removeItem(ACCESS_KEY);
   sessionStorage.removeItem(REFRESH_KEY);
-  if (useWebCookieSession()) {
+  if (isWebCookieSession()) {
     const secure =
       typeof window !== 'undefined' && window.location.protocol === 'https:';
     document.cookie = `${COOKIE_HINT_NAME}=; Path=/; Max-Age=0; SameSite=Lax${
@@ -91,18 +91,18 @@ export function clearWebSession(): void {
 
 export function getWebAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
-  if (useWebCookieSession()) return null;
+  if (isWebCookieSession()) return null;
   return sessionStorage.getItem(ACCESS_KEY);
 }
 
 export function getWebRefreshToken(): string | null {
   if (typeof window === 'undefined') return null;
-  if (useWebCookieSession()) return null;
+  if (isWebCookieSession()) return null;
   return sessionStorage.getItem(REFRESH_KEY);
 }
 
 export function hasWebSession(): boolean {
-  if (useWebCookieSession()) {
+  if (isWebCookieSession()) {
     return hasSessionHintCookie();
   }
   return Boolean(getWebAccessToken());
@@ -131,7 +131,7 @@ export async function refreshWebSession(): Promise<boolean> {
   if (!api) {
     return false;
   }
-  if (useWebCookieSession()) {
+  if (isWebCookieSession()) {
     const res = await fetch(`${api}/auth/refresh`, {
       method: 'POST',
       ...webCookieFetchInit({ 'Content-Type': 'application/json' }),
@@ -169,7 +169,7 @@ export async function fetchWithWebAuth(path: string): Promise<Response> {
     return new Response(null, { status: 500 });
   }
 
-  if (useWebCookieSession()) {
+  if (isWebCookieSession()) {
     let res = await fetch(`${api}${path}`, {
       ...webCookieFetchInit(),
     });
@@ -241,7 +241,7 @@ async function jsonRequestWithWebAuth(
     return new Response(null, { status: 500 });
   }
 
-  if (useWebCookieSession()) {
+  if (isWebCookieSession()) {
     const send = () =>
       fetch(`${api}${path}`, {
         method,

@@ -18,11 +18,11 @@ export default function Header() {
     pathname === '/registro' || pathname.startsWith('/registro/');
 
   useEffect(() => {
-    setGuest(!hasWebSession());
+    queueMicrotask(() => setGuest(!hasWebSession()));
   }, [pathname]);
 
   useEffect(() => {
-    setSiteMenuOpen(false);
+    queueMicrotask(() => setSiteMenuOpen(false));
   }, [pathname]);
 
   useEffect(() => {

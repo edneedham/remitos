@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import {
   saveWebSession,
-  useWebCookieSession,
+  isWebCookieSession,
   webCookieFetchInit,
 } from '../lib/webAuth';
 
@@ -47,7 +47,7 @@ export default function TransferPageClient({ token }: { token: string }) {
 
         const body = (await res.json().catch(() => ({}))) as TransferClaimResponse;
         const cookieOk =
-          useWebCookieSession() && body.session === 'cookie';
+          isWebCookieSession() && body.session === 'cookie';
         if (
           !res.ok ||
           (!cookieOk && (!body.token || !body.refresh_token))
