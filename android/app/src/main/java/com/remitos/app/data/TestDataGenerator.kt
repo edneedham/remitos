@@ -3,6 +3,7 @@ package com.remitos.app.data
 import android.content.Context
 import com.remitos.app.data.db.entity.InboundNoteEntity
 import com.remitos.app.data.db.entity.InboundPackageEntity
+import com.remitos.app.dev.DevSeedDefaults
 import com.remitos.app.data.db.entity.OutboundListEntity
 import com.remitos.app.data.db.entity.OutboundLineEntity
 import com.remitos.app.data.db.entity.OutboundLineEditHistoryEntity
@@ -330,7 +331,7 @@ class TestDataGenerator(private val repository: RemitosRepository) {
         deviceDao.insert(
             LocalDeviceEntity(
                 deviceId = "demo-device-001",
-                companyId = "LOGSUR",
+                companyId = DevSeedDefaults.COMPANY_CODE,
                 warehouseId = "22222222-2222-2222-2222-222222222222",
                 registeredAt = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000L // 30 days ago
             )

@@ -7,6 +7,7 @@ import (
 
 	"server/internal/billing"
 	"server/internal/logger"
+	"server/internal/notifications/inapp"
 	notifymail "server/internal/notifications/email"
 	"server/internal/repository"
 )
@@ -21,6 +22,7 @@ func RunSubscriptionRenewalReminderOnce(
 	quoter billing.USDARSQuoter,
 	fxBufferFraction float64,
 	publicSiteURL string,
+	bc *inapp.Broadcaster,
 ) {
 	if quoter == nil {
 		return
@@ -81,6 +83,9 @@ func RunSubscriptionRenewalReminderOnce(
 			logger.Log.Error().Err(err).Str("company_id", row.CompanyID.String()).Msg("subscription renewal reminder: mark sent failed")
 			continue
 		}
+		if bc != nil {
+			bc.SubscriptionRenewalUpcoming(ctx, row.CompanyID, row.CompanyName, wholeARS)
+		}
 		sent++
 	}
 
@@ -97,18 +102,19 @@ func StartSubscriptionRenewalReminderLoop(
 	quoter billing.USDARSQuoter,
 	fxBufferFraction float64,
 	publicSiteURL string,
+	bc *inapp.Broadcaster,
 ) {
 	ticker := time.NewTicker(subscriptionRenewalReminderTicker)
 	defer ticker.Stop()
 
-	RunSubscriptionRenewalReminderOnce(ctx, companyRepo, mailer, quoter, fxBufferFraction, publicSiteURL)
+	RunSubscriptionRenewalReminderOnce(ctx, companyRepo, mailer, quoter, fxBufferFraction, publicSiteURL, bc)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			RunSubscriptionRenewalReminderOnce(ctx, companyRepo, mailer, quoter, fxBufferFraction, publicSiteURL)
+			RunSubscriptionRenewalReminderOnce(ctx, companyRepo, mailer, quoter, fxBufferFraction, publicSiteURL, bc)
 		}
 	}
 }

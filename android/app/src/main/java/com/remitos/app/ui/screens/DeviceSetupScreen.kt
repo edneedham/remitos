@@ -34,7 +34,10 @@ import com.remitos.app.data.AuthManager
 import com.remitos.app.data.DatabaseManager
 import com.remitos.app.data.TokenData
 import com.remitos.app.data.db.entity.LocalDeviceEntity
+import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import com.remitos.app.network.ApiClient
+import com.remitos.app.network.ErrorResponse
 import com.remitos.app.network.LoginRequest
 import com.remitos.app.network.RegisterDeviceRequest
 import com.remitos.app.network.WarehouseDto
@@ -45,6 +48,7 @@ import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTextFieldVariant
 import com.remitos.app.ui.theme.Spacing
+import com.remitos.app.dev.DevSeedDefaults
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,9 +68,9 @@ fun DeviceSetupScreen(
     var authToken by remember { mutableStateOf<String?>(null) }
     
     // Form state
-    var companyCode by remember { mutableStateOf("LOGSUR") }
-    var username by remember { mutableStateOf("admin") }
-    var password by remember { mutableStateOf("") }
+    var companyCode by remember { mutableStateOf(DevSeedDefaults.prefillCompany) }
+    var username by remember { mutableStateOf(DevSeedDefaults.prefillOwnerUsername) }
+    var password by remember { mutableStateOf(DevSeedDefaults.prefillPassword) }
     var passwordVisible by remember { mutableStateOf(false) }
     var deviceName by remember { mutableStateOf("Terminal Móvil #1") }
     var selectedWarehouse by remember { mutableStateOf<WarehouseDto?>(null) }
@@ -409,7 +413,7 @@ fun DeviceSetupScreen(
                                             database.localDeviceDao().insert(
                                                 LocalDeviceEntity(
                                                     deviceId = deviceUuid,
-                                                    companyId = "LOGSUR",
+                                                    companyId = companyCode.trim().uppercase(),
                                                     warehouseId = warehouse.id,
                                                     registeredAt = System.currentTimeMillis()
                                                 )
@@ -433,7 +437,19 @@ fun DeviceSetupScreen(
                                             
                                             onDeviceRegistered()
                                         } else {
-                                            errorMessage = "Error al registrar dispositivo: ${response.code()}"
+                                            val raw = response.errorBody()?.string()?.trim().orEmpty()
+                                            val parsed = if (raw.isNotEmpty()) {
+                                                try {
+                                                    Gson().fromJson(raw, ErrorResponse::class.java)
+                                                        ?.message?.trim()?.takeIf { it.isNotEmpty() }
+                                                } catch (_: JsonSyntaxException) {
+                                                    null
+                                                }
+                                            } else {
+                                                null
+                                            }
+                                            errorMessage = parsed
+                                                ?: "Error al registrar dispositivo: ${response.code()}"
                                         }
                                     } catch (e: Exception) {
                                         errorMessage = e.message ?: "Error de conexión"

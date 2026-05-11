@@ -1,0 +1,19 @@
+# Reference for android/local.properties (gitignored). Android Studio usually creates
+# local.properties with sdk.dir=... only — add BACKEND_BASE_URL there if needed.
+#
+# Debug default API base is http://10.0.2.2:8080/ (emulator → host). For a physical device
+# on the same Wi‑Fi, use your laptop’s LAN IP, e.g.:
+#   BACKEND_BASE_URL=http://192.168.1.42:8080/
+#
+# CLI override:
+#   ./gradlew :app:installDebug -PBACKEND_BASE_URL=http://192.168.1.42:8080/
+#
+# USB + adb reverse (host API on 8080):
+#   adb reverse tcp:8080 tcp:8080
+#   BACKEND_BASE_URL=http://127.0.0.1:8080/
+#
+# Release builds use the production URL in app/build.gradle.kts. Use the "debug" build variant
+# in Android Studio to hit your local Go server with seed data.
+#
+# Debug builds pre-fill login / device setup to match backend/db/seed/local_dev_users.sql:
+#   company SEEDTRIAL, user trial_owner, password LocalSeed123! (operator toggle: trial_operator).

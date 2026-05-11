@@ -49,6 +49,12 @@ cd android
 
 Servicio HTTP con **PostgreSQL**, **JWT** para sesiones web/móvil, sync multi-tenant, **Mercado Pago** para cobros y suscripciones, y —cuando está configurado— integración directa **AFIP/ARCA** (padrón de CUIT, comprobantes con CAE). Las migraciones se aplican al **arranque** del proceso API (`runMigrations` en `main.go`).
 
+### Versión de Go
+
+El backend **requiere Go 1.25.x** (`go 1.25.0` en `backend/go.mod`; las dependencias GCP también piden ≥ 1.25). **Instalalo antes de `go run`**: paquete oficial para macOS/Linux/Windows en [go.dev/dl](https://go.dev/dl) (evita depender del auto-download del comando `go`, que puede dar timeout feo en redes lentas o bloqueadas).
+
+Si ya tenés una versión vieja en el PATH, verificá con `go version` que sea **1.25**. Si el download automático de toolchain falla igual, revisá **proxy/firewall** y `GOPROXY`; **`GOTOOLCHAIN=local` con Go 1.24 no sirve** porque el código no compila sin 1.25.
+
 ### Configuración local
 
 Copiá variables desde `backend/.env.example`. Para Postgres solo:

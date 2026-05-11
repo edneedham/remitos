@@ -3,6 +3,7 @@ package com.remitos.app.ui.screens
 import androidx.compose.ui.res.stringResource
 import com.remitos.app.R
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -75,6 +76,7 @@ import com.remitos.app.ocr.OcrFieldKeys
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.Color
 import com.remitos.app.ui.components.RemitosTextFieldVariant
+import com.remitos.app.notifications.operationalNotifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,6 +90,11 @@ fun InboundScanScreen(
     val context = LocalContext.current
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val saveErrorState = uiState.saveState as? SaveState.Error
+    LaunchedEffect(saveErrorState?.message) {
+        val err = saveErrorState ?: return@LaunchedEffect
+        context.operationalNotifier().notifyInboundSaveFailed(err.message)
+    }
     val draft = uiState.draft
     val ingresoGuardadoMsg = stringResource(R.string.ingreso_guardado_correctamente)
     val primerRemitoMsg = stringResource(R.string.snackbar_first_remito_saved)
@@ -114,6 +121,8 @@ fun InboundScanScreen(
 
     val missing = draft.missingFields()
     val missingForDisplay = if (uiState.showMissingErrors) missing else emptyList()
+
+    BackHandler(onBack = onBack)
 
     fun errorMessage(field: MissingField): String? {
         if (!missingForDisplay.contains(field)) return null

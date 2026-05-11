@@ -7,7 +7,10 @@ import com.remitos.app.network.UserStatusResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import com.remitos.app.R
+import com.remitos.app.data.db.AppDatabase
+import com.remitos.app.notifications.OperationalNotifier
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +27,8 @@ sealed class SyncState {
 class SyncManager(
     private val context: Context,
     private val authManager: AuthManager,
-    private val networkMonitor: NetworkMonitor
+    private val networkMonitor: NetworkMonitor,
+    private val operationalNotifier: OperationalNotifier? = null,
 ) {
     companion object {
         private const val TAG = "SyncManager"
@@ -54,9 +58,15 @@ class SyncManager(
     fun startMonitoring() {
         CoroutineScope(Dispatchers.IO).launch {
             networkMonitor.isOnline.collect { isOnline ->
-                if (isOnline && !wasOffline) {
+                if (isOnline) {
                     delay(2500)
                     if (networkMonitor.isCurrentlyOnline()) {
+                        if (wasOffline) {
+                            val pending = countPendingSyncItems()
+                            if (pending > 0) {
+                                operationalNotifier?.maybeNotifyPendingAfterReconnect(pending)
+                            }
+                        }
                         syncIfNeeded()
                     }
                 }
@@ -83,12 +93,14 @@ class SyncManager(
                             _isSyncing.value = false
                             _syncState.value = SyncState.UserSuspended
                             _syncMessage.value = null
+                            operationalNotifier?.notifyUserSuspended()
                             return@launch
                         }
                         statusResponse.deviceStatus == "revoked" -> {
                             _isSyncing.value = false
                             _syncState.value = SyncState.DeviceRevoked
                             _syncMessage.value = null
+                            operationalNotifier?.notifyDeviceRevoked()
                             return@launch
                         }
                     }
@@ -101,18 +113,23 @@ class SyncManager(
                     is SyncService.SyncResult.Success -> {
                         saveLastSyncTimestamp(result.serverTimestamp)
                         _syncState.value = SyncState.Success
+                        operationalNotifier?.cancelSyncError()
+                        operationalNotifier?.cancelPendingReconnect()
                         if (result.uploadsWereBlockedByEntitlement) {
                             _syncSnackbarNotice.value =
                                 context.getString(R.string.sync_uploads_blocked_entitlement)
+                            operationalNotifier?.notifyEntitlementUploadBlocked()
                         }
                     }
                     is SyncService.SyncResult.Error -> {
                         _syncState.value = SyncState.Error(result.message)
+                        operationalNotifier?.notifySyncFailed(result.message)
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Sync failed", e)
                 _syncState.value = SyncState.Error(e.message ?: "Error de sincronización")
+                operationalNotifier?.notifySyncFailed(e.message ?: "")
             } finally {
                 _isSyncing.value = false
                 _syncMessage.value = null
@@ -157,6 +174,26 @@ class SyncManager(
 
     fun consumeSyncSnackbarNotice() {
         _syncSnackbarNotice.value = null
+    }
+
+    private suspend fun countPendingSyncItems(): Int {
+        if (!FeatureFlags.enableCloudSync) return 0
+        val userId = authManager.getCurrentUser() ?: return 0
+        return withContext(Dispatchers.IO) {
+            try {
+                val db: AppDatabase = DatabaseManager.getDatabase(context, userId)
+                val inboundDao = db.inboundDao()
+                val outboundDao = db.outboundDao()
+                inboundDao.getUnsynced().size +
+                    outboundDao.getUnsyncedLists().size +
+                    outboundDao.getUnsyncedLines().size +
+                    outboundDao.getUnsyncedStatusHistory().size +
+                    outboundDao.getUnsyncedEditHistory().size
+            } catch (e: Exception) {
+                Log.d(TAG, "countPendingSyncItems: no cloud DB or error", e)
+                0
+            }
+        }
     }
 
     private suspend fun checkUserStatus(): UserStatusResponse? {

@@ -17,7 +17,9 @@ import kotlinx.coroutines.launch
 class SessionManager(
     private val context: Context,
     private val authManager: AuthManager,
-    private val onSessionExpired: () -> Unit
+    private val onSessionExpired: () -> Unit,
+    /** Called on the main thread immediately before clearing the token (e.g. local notification). */
+    private val onBeforeAutoLogout: (() -> Unit)? = null,
 ) : Application.ActivityLifecycleCallbacks {
     
     companion object {
@@ -80,6 +82,7 @@ class SessionManager(
     private suspend fun logoutCurrentUser() {
         val currentUser = authManager.getCurrentUser()
         if (currentUser != null) {
+            onBeforeAutoLogout?.invoke()
             authManager.removeToken(currentUser)
             onSessionExpired()
         }

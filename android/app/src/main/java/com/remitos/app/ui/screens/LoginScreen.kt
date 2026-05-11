@@ -80,6 +80,7 @@ import com.remitos.app.data.db.entity.LocalSessionEntity
 import com.remitos.app.data.db.entity.LocalUserEntity
 import com.remitos.app.ui.theme.BrandBlue
 import com.remitos.app.ui.theme.Spacing
+import com.remitos.app.dev.DevSeedDefaults
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -129,7 +130,9 @@ fun LoginScreen(
                     try {
                         val db = com.remitos.app.data.DatabaseManager.getOfflineDatabase(context)
                         val role = app.authManager.getCurrentUserRole() ?: "operator"
-                        val userId = app.authManager.getCurrentUser() ?: "admin"
+                        val userId =
+                            app.authManager.getCurrentUser()
+                                ?: DevSeedDefaults.prefillOwnerUsername
                         val device = db.localDeviceDao().getDevice()
 
                         // Ensure user exists in local_users with password hash for unlock
@@ -307,15 +310,17 @@ private fun LoginContent(
     onForgotPassword: () -> Unit,
 ) {
     var companyCode by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf(DevSeedDefaults.prefillOwnerUsername) }
+    var password by remember { mutableStateOf(DevSeedDefaults.prefillPassword) }
     var passwordVisible by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
     var isOperatorMode by remember { mutableStateOf(false) }
     
     // Update username when toggle changes
     LaunchedEffect(isOperatorMode) {
-        username = if (isOperatorMode) "operador" else "admin"
+        username =
+            if (isOperatorMode) DevSeedDefaults.prefillOperatorUsername
+            else DevSeedDefaults.prefillOwnerUsername
     }
     
     // Pre-fill company code from device info
@@ -532,7 +537,12 @@ private fun LoginContent(
             value = username,
             onValueChange = { username = it },
             label = "Usuario",
-            placeholder = { Text(if (isOperatorMode) "operador" else "admin") },
+            placeholder = {
+                Text(
+                    if (isOperatorMode) DevSeedDefaults.prefillOperatorUsername
+                    else DevSeedDefaults.prefillOwnerUsername,
+                )
+            },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,

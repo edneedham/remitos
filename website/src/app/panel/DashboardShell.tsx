@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Monitor,
   Smartphone,
   UserCog,
   Warehouse,
@@ -26,6 +27,10 @@ import {
   logoutWebSession,
 } from '../lib/webAuth';
 import ActivateSubscriptionGate from './ActivateSubscriptionGate';
+import {
+  PanelNotificationsProvider,
+  PanelNotificationBell,
+} from './PanelNotificationsContext';
 
 const PANEL_MOBILE_DESKTOP_HINT_STORAGE_KEY =
   'enpunto_panel_mobile_desktop_hint_dismissed';
@@ -56,8 +61,15 @@ function PanelMobileDesktopHint() {
       role="status"
     >
       <div className="mx-auto flex max-w-[92rem] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <p className="text-sm leading-snug text-blue-950">
-          Para ver todos los detalles completos, abrí esta página desde tu PC.
+        <p className="flex items-start gap-2.5 text-sm leading-snug text-blue-950 sm:items-center">
+          <Monitor
+            className="mt-0.5 h-5 w-5 shrink-0 text-blue-800 sm:mt-0"
+            aria-hidden
+            strokeWidth={2}
+          />
+          <span>
+            Para ver todos los detalles completos, abrí esta página desde tu PC.
+          </span>
         </p>
         <button
           type="button"
@@ -228,6 +240,7 @@ export default function DashboardShell({
   }, [mobileNavOpen]);
 
   return (
+    <PanelNotificationsProvider>
     <div className="flex min-h-screen bg-gray-50">
       <aside
         className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-gray-200 bg-white md:flex"
@@ -255,7 +268,7 @@ export default function DashboardShell({
       <div className="flex min-h-screen w-full min-w-0 flex-1 flex-col md:pl-64">
         <header className="sticky top-0 z-[60] h-24 shrink-0 border-b border-gray-200 bg-white shadow-sm">
           <div className="mx-auto h-full w-full max-w-[90vw] px-4 sm:px-6 md:max-w-[calc(90vw-16rem)] lg:px-8">
-            <div className="flex h-full w-full items-center gap-2">
+            <div className="flex h-full w-full items-center justify-between gap-2 md:justify-end md:gap-3">
               <button
                 type="button"
                 className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-700 transition-colors hover:bg-gray-100 md:hidden"
@@ -270,19 +283,29 @@ export default function DashboardShell({
                   <Menu className="h-6 w-6" aria-hidden strokeWidth={2} />
                 )}
               </button>
-              <div className="flex min-w-0 flex-1 justify-center md:hidden">
-                <Link href="/" className="flex shrink-0 items-center" prefetch={false}>
-                  <Image
-                    src="/enpunto-new.svg"
-                    alt="En Punto"
-                    width={140}
-                    height={25}
-                    className="h-9 w-auto max-w-[140px]"
-                    unoptimized
+              <Link
+                href="/"
+                className="flex min-w-0 shrink-0 items-center justify-center md:hidden"
+                prefetch={false}
+              >
+                <Image
+                  src="/enpunto-new.svg"
+                  alt="En Punto"
+                  width={140}
+                  height={25}
+                  className="h-9 w-auto max-w-[140px]"
+                  unoptimized
+                />
+              </Link>
+              <div className="relative z-10 flex min-w-0 shrink-0 items-center gap-2 md:flex-1 md:justify-end md:gap-3">
+                <PanelNotificationBell className="shrink-0 md:hidden" />
+                <div className="hidden items-center gap-3 md:flex">
+                  <PanelNotificationBell className="hidden shrink-0 md:inline-flex" />
+                  <div
+                    className="hidden h-8 w-px shrink-0 bg-gray-200 md:block"
+                    aria-hidden
                   />
-                </Link>
-              </div>
-              <div className="relative z-10 ml-auto flex shrink-0 items-center md:flex-1 md:justify-end">
+                </div>
                 <HeaderAuthNav />
               </div>
             </div>
@@ -334,5 +357,6 @@ export default function DashboardShell({
         </div>
       </div>
     </div>
+    </PanelNotificationsProvider>
   );
 }

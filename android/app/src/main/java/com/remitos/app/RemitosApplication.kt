@@ -1,6 +1,7 @@
 package com.remitos.app
 
 import android.app.Application
+import android.util.Log
 import com.remitos.app.data.AuthManager
 import com.remitos.app.data.DatabaseManager
 import com.remitos.app.data.FeatureFlags
@@ -9,7 +10,11 @@ import com.remitos.app.data.SessionManager
 import com.remitos.app.data.SettingsStore
 import com.remitos.app.data.TestDataGenerator
 import com.remitos.app.data.db.AppDatabase
+import com.remitos.app.network.AuthInterceptor
+import com.remitos.app.network.AuthNetworkSideEffects
 import com.remitos.app.network.RemitosApiService
+import com.remitos.app.notifications.OperationalNotifier
+import com.remitos.app.dev.DevSeedDefaults
 import com.remitos.app.workers.ImageUploadWorkerScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.flow.first
@@ -27,6 +32,9 @@ class RemitosApplication : Application() {
     
     @Inject
     lateinit var apiService: RemitosApiService
+
+    @Inject
+    lateinit var operationalNotifier: OperationalNotifier
 
     // Session manager for auto-logout
     lateinit var sessionManager: SessionManager
@@ -46,6 +54,12 @@ class RemitosApplication : Application() {
         get() = requireRepository()
 
     override fun onCreate() {
+        if (BuildConfig.DEBUG) {
+            Log.i(
+                "RemitosApplication",
+                "BACKEND_BASE_URL=${BuildConfig.BACKEND_BASE_URL} (use debug build for local API; release uses production)",
+            )
+        }
         FeatureFlags.configureBackendMode(BuildConfig.BACKEND_BASE_URL)
         super.onCreate()
 
@@ -55,9 +69,22 @@ class RemitosApplication : Application() {
             authManager = authManager,
             onSessionExpired = {
                 clearCurrentUserContext()
-            }
+            },
+            onBeforeAutoLogout = {
+                operationalNotifier.notifyInactivityLogout()
+            },
         )
         sessionManager.initialize(this)
+
+        AuthInterceptor.sideEffects = object : AuthNetworkSideEffects {
+            override fun onDeviceRevokedFromRefresh() {
+                operationalNotifier.notifyDeviceRevoked()
+            }
+
+            override fun onRefreshTokenFailed() {
+                operationalNotifier.notifyAuthSessionLost()
+            }
+        }
 
         // Initialize with existing session if available
         runBlocking {
@@ -79,8 +106,8 @@ class RemitosApplication : Application() {
             currentRepository = currentDatabase?.let { RemitosRepository(it) }
             sessionManager.resetSession()
             
-            // Auto-generate demo data for admin user on first login
-            if (userId == "admin") {
+            // Auto-generate demo data for local seed owner (or legacy offline admin) on first login
+            if (DevSeedDefaults.isSeedOwnerForDemoData(userId)) {
                 currentRepository?.let { repo ->
                     val existingNotes = repo.observeInboundNotes().first()
                     if (existingNotes.isEmpty()) {

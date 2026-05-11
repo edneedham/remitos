@@ -12,6 +12,7 @@ import (
 	arcatuit "server/internal/cuit"
 	"server/internal/logger"
 	"server/internal/models"
+	"server/internal/notifications/inapp"
 	"server/internal/payments/afip"
 	"server/internal/payments/afip/padron"
 	"server/internal/payments/afip/wsfev1"
@@ -29,6 +30,7 @@ type FacturaEmitter struct {
 	TAMgr     *afip.TAManager
 	Invoices  *repository.InvoiceRepository
 	Companies *repository.CompanyRepository
+	InApp     *inapp.Broadcaster
 
 	BillingEnabled bool // AFIP_BILLING_ENABLED
 	PadronEnabled  bool // AFIP_PADRON_ENABLED
@@ -68,6 +70,9 @@ func (e *FacturaEmitter) TryEmit(ctx context.Context, invoiceID uuid.UUID) error
 		return nil
 	}
 	if inv.FacturaAttempts >= repository.MaxFacturaAttempts {
+		if e.InApp != nil {
+			e.InApp.FacturaFailed(ctx, inv.CompanyID, "superamos los reintentos automáticos para emitir la factura (AFIP). Revisá Facturación o contactá soporte.")
+		}
 		return errors.New("max factura attempts reached")
 	}
 
@@ -229,6 +234,9 @@ func (e *FacturaEmitter) TryEmit(ctx context.Context, invoiceID uuid.UUID) error
 
 	if err := e.Invoices.MarkFacturaEmitted(ctx, invoiceID, cbteTipo, e.Afip.PuntoVenta, sol.CbteNro, sol.CAE, caeVto); err != nil {
 		return err
+	}
+	if e.InApp != nil {
+		e.InApp.FacturaReady(ctx, inv.CompanyID)
 	}
 
 	logger.Log.Info().

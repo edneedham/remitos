@@ -13,6 +13,7 @@ import (
 	"server/internal/billing"
 	"server/internal/middleware"
 	"server/internal/models"
+	"server/internal/notifications/inapp"
 	"server/internal/payments/mercadopago"
 	"server/internal/validation"
 )
@@ -278,6 +279,7 @@ func (h *AuthHandler) handleUpgrade(
 			RespondWithError(w, r, ErrCodeInternalError, "No se pudo cambiar el plan.", http.StatusInternalServerError, err)
 			return
 		}
+		h.notifyPlanChanged(ctx, company.ID, req.PlanID)
 		RespondWithJSON(w, http.StatusOK, changePlanResponse{
 			Message: "Plan cambiado correctamente (sin ajuste prorrateado).",
 			PlanID:  req.PlanID,
@@ -365,6 +367,8 @@ func (h *AuthHandler) handleUpgrade(
 		return
 	}
 
+	h.notifyPlanChanged(ctx, company.ID, req.PlanID)
+
 	RespondWithJSON(w, http.StatusOK, changePlanResponse{
 		Message:               "Plan actualizado. Cobramos el ajuste prorrateado.",
 		PlanID:                req.PlanID,
@@ -408,5 +412,12 @@ func (h *AuthHandler) resolveChangePlanCard(
 		return mpCust, newCard, nil
 	default:
 		return "", "", errors.New("Falta un medio de pago. Cargá una tarjeta antes de cambiar de plan.")
+	}
+}
+
+func (h *AuthHandler) notifyPlanChanged(ctx context.Context, companyID uuid.UUID, planID string) {
+	bc := inapp.NewBroadcaster(h.notificationRepo, h.userRepo, h.publicSiteURL)
+	if bc != nil {
+		bc.PlanChanged(ctx, companyID, planID)
 	}
 }

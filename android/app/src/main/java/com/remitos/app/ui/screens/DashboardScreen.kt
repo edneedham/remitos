@@ -86,6 +86,7 @@ import androidx.compose.runtime.collectAsState
 import com.remitos.app.data.NetworkMonitor
 import com.remitos.app.data.SyncManager
 import com.remitos.app.data.SyncState
+import com.remitos.app.notifications.operationalNotifier
 import com.remitos.app.data.TokenData
 import com.remitos.app.ui.components.SyncModal
 
@@ -144,8 +145,9 @@ fun DashboardScreen(
     
     // Initialize sync manager
     val app = context.applicationContext as RemitosApplication
-    val syncManager = remember {
-        SyncManager(context, app.authManager, NetworkMonitor(context))
+    val operationalNotifier = remember(context) { context.operationalNotifier() }
+    val syncManager = remember(operationalNotifier) {
+        SyncManager(context, app.authManager, NetworkMonitor(context), operationalNotifier)
     }
     
     // Start network monitoring for sync

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"server/internal/logger"
+	"server/internal/notifications/inapp"
 	notifymail "server/internal/notifications/email"
 	"server/internal/repository"
 )
@@ -18,6 +19,7 @@ func RunSubscriptionLapseNoticeOnce(
 	companyRepo *repository.CompanyRepository,
 	mailer notifymail.Sender,
 	publicSiteURL string,
+	bc *inapp.Broadcaster,
 ) {
 	rows, err := companyRepo.ListCompaniesForSubscriptionLapseNotice(ctx)
 	if err != nil {
@@ -45,6 +47,9 @@ func RunSubscriptionLapseNoticeOnce(
 			logger.Log.Error().Err(err).Str("company_id", row.CompanyID.String()).Msg("subscription lapse: mark sent failed")
 			continue
 		}
+		if bc != nil {
+			bc.SubscriptionLapsed(ctx, row.CompanyID, row.CompanyName, phrase)
+		}
 		sent++
 	}
 	if sent > 0 {
@@ -58,17 +63,18 @@ func StartSubscriptionLapseNoticeLoop(
 	companyRepo *repository.CompanyRepository,
 	mailer notifymail.Sender,
 	publicSiteURL string,
+	bc *inapp.Broadcaster,
 ) {
 	ticker := time.NewTicker(subscriptionLapseNoticeTicker)
 	defer ticker.Stop()
 
-	RunSubscriptionLapseNoticeOnce(ctx, companyRepo, mailer, publicSiteURL)
+	RunSubscriptionLapseNoticeOnce(ctx, companyRepo, mailer, publicSiteURL, bc)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			RunSubscriptionLapseNoticeOnce(ctx, companyRepo, mailer, publicSiteURL)
+			RunSubscriptionLapseNoticeOnce(ctx, companyRepo, mailer, publicSiteURL, bc)
 		}
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"server/internal/billing"
 	"server/internal/logger"
 	"server/internal/notifications/billingmail"
+	"server/internal/notifications/inapp"
 	notifymail "server/internal/notifications/email"
 	"server/internal/payments/mercadopago"
 	"server/internal/repository"
@@ -32,6 +33,7 @@ type MercadoPagoWebhookHandler struct {
 	FXBufferFraction   float64
 	WebhookSecret      string
 	Factura            *billing.FacturaEmitter
+	InApp              *inapp.Broadcaster
 }
 
 func NewMercadoPagoWebhookHandler(
@@ -45,6 +47,7 @@ func NewMercadoPagoWebhookHandler(
 	fxBufferFraction float64,
 	webhookSecret string,
 	factura *billing.FacturaEmitter,
+	inApp *inapp.Broadcaster,
 ) *MercadoPagoWebhookHandler {
 	return &MercadoPagoWebhookHandler{
 		Pool:             pool,
@@ -57,6 +60,7 @@ func NewMercadoPagoWebhookHandler(
 		FXBufferFraction: fxBufferFraction,
 		WebhookSecret:    webhookSecret,
 		Factura:          factura,
+		InApp:            inApp,
 	}
 }
 
@@ -215,6 +219,7 @@ func (h *MercadoPagoWebhookHandler) handlePayment(ctx context.Context, paymentID
 				h.PublicSiteURL,
 				billing.LegalNoticeAR(h.FXBufferFraction),
 				invUUID,
+				h.InApp,
 			)
 		}
 		if h.Factura != nil && invUUID != uuid.Nil {
@@ -290,6 +295,7 @@ func (h *MercadoPagoWebhookHandler) handlePayment(ctx context.Context, paymentID
 			h.PublicSiteURL,
 			billing.LegalNoticeAR(h.FXBufferFraction),
 			newInvID,
+			h.InApp,
 		)
 	}
 	if h.Factura != nil {

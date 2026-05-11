@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"server/internal/logger"
+	"server/internal/notifications/inapp"
 	notifymail "server/internal/notifications/email"
 	"server/internal/repository"
 )
@@ -18,6 +19,7 @@ func RunTrialEndingNoticeOnce(
 	companyRepo *repository.CompanyRepository,
 	mailer notifymail.Sender,
 	publicSiteURL string,
+	bc *inapp.Broadcaster,
 ) {
 	rows, err := companyRepo.ListCompaniesForTrialEndingNotice(ctx)
 	if err != nil {
@@ -45,6 +47,9 @@ func RunTrialEndingNoticeOnce(
 			logger.Log.Error().Err(err).Str("company_id", row.CompanyID.String()).Msg("trial ending notice: mark sent failed")
 			continue
 		}
+		if bc != nil {
+			bc.TrialEndingSoon(ctx, row.CompanyID, row.CompanyName, phrase)
+		}
 		sent++
 	}
 	if sent > 0 {
@@ -58,17 +63,18 @@ func StartTrialEndingNoticeLoop(
 	companyRepo *repository.CompanyRepository,
 	mailer notifymail.Sender,
 	publicSiteURL string,
+	bc *inapp.Broadcaster,
 ) {
 	ticker := time.NewTicker(trialEndingNoticeTicker)
 	defer ticker.Stop()
 
-	RunTrialEndingNoticeOnce(ctx, companyRepo, mailer, publicSiteURL)
+	RunTrialEndingNoticeOnce(ctx, companyRepo, mailer, publicSiteURL, bc)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			RunTrialEndingNoticeOnce(ctx, companyRepo, mailer, publicSiteURL)
+			RunTrialEndingNoticeOnce(ctx, companyRepo, mailer, publicSiteURL, bc)
 		}
 	}
 }

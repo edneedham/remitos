@@ -13,6 +13,7 @@ import (
 	"server/internal/logger"
 	"server/internal/middleware"
 	"server/internal/models"
+	"server/internal/notifications/inapp"
 	"server/internal/repository"
 	"server/internal/validation"
 )
@@ -31,6 +32,7 @@ type AdminHandler struct {
 	companyRepo *repository.CompanyRepository
 	deviceRepo  *repository.DeviceRepository
 	jwtSvc      *jwt.Service
+	inApp       *inapp.Broadcaster
 }
 
 func NewAdminHandler(
@@ -38,12 +40,14 @@ func NewAdminHandler(
 	companyRepo *repository.CompanyRepository,
 	deviceRepo *repository.DeviceRepository,
 	jwtSvc *jwt.Service,
+	inApp *inapp.Broadcaster,
 ) *AdminHandler {
 	return &AdminHandler{
 		userRepo:    userRepo,
 		companyRepo: companyRepo,
 		deviceRepo:  deviceRepo,
 		jwtSvc:      jwtSvc,
+		inApp:       inApp,
 	}
 }
 
@@ -139,6 +143,10 @@ func (h *AdminHandler) CreateOperator(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Log.Info().Str("operator_id", user.ID.String()).Str("admin_id", adminClaims.UserID).Msg("Operator created by admin")
+
+	if h.inApp != nil {
+		h.inApp.OperatorCreated(ctx, companyID, req.Username)
+	}
 
 	RespondWithJSON(w, http.StatusCreated, map[string]string{
 		"message": "Operador creado exitosamente",
