@@ -12,60 +12,62 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Retrofit API client configuration.
- * Provides configured Retrofit instance with interceptors.
+ * Authenticated and public (no [AuthInterceptor]) stacks are separate singletons so order of
+ * initialization cannot mix Gson/timeouts or skip auth on protected calls.
  */
 object ApiClient {
 
     private const val CONNECT_TIMEOUT_SECONDS = 30L
     private const val READ_TIMEOUT_SECONDS = 30L
     private const val WRITE_TIMEOUT_SECONDS = 30L
+    private const val PUBLIC_READ_TIMEOUT_SECONDS = 60L
+    private const val PUBLIC_WRITE_TIMEOUT_SECONDS = 60L
 
-    private var retrofit: Retrofit? = null
-    private var apiService: RemitosApiService? = null
-    
+    private var authenticatedRetrofit: Retrofit? = null
+    private var authenticatedApiService: RemitosApiService? = null
+
+    private var publicRetrofit: Retrofit? = null
+    private var publicApiService: RemitosApiService? = null
+
     val isInitialized: Boolean
-        get() = retrofit != null && apiService != null
+        get() = authenticatedRetrofit != null && authenticatedApiService != null
 
     /**
-     * Get or create the Retrofit instance.
-     * @param authManager AuthManager for token injection
-     * @return Configured Retrofit instance
+     * Get or create the authenticated Retrofit instance.
      */
     fun getRetrofit(authManager: AuthManager): Retrofit {
-        return retrofit ?: synchronized(this) {
-            retrofit ?: createRetrofit(authManager).also {
-                retrofit = it
+        return authenticatedRetrofit ?: synchronized(this) {
+            authenticatedRetrofit ?: createAuthenticatedRetrofit(authManager).also {
+                authenticatedRetrofit = it
             }
         }
     }
 
     /**
-     * Get or create the API service.
-     * @param authManager AuthManager for token injection
-     * @return RemitosApiService instance
+     * Get or create the authenticated API service (JWT via [AuthInterceptor] when applicable).
      */
     fun getApiService(authManager: AuthManager): RemitosApiService {
-        return apiService ?: synchronized(this) {
-            apiService ?: getRetrofit(authManager)
+        return authenticatedApiService ?: synchronized(this) {
+            authenticatedApiService ?: getRetrofit(authManager)
                 .create(RemitosApiService::class.java)
-                .also { apiService = it }
+                .also { authenticatedApiService = it }
         }
     }
-    
+
     /**
-     * Get API service if initialized, or null otherwise.
-     * Useful for OCR fallback where we may not have auth.
+     * Authenticated service if already created, otherwise null.
      */
-    fun getApiServiceIfInitialized(): RemitosApiService? = apiService
-    
+    fun getApiServiceIfInitialized(): RemitosApiService? = authenticatedApiService
+
     /**
-     * Get or create API service for unauthenticated requests (e.g., OCR scan).
+     * Public API calls: no auth interceptor, lenient Gson, extended read/write timeouts (e.g. device
+     * registration, login, cloud OCR [scan] without bearer).
      */
-    fun getUnauthenticatedApiService(): RemitosApiService {
-        return apiService ?: synchronized(this) {
-            apiService ?: createUnauthenticatedRetrofit()
+    fun getPublicApiService(): RemitosApiService {
+        return publicApiService ?: synchronized(this) {
+            publicApiService ?: createPublicRetrofit()
                 .create(RemitosApiService::class.java)
-                .also { apiService = it }
+                .also { publicApiService = it }
         }
     }
 
@@ -97,21 +99,27 @@ object ApiClient {
             .build()
             .create(RemitosApiService::class.java)
     }
-    
-    private fun createUnauthenticatedRetrofit(): Retrofit {
+
+    private fun createPublicRetrofit(): Retrofit {
         val baseUrl = FeatureFlags.backendBaseUrl
             ?: throw IllegalStateException("Backend base URL not configured.")
-        
+
         val gson = GsonBuilder()
             .setLenient()
             .create()
-        
+
         val client = OkHttpClient.Builder()
             .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .readTimeout(60L, TimeUnit.SECONDS)
-            .writeTimeout(60L, TimeUnit.SECONDS)
+            .readTimeout(PUBLIC_READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .writeTimeout(PUBLIC_WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .apply {
+                if (com.remitos.app.BuildConfig.DEBUG) {
+                    addInterceptor(createLoggingInterceptor())
+                }
+                retryOnConnectionFailure(true)
+            }
             .build()
-        
+
         return Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(client)
@@ -120,21 +128,23 @@ object ApiClient {
     }
 
     /**
-     * Reset the API client (useful for testing or changing base URL).
+     * Reset all cached clients (tests or process reconfiguration).
      */
     fun reset() {
         synchronized(this) {
-            retrofit = null
-            apiService = null
+            authenticatedRetrofit = null
+            authenticatedApiService = null
+            publicRetrofit = null
+            publicApiService = null
         }
     }
 
-    private fun createRetrofit(authManager: AuthManager): Retrofit {
+    private fun createAuthenticatedRetrofit(authManager: AuthManager): Retrofit {
         val baseUrl = FeatureFlags.backendBaseUrl
             ?: throw IllegalStateException("Backend base URL not configured. Call FeatureFlags.configureBackendMode() first.")
 
-        val client = createOkHttpClient(authManager)
-        val gson = createGson()
+        val client = createAuthenticatedOkHttpClient(authManager)
+        val gson = createAuthenticatedGson()
 
         return Retrofit.Builder()
             .baseUrl(baseUrl)
@@ -143,21 +153,18 @@ object ApiClient {
             .build()
     }
 
-    private fun createOkHttpClient(authManager: AuthManager): OkHttpClient {
+    private fun createAuthenticatedOkHttpClient(authManager: AuthManager): OkHttpClient {
         return OkHttpClient.Builder().apply {
-            // Timeouts
             connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 
             addInterceptor(AuthInterceptor(authManager))
 
-            // Add logging interceptor in debug builds
             if (com.remitos.app.BuildConfig.DEBUG) {
                 addInterceptor(createLoggingInterceptor())
             }
 
-            // Retry on connection failure
             retryOnConnectionFailure(true)
         }.build()
     }
@@ -168,7 +175,7 @@ object ApiClient {
         }
     }
 
-    private fun createGson(): Gson {
+    private fun createAuthenticatedGson(): Gson {
         return GsonBuilder()
             .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
             .create()

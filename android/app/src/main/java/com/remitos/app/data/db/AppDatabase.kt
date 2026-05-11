@@ -447,14 +447,20 @@ abstract class AppDatabase : RoomDatabase() {
 
         /**
          * Build database with custom name (for multi-user support).
-         * @param context Application context
-         * @param databaseName Name of the database file
+         *
+         * @param allowDestructiveMigration When true (typically debug builds), Room may wipe the DB
+         * if a migration is missing. Release must pass false so missing migrations fail fast instead
+         * of deleting user data.
          */
-        fun build(context: Context, databaseName: String): AppDatabase {
-            return Room.databaseBuilder(
+        fun build(
+            context: Context,
+            databaseName: String,
+            allowDestructiveMigration: Boolean = false,
+        ): AppDatabase {
+            val builder = Room.databaseBuilder(
                 context,
                 AppDatabase::class.java,
-                databaseName
+                databaseName,
             ).addMigrations(
                 MIGRATION_1_2,
                 MIGRATION_2_3,
@@ -470,8 +476,13 @@ abstract class AppDatabase : RoomDatabase() {
                 MIGRATION_12_13,
                 MIGRATION_13_14,
                 MIGRATION_14_15,
-                MIGRATION_15_16
-            ).build()
+                MIGRATION_15_16,
+            )
+            return if (allowDestructiveMigration) {
+                builder.fallbackToDestructiveMigration().build()
+            } else {
+                builder.build()
+            }
         }
     }
 }

@@ -7,30 +7,43 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.remitos.app.data.FeatureFlags
 import java.util.concurrent.TimeUnit
 
 object ImageUploadWorkerScheduler {
 
-    fun schedule(context: Context) {
+    /** WorkManager enforces a 15-minute minimum interval for periodic work. */
+    private const val MIN_PERIODIC_INTERVAL_MINUTES = 15L
+
+    /**
+     * Enqueue or replace the periodic upload worker using [FeatureFlags.syncIntervalMinutes],
+     * clamped to [MIN_PERIODIC_INTERVAL_MINUTES].
+     */
+    fun scheduleOrUpdate(context: Context) {
+        val intervalMinutes =
+            MIN_PERIODIC_INTERVAL_MINUTES.coerceAtLeast(FeatureFlags.syncIntervalMinutes.toLong())
+
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .setRequiresBatteryNotLow(true)
             .build()
 
         val uploadWorkRequest = PeriodicWorkRequestBuilder<ImageUploadWorker>(
-            15, TimeUnit.MINUTES
+            intervalMinutes,
+            TimeUnit.MINUTES,
         )
             .setConstraints(constraints)
             .setBackoffCriteria(
                 BackoffPolicy.EXPONENTIAL,
-                10, TimeUnit.MINUTES
+                10,
+                TimeUnit.MINUTES,
             )
             .build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             ImageUploadWorker.WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
-            uploadWorkRequest
+            ExistingPeriodicWorkPolicy.UPDATE,
+            uploadWorkRequest,
         )
     }
 

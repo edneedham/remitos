@@ -17,6 +17,8 @@ Use this matrix before tagging a release so **Android**, **Go API**, and **websi
 
 **Note:** Production app startup uses **`configureBackendMode(url)`**, which turns **on** `enableBackendOcr`, `enableImageUpload`, and `enableCloudSync` whenever a base URL is present. Granular **`configure(...)`** exists for tests or special builds; document any build flavor that diverges.
 
+**Background uploads:** `FeatureFlags.syncIntervalMinutes` drives the periodic image-upload worker, clamped to **at least 15 minutes** (WorkManager minimum). User context init on cold start runs on **`RemitosApplication.applicationScope`** (not blocking `onCreate`).
+
 | Build / env surface | What to verify |
 |---------------------|----------------|
 | Android **debug** | Default `BACKEND_BASE_URL` is emulator loopback (`10.0.2.2:8080`). Physical device → LAN IP or `adb reverse`. |

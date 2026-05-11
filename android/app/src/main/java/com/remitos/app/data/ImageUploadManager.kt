@@ -9,6 +9,7 @@ import com.remitos.app.data.db.entity.UploadStatus
 import com.remitos.app.network.RemitosApiService
 import com.remitos.app.notifications.OperationalNotifier
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -17,6 +18,7 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.FileNotFoundException
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,6 +37,13 @@ class ImageUploadManager @Inject constructor(
     companion object {
         private const val TAG = "ImageUploadManager"
         private const val MAX_RETRY_COUNT = 3
+    }
+
+    /** Transport-type failures where a later WorkManager run may succeed. */
+    private fun Throwable.isTransientUploadIo(): Boolean {
+        if (this is CancellationException) return false
+        if (this is FileNotFoundException) return false
+        return this is IOException
     }
 
     /**
@@ -72,8 +81,15 @@ class ImageUploadManager @Inject constructor(
 
     /**
      * Upload a single image to GCS.
+     *
+     * @param propagateTransientIo When true (background worker), transport failures and 5xx
+     * responses propagate as [IOException] after updating local state so WorkManager can retry.
      */
-    private suspend fun uploadImage(noteId: Long, imageUri: Uri) {
+    private suspend fun uploadImage(
+        noteId: Long,
+        imageUri: Uri,
+        propagateTransientIo: Boolean = false,
+    ) {
         withContext(Dispatchers.IO) {
             try {
                 // Update status to uploading
@@ -121,11 +137,19 @@ class ImageUploadManager @Inject constructor(
                         handleUploadFailure(noteId, "Empty response body")
                     }
                 } else {
-                    handleUploadFailure(noteId, "HTTP ${response.code()}: ${response.message()}")
+                    val msg = "HTTP ${response.code()}: ${response.message()}"
+                    handleUploadFailure(noteId, msg)
+                    if (propagateTransientIo && response.code() in 500..599) {
+                        throw IOException(msg)
+                    }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Log.e(TAG, "Error uploading image for note $noteId", e)
                 handleUploadFailure(noteId, e.message ?: "Unknown error")
+                if (propagateTransientIo && e.isTransientUploadIo()) {
+                    throw e as? IOException ?: IOException(e.message, e)
+                }
             }
         }
     }
@@ -136,14 +160,16 @@ class ImageUploadManager @Inject constructor(
     private suspend fun queueForWifiUpload(noteId: Long, imageUri: Uri) {
         // Update status to pending
         repository.updateUploadStatus(noteId, UploadStatus.PENDING)
-        Log.i(TAG, "Queued image for note $noteId - waiting for WiFi")
+        Log.i(TAG, "Queued image for note $noteId (uri=$imageUri) - waiting for WiFi")
     }
 
     /**
      * Process all pending uploads. Called when WiFi becomes available
      * or during periodic sync operations.
+     *
+     * @param forWorker When true, transient transport/5xx failures propagate so WorkManager can retry.
      */
-    suspend fun processPendingUploads() {
+    suspend fun processPendingUploads(forWorker: Boolean = false) {
         if (!isWifiConnected()) {
             Log.d(TAG, "Skipping pending uploads - not on WiFi")
             return
@@ -156,10 +182,14 @@ class ImageUploadManager @Inject constructor(
             note.scanImagePath?.let { path ->
                 try {
                     val uri = Uri.parse(path)
-                    uploadImage(note.id, uri)
+                    uploadImage(note.id, uri, propagateTransientIo = forWorker)
                 } catch (e: Exception) {
+                    if (e is CancellationException) throw e
                     Log.e(TAG, "Failed to process pending upload for note ${note.id}", e)
                     handleUploadFailure(note.id, e.message ?: "Unknown error")
+                    if (forWorker && e.isTransientUploadIo()) {
+                        throw e as? IOException ?: IOException(e.message, e)
+                    }
                 }
             }
         }
