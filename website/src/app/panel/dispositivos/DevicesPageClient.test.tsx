@@ -4,11 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockReplace = vi.fn();
 const mockFetchWithWebAuth = vi.fn();
-const mockHasWebSession = vi.fn();
-const mockRefreshWebSession = vi.fn();
-const mockGetApiBaseUrl = vi.fn();
-const mockFetchProfile = vi.fn();
-const mockCanAccessWebManagement = vi.fn();
 const mockPatchWithWebAuth = vi.fn();
 
 vi.mock('next/navigation', () => ({
@@ -18,16 +13,23 @@ vi.mock('next/navigation', () => ({
 vi.mock('../../lib/webAuth', () => ({
   fetchWithWebAuth: (...args: unknown[]) => mockFetchWithWebAuth(...args),
   patchWithWebAuth: (...args: unknown[]) => mockPatchWithWebAuth(...args),
-  hasWebSession: () => mockHasWebSession(),
-  refreshWebSession: () => mockRefreshWebSession(),
-  fetchProfile: () => mockFetchProfile(),
-  canAccessWebManagement: (...args: unknown[]) =>
-    mockCanAccessWebManagement(...args),
   clearWebSession: vi.fn(),
 }));
 
-vi.mock('../../lib/apiUrl', () => ({
-  getApiBaseUrl: () => mockGetApiBaseUrl(),
+vi.mock('../lib/usePanelBootstrap', () => ({
+  usePanelBootstrap: () => ({
+    status: 'ready' as const,
+    profile: {
+      id: 'u1',
+      username: 'owner',
+      company_id: 'c1',
+      company_name: 'Acme',
+      company_code: 'ACME',
+      role: 'company_owner',
+    },
+    errorMessage: null,
+    refresh: vi.fn(),
+  }),
 }));
 
 async function renderClient() {
@@ -38,18 +40,6 @@ async function renderClient() {
 describe('DevicesPageClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockHasWebSession.mockReturnValue(true);
-    mockRefreshWebSession.mockResolvedValue(true);
-    mockFetchProfile.mockResolvedValue({
-      id: 'u1',
-      username: 'owner',
-      company_id: 'c1',
-      company_name: 'Acme',
-      company_code: 'ACME',
-      role: 'company_owner',
-    });
-    mockCanAccessWebManagement.mockReturnValue(true);
-    mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
     const devicesPayload = [
       {
         id: 'd1',

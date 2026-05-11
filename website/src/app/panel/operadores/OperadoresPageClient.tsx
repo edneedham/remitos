@@ -2,27 +2,22 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import {
   OperadoresBootstrapSkeleton,
   OperadoresListSkeleton,
   PanelEntitlementIntroSkeleton,
 } from '../components/PanelSkeletons';
-import { getApiBaseUrl } from '../../lib/apiUrl';
 import {
-  canAccessWebManagement,
   canManageOperators,
   clearWebSession,
-  fetchProfile,
   fetchWithWebAuth,
-  hasWebSession,
   postWithWebAuth,
   putWithWebAuth,
-  refreshWebSession,
-  type WebProfile,
 } from '../../lib/webAuth';
 import type { Entitlement } from '../lib/entitlementTypes';
+import { usePanelBootstrap } from '../lib/usePanelBootstrap';
+import { useRouterRef } from '../lib/useRouterRef';
 
 type Operator = {
   id: string;
@@ -34,11 +29,12 @@ type Operator = {
 };
 
 export default function OperadoresPageClient() {
-  const router = useRouter();
-  const [profileResolved, setProfileResolved] = useState(false);
+  const routerRef = useRouterRef();
+  const { status, profile, errorMessage: configError } = usePanelBootstrap();
+  const profileResolved =
+    status === 'config_error' || (status === 'ready' && profile !== null);
   const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [operatorsLoading, setOperatorsLoading] = useState(false);
-  const [profile, setProfile] = useState<WebProfile | null>(null);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [operators, setOperators] = useState<Operator[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -52,35 +48,19 @@ export default function OperadoresPageClient() {
   const canManage = profile ? canManageOperators(profile.role) : false;
 
   useEffect(() => {
-    if (!hasWebSession()) {
-      router.replace('/ingresar');
+    if (status === 'config_error') {
+      setLoadError(configError);
+      setEntitlementLoading(false);
       return;
     }
+    if (status !== 'ready' || !profile) {
+      return;
+    }
+    const userProfile = profile;
 
     let cancelled = false;
 
     async function load() {
-      const api = getApiBaseUrl();
-      if (!api) {
-        setLoadError(
-          'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
-        );
-        setProfileResolved(true);
-        setEntitlementLoading(false);
-        return;
-      }
-
-      await refreshWebSession();
-      const userProfile = await fetchProfile();
-      if (cancelled) return;
-      if (!userProfile || !canAccessWebManagement(userProfile.role)) {
-        clearWebSession();
-        router.replace('/ingresar');
-        return;
-      }
-      setProfile(userProfile);
-      setProfileResolved(true);
-
       const entRes = await fetchWithWebAuth('/auth/me/entitlement');
       if (cancelled) return;
       setEntitlementLoading(false);
@@ -97,7 +77,7 @@ export default function OperadoresPageClient() {
       if (cancelled) return;
       if (res.status === 401) {
         clearWebSession();
-        router.replace('/ingresar');
+        routerRef.current.replace('/ingresar');
         return;
       }
       if (!res.ok) {
@@ -112,11 +92,12 @@ export default function OperadoresPageClient() {
       setOperatorsLoading(false);
     }
 
+    setEntitlementLoading(true);
     void load();
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [status, configError, profile, routerRef]);
 
   const refreshOperators = async () => {
     const res = await fetchWithWebAuth('/admin/operadores');

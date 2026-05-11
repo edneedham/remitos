@@ -4,20 +4,14 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { initMercadoPago } from '@mercadopago/sdk-react';
-import { getApiBaseUrl } from '../../../lib/apiUrl';
 import type { PlanPricingResponse } from '../../../lib/planPricing';
 import { PLAN_CATALOG } from '../../../lib/planCatalog';
 import {
-  canAccessWebManagement,
   clearWebSession,
-  fetchProfile,
   fetchWithWebAuth,
-  hasWebSession,
   postWithWebAuth,
-  refreshWebSession,
 } from '../../../lib/webAuth';
 import {
   deriveBillingPresentation,
@@ -31,6 +25,13 @@ import type { PlanCatalogLimitsResponse } from '../../lib/planCatalogLimits';
 import { formatInvoiceMoney } from '../../lib/invoiceFormat';
 import { BILLING_LEGAL_NOTICE_AR } from '../../../lib/billingLegalNotice';
 import { UpgradePlanBodySkeleton } from '../../components/PanelSkeletons';
+import { usePanelBootstrap } from '../../lib/usePanelBootstrap';
+import { useRouterRef } from '../../lib/useRouterRef';
+import {
+  MP_PUBLIC_KEY,
+  PYME_LIMITS_FALLBACK,
+  USE_MOCK_PAYMENT,
+} from './upgradePlanConstants';
 
 const CardPayment = dynamic(
   () => import('@mercadopago/sdk-react').then((m) => m.CardPayment),
@@ -42,28 +43,13 @@ const CardPayment = dynamic(
   },
 );
 
-const mpPublicKey =
-  typeof process !== 'undefined'
-    ? (process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY ?? '').trim()
-    : '';
-
-const useMockPayment =
-  typeof process !== 'undefined' &&
-  process.env.NEXT_PUBLIC_SIGNUP_USE_MOCK_PAYMENT === 'true';
-
-/** Fallback until GET /auth/me/plan-catalog-limits loads — matches billing.PlanLimitsByID. */
-const PYME_LIMITS_FALLBACK = {
-  warehouses: 2,
-  users: 3,
-  documentsMonthly: 500,
-} as const;
-
 function pctRemainingLabel(fraction: number): string {
   return `${Math.round(fraction * 100)} %`;
 }
 
 export default function UpgradePlanPageClient() {
-  const router = useRouter();
+  const routerRef = useRouterRef();
+  const { status, profile, errorMessage: configError } = usePanelBootstrap();
   const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
@@ -85,8 +71,8 @@ export default function UpgradePlanPageClient() {
   const mpInitRef = useRef(false);
 
   useEffect(() => {
-    if (!mpPublicKey || mpInitRef.current || useMockPayment) return;
-    initMercadoPago(mpPublicKey);
+    if (!MP_PUBLIC_KEY || mpInitRef.current || USE_MOCK_PAYMENT) return;
+    initMercadoPago(MP_PUBLIC_KEY);
     mpInitRef.current = true;
   }, []);
 
@@ -129,7 +115,7 @@ export default function UpgradePlanPageClient() {
       }
       setSubmitting(false);
       window.setTimeout(() => {
-        router.push('/panel/facturacion');
+        routerRef.current.push('/panel/facturacion');
       }, 1500);
       return true;
     }
@@ -158,41 +144,28 @@ export default function UpgradePlanPageClient() {
   }
 
   useEffect(() => {
-    if (!hasWebSession()) {
-      router.replace('/ingresar');
+    if (status === 'config_error') {
+      setError(configError);
+      setEntitlementLoading(false);
       return;
     }
+    if (status !== 'ready' || !profile) {
+      return;
+    }
+    const userProfile = profile;
 
     let cancelled = false;
 
     async function load() {
-      const api = getApiBaseUrl();
-      if (!api) {
-        setError(
-          'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
-        );
-        setEntitlementLoading(false);
-        return;
-      }
-
-      await refreshWebSession();
-
-      const profile = await fetchProfile();
-      if (cancelled) return;
-      if (!profile || !canAccessWebManagement(profile.role)) {
-        clearWebSession();
-        router.replace('/ingresar');
-        return;
-      }
-
-      const email = profile.email?.trim() || profile.username?.trim() || '';
+      const email =
+        userProfile.email?.trim() || userProfile.username?.trim() || '';
       setPayerEmail(email);
 
       const res = await fetchWithWebAuth('/auth/me/entitlement');
       if (cancelled) return;
       if (res.status === 401) {
         clearWebSession();
-        router.replace('/ingresar');
+        routerRef.current.replace('/ingresar');
         return;
       }
       if (!res.ok) {
@@ -212,11 +185,13 @@ export default function UpgradePlanPageClient() {
       setEntitlementLoading(false);
     }
 
+    setEntitlementLoading(true);
+    setError(null);
     void load();
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [status, profile, configError, routerRef]);
 
   useEffect(() => {
     if (!entitlement) return;
@@ -602,7 +577,7 @@ export default function UpgradePlanPageClient() {
                   importe ({formatInvoiceMoney(paymentRecovery.amountMinor, 'ARS')}
                   ).
                 </p>
-                {!useMockPayment && !mpPublicKey ? (
+                {!USE_MOCK_PAYMENT && !MP_PUBLIC_KEY ? (
                   <p className="text-red-800" role="alert">
                     Falta configurar{' '}
                     <code className="rounded bg-white/80 px-1">
@@ -611,13 +586,13 @@ export default function UpgradePlanPageClient() {
                     en el sitio para cargar tarjetas desde el navegador.
                   </p>
                 ) : null}
-                {!useMockPayment && mpPublicKey && !payerEmail ? (
+                {!USE_MOCK_PAYMENT && MP_PUBLIC_KEY && !payerEmail ? (
                   <p className="text-red-800" role="alert">
                     No encontramos un email en tu cuenta para Mercado Pago.
                     Contactá soporte o actualizá tu perfil.
                   </p>
                 ) : null}
-                {useMockPayment ? (
+                {USE_MOCK_PAYMENT ? (
                   <button
                     type="button"
                     disabled={submitting}
@@ -635,8 +610,8 @@ export default function UpgradePlanPageClient() {
                     Reintentar con pago simulado (desarrollo)
                   </button>
                 ) : null}
-                {!useMockPayment &&
-                mpPublicKey &&
+                {!USE_MOCK_PAYMENT &&
+                MP_PUBLIC_KEY &&
                 payerEmail &&
                 paymentRecovery.amountMinor > 0 ? (
                   <div className="rounded-xl border border-amber-200 bg-white p-4 shadow-sm">

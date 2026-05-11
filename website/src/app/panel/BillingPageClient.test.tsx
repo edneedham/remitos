@@ -1,33 +1,38 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockReplace = vi.fn();
 const mockFetchWithWebAuth = vi.fn();
-const mockHasWebSession = vi.fn();
-const mockRefreshWebSession = vi.fn();
-const mockGetApiBaseUrl = vi.fn();
-const mockFetchProfile = vi.fn();
-const mockCanAccessWebManagement = vi.fn();
+
+const { mockUsePanelBootstrap } = vi.hoisted(() => ({
+  mockUsePanelBootstrap: vi.fn(() => ({
+    status: 'ready' as const,
+    profile: {
+      id: '11111111-1111-1111-1111-111111111111',
+      username: 'owner',
+      company_id: '22222222-2222-2222-2222-222222222222',
+      company_name: 'Acme',
+      company_code: 'ACME',
+      role: 'admin',
+    },
+    errorMessage: null,
+    refresh: vi.fn(),
+  })),
+}));
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
-    replace: mockReplace,
+    replace: vi.fn(),
   }),
 }));
 
 vi.mock('../lib/webAuth', () => ({
   fetchWithWebAuth: (...args: unknown[]) => mockFetchWithWebAuth(...args),
-  hasWebSession: () => mockHasWebSession(),
-  refreshWebSession: () => mockRefreshWebSession(),
-  fetchProfile: () => mockFetchProfile(),
-  canAccessWebManagement: (...args: unknown[]) =>
-    mockCanAccessWebManagement(...args),
   canManageBillingSubscriptions: () => true,
   clearWebSession: vi.fn(),
 }));
 
-vi.mock('../lib/apiUrl', () => ({
-  getApiBaseUrl: () => mockGetApiBaseUrl(),
+vi.mock('./lib/usePanelBootstrap', () => ({
+  usePanelBootstrap: () => mockUsePanelBootstrap(),
 }));
 
 async function renderBillingPageClient() {
@@ -38,18 +43,19 @@ async function renderBillingPageClient() {
 describe('BillingPageClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockHasWebSession.mockReturnValue(true);
-    mockRefreshWebSession.mockResolvedValue(true);
-    mockFetchProfile.mockResolvedValue({
-      id: '11111111-1111-1111-1111-111111111111',
-      username: 'owner',
-      company_id: '22222222-2222-2222-2222-222222222222',
-      company_name: 'Acme',
-      company_code: 'ACME',
-      role: 'admin',
+    mockUsePanelBootstrap.mockReturnValue({
+      status: 'ready' as const,
+      profile: {
+        id: '11111111-1111-1111-1111-111111111111',
+        username: 'owner',
+        company_id: '22222222-2222-2222-2222-222222222222',
+        company_name: 'Acme',
+        company_code: 'ACME',
+        role: 'admin',
+      },
+      errorMessage: null,
+      refresh: vi.fn(),
     });
-    mockCanAccessWebManagement.mockReturnValue(true);
-    mockGetApiBaseUrl.mockReturnValue('http://localhost:8080');
     mockFetchWithWebAuth.mockImplementation(async (path: unknown) => {
       if (path === '/auth/me/invoices') {
         return new Response(
@@ -105,9 +111,4 @@ describe('BillingPageClient', () => {
     );
   });
 
-  it('redirects to login when session is missing', async () => {
-    mockHasWebSession.mockReturnValue(false);
-    await renderBillingPageClient();
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/ingresar'));
-  });
 });

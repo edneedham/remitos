@@ -4,23 +4,16 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { initMercadoPago } from '@mercadopago/sdk-react';
-import { getApiBaseUrl } from '../../lib/apiUrl';
 import { BILLING_LEGAL_NOTICE_AR } from '../../lib/billingLegalNotice';
 import type { PlanPricingResponse } from '../../lib/planPricing';
 import { PLAN_CATALOG } from '../../lib/planCatalog';
-import {
-  canAccessWebManagement,
-  clearWebSession,
-  fetchProfile,
-  fetchWithWebAuth,
-  hasWebSession,
-  postWithWebAuth,
-} from '../../lib/webAuth';
+import { fetchWithWebAuth, postWithWebAuth } from '../../lib/webAuth';
 import { needsActivateSubscription } from '../lib/activateSubscriptionGate';
 import type { Entitlement } from '../lib/entitlementTypes';
 import { ActivateSubscriptionBodySkeleton } from '../components/PanelSkeletons';
+import { usePanelBootstrap } from '../lib/usePanelBootstrap';
+import { useRouterRef } from '../lib/useRouterRef';
 
 const CardPayment = dynamic(
   () => import('@mercadopago/sdk-react').then((m) => m.CardPayment),
@@ -54,7 +47,8 @@ function paymentActivationSuccessHref(plan: PlanChoice): string {
 }
 
 export default function ActivateSubscriptionPageClient() {
-  const router = useRouter();
+  const routerRef = useRouterRef();
+  const { status, profile, errorMessage: configError } = usePanelBootstrap();
   const [ready, setReady] = useState(false);
   const [planId, setPlanId] = useState<PlanChoice>('pyme');
   const [payerEmail, setPayerEmail] = useState('');
@@ -108,30 +102,21 @@ export default function ActivateSubscriptionPageClient() {
   }, [planId, ready, useMockPayment, publicKey]);
 
   useEffect(() => {
+    if (status === 'config_error') {
+      setError(configError);
+      setReady(true);
+      return;
+    }
+    if (status !== 'ready' || !profile) {
+      return;
+    }
+    const userProfile = profile;
+
     let cancelled = false;
 
     async function load() {
-      if (!hasWebSession()) {
-        router.replace('/ingresar');
-        return;
-      }
-      const api = getApiBaseUrl();
-      if (!api) {
-        setError(
-          'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
-        );
-        setReady(true);
-        return;
-      }
-
-      const profile = await fetchProfile();
-      if (cancelled) return;
-      if (!profile || !canAccessWebManagement(profile.role)) {
-        clearWebSession();
-        router.replace('/ingresar');
-        return;
-      }
-      const email = profile.email?.trim() || profile.username?.trim() || '';
+      const email =
+        userProfile.email?.trim() || userProfile.username?.trim() || '';
       setPayerEmail(email);
 
       const res = await fetchWithWebAuth('/auth/me/entitlement');
@@ -143,7 +128,7 @@ export default function ActivateSubscriptionPageClient() {
       }
       const ent = (await res.json()) as Entitlement;
       if (!needsActivateSubscription(ent)) {
-        router.replace('/panel');
+        routerRef.current.replace('/panel');
         return;
       }
 
@@ -154,7 +139,7 @@ export default function ActivateSubscriptionPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [status, profile, configError, routerRef]);
 
   async function submitMock() {
     setError(null);
@@ -172,8 +157,8 @@ export default function ActivateSubscriptionPageClient() {
           data.message || 'No se pudo activar la suscripción (simulación).',
         );
       }
-      router.replace(paymentActivationSuccessHref(planId));
-      router.refresh();
+      routerRef.current.replace(paymentActivationSuccessHref(planId));
+      routerRef.current.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al activar.');
     } finally {
@@ -208,8 +193,8 @@ export default function ActivateSubscriptionPageClient() {
           setError(msg);
           throw new Error(msg);
         }
-        router.replace(paymentActivationSuccessHref(planId));
-        router.refresh();
+        routerRef.current.replace(paymentActivationSuccessHref(planId));
+        routerRef.current.refresh();
       } catch (e) {
         const msg =
           e instanceof Error
@@ -223,7 +208,7 @@ export default function ActivateSubscriptionPageClient() {
         setSubmitting(false);
       }
     },
-    [planId, router],
+    [planId, routerRef],
   );
 
   if (!ready) {

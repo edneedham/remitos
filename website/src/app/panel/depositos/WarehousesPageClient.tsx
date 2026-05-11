@@ -2,25 +2,21 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   PanelEntitlementIntroSkeleton,
   WarehousesBodySkeleton,
 } from '../components/PanelSkeletons';
-import { getApiBaseUrl } from '../../lib/apiUrl';
 import {
-  canAccessWebManagement,
   clearWebSession,
   deleteWithWebAuth,
-  fetchProfile,
   fetchWithWebAuth,
-  hasWebSession,
   patchWithWebAuth,
   postWithWebAuth,
-  refreshWebSession,
 } from '../../lib/webAuth';
 import type { Entitlement } from '../lib/entitlementTypes';
+import { usePanelBootstrap } from '../lib/usePanelBootstrap';
+import { useRouterRef } from '../lib/useRouterRef';
 
 type Warehouse = {
   id: string;
@@ -41,7 +37,8 @@ type FormState = {
 const emptyForm: FormState = { mode: 'closed', name: '', address: '' };
 
 export default function WarehousesPageClient() {
-  const router = useRouter();
+  const routerRef = useRouterRef();
+  const { status, errorMessage: configError } = usePanelBootstrap();
   const [warehousesLoading, setWarehousesLoading] = useState(true);
   const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -53,34 +50,19 @@ export default function WarehousesPageClient() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!hasWebSession()) {
-      router.replace('/ingresar');
+    if (status === 'config_error') {
+      setLoadError(configError);
+      setWarehousesLoading(false);
+      setEntitlementLoading(false);
+      return;
+    }
+    if (status !== 'ready') {
       return;
     }
 
     let cancelled = false;
 
     async function load() {
-      const api = getApiBaseUrl();
-      if (!api) {
-        setLoadError(
-          'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
-        );
-        setWarehousesLoading(false);
-        setEntitlementLoading(false);
-        return;
-      }
-
-      await refreshWebSession();
-
-      const profile = await fetchProfile();
-      if (cancelled) return;
-      if (!profile || !canAccessWebManagement(profile.role)) {
-        clearWebSession();
-        router.replace('/ingresar');
-        return;
-      }
-
       const [whRes, entRes] = await Promise.all([
         fetchWithWebAuth('/warehouses'),
         fetchWithWebAuth('/auth/me/entitlement'),
@@ -89,7 +71,7 @@ export default function WarehousesPageClient() {
 
       if (whRes.status === 401 || entRes.status === 401) {
         clearWebSession();
-        router.replace('/ingresar');
+        routerRef.current.replace('/ingresar');
         return;
       }
 
@@ -111,11 +93,14 @@ export default function WarehousesPageClient() {
       setWarehousesLoading(false);
     }
 
+    setWarehousesLoading(true);
+    setEntitlementLoading(true);
+    setLoadError(null);
     void load();
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [status, configError, routerRef]);
 
   const refreshList = async () => {
     const res = await fetchWithWebAuth('/warehouses');

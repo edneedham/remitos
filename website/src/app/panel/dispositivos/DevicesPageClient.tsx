@@ -2,19 +2,15 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Loader2, Smartphone } from 'lucide-react';
 import { DevicesGroupedListSkeleton } from '../components/PanelSkeletons';
-import { getApiBaseUrl } from '../../lib/apiUrl';
 import {
-  canAccessWebManagement,
   clearWebSession,
-  fetchProfile,
   fetchWithWebAuth,
-  hasWebSession,
   patchWithWebAuth,
-  refreshWebSession,
 } from '../../lib/webAuth';
+import { usePanelBootstrap } from '../lib/usePanelBootstrap';
+import { useRouterRef } from '../lib/useRouterRef';
 
 type DeviceStatus = 'active' | 'revoked' | 'pending' | string;
 
@@ -66,7 +62,8 @@ function statusBadge(status: DeviceStatus): {
 }
 
 export default function DevicesPageClient() {
-  const router = useRouter();
+  const routerRef = useRouterRef();
+  const { status, errorMessage: configError } = usePanelBootstrap();
   const [devicesLoading, setDevicesLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -74,37 +71,23 @@ export default function DevicesPageClient() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!hasWebSession()) {
-      router.replace('/ingresar');
+    if (status === 'config_error') {
+      setLoadError(configError);
+      setDevicesLoading(false);
+      return;
+    }
+    if (status !== 'ready') {
       return;
     }
 
     let cancelled = false;
 
     async function load() {
-      const api = getApiBaseUrl();
-      if (!api) {
-        setLoadError(
-          'Falta configurar NEXT_PUBLIC_API_URL (URL del servidor de la API).',
-        );
-        setDevicesLoading(false);
-        return;
-      }
-
-      await refreshWebSession();
-      const profile = await fetchProfile();
-      if (cancelled) return;
-      if (!profile || !canAccessWebManagement(profile.role)) {
-        clearWebSession();
-        router.replace('/ingresar');
-        return;
-      }
-
       const res = await fetchWithWebAuth('/devices');
       if (cancelled) return;
       if (res.status === 401) {
         clearWebSession();
-        router.replace('/ingresar');
+        routerRef.current.replace('/ingresar');
         return;
       }
       if (!res.ok) {
@@ -119,11 +102,13 @@ export default function DevicesPageClient() {
       setDevicesLoading(false);
     }
 
+    setDevicesLoading(true);
+    setLoadError(null);
     void load();
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [status, configError, routerRef]);
 
   const refreshDevices = async () => {
     const res = await fetchWithWebAuth('/devices');

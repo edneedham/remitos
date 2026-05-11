@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ensureGsapScrollTrigger } from '../../../lib/gsapClient';
 
 const FIRST_BENEFIT_LINE = 'Encontrá documentos al toque.';
 const SECOND_BENEFIT_LINE =
@@ -85,7 +85,7 @@ export default function BenefitsSection() {
     // Narrow viewports: no wheel-driven sequence — slide benefit lines in from the left on scroll.
     const mqMobile = window.matchMedia('(max-width: 767px)');
     if (mqMobile.matches) {
-      gsap.registerPlugin(ScrollTrigger);
+      ensureGsapScrollTrigger();
 
       const prefersReduce = window.matchMedia(
         '(prefers-reduced-motion: reduce)',
@@ -129,6 +129,25 @@ export default function BenefitsSection() {
         ctx.revert();
       };
     }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      ensureGsapScrollTrigger();
+      gsap.set(shot, { autoAlpha: 1, y: 0, overwrite: 'auto' });
+      gsap.set([benefitEl, benefit2El, benefit3El], {
+        autoAlpha: 1,
+        x: 0,
+        overwrite: 'auto',
+      });
+      screenshotRevealedRef.current = true;
+      firstBenefitRevealedRef.current = true;
+      secondBenefitRevealedRef.current = true;
+      thirdBenefitRevealedRef.current = true;
+      panelSwapCompleteRef.current = true;
+      setPanelOnlyLayout(true);
+      return () => {};
+    }
+
+    ensureGsapScrollTrigger();
 
     gsap.set(shot, {
       autoAlpha: 0,
