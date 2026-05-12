@@ -175,6 +175,43 @@ tasks.named("preBuild") {
     dependsOn(genTokens)
 }
 
+/** Regenerate with `./gradlew :app:generateThirdPartyLicensesTxt` when Gradle dependencies change. */
+tasks.register("generateThirdPartyLicensesTxt") {
+    group = "build"
+    description =
+        "Writes src/main/assets/THIRD_PARTY_LICENSES.txt from :app releaseRuntimeClasspath (coordinates only)."
+    val out = layout.projectDirectory.file("src/main/assets/THIRD_PARTY_LICENSES.txt")
+    outputs.file(out)
+
+    doLast {
+        val cfg = configurations.named("releaseRuntimeClasspath").get()
+        val ids =
+            cfg.incoming.resolutionResult.allComponents
+                .mapNotNull { it.moduleVersion }
+                .distinctBy { "${it.group}:${it.name}:${it.version}" }
+                .sortedWith(compareBy({ it.group }, { it.name }, { it.version }))
+
+        val text = buildString {
+            appendLine("En Punto — Android app")
+            appendLine("Third-party libraries (releaseRuntimeClasspath)")
+            appendLine()
+            for (id in ids) {
+                val (g, n, v) =
+                    if (id.group == "remitos" && id.name == "opencv" && id.version == "unspecified") {
+                        // Matches publishing {} in opencv-sdk/.../sdk/build.gradle
+                        Triple("org.opencv", "opencv", "4.12.0")
+                    } else {
+                        Triple(id.group, id.name, id.version)
+                    }
+                appendLine("$g:$n:$v")
+            }
+        }
+        out.asFile.parentFile.mkdirs()
+        out.asFile.writeText(text)
+        println("generateThirdPartyLicensesTxt: wrote ${ids.size} entries to ${out.asFile}")
+    }
+}
+
 /** Debug API base: `-PBACKEND_BASE_URL=...` > android/local.properties > default emulator host. */
 val remitosLocalProperties = Properties().apply {
     val f = rootProject.file("local.properties")

@@ -381,6 +381,17 @@ export default function ApplicationPageClient() {
                   usuario que usás en la web.
                 </li>
               </ol>
+              {devicePlatform !== 'ios' ? (
+                <p className="mt-4 text-xs leading-relaxed text-gray-500">
+                  Software de código abierto: la app incluye bibliotecas de
+                  terceros. Un listado con nombre y versión de cada componente
+                  se entrega en el paquete de instalación, en el archivo{' '}
+                  <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[0.7rem] text-gray-800">
+                    assets/THIRD_PARTY_LICENSES.txt
+                  </code>
+                  .
+                </p>
+              ) : null}
             </section>
           ) : null}
         </div>

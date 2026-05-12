@@ -67,6 +67,11 @@ jobs:
     - name: Verify design tokens are in sync
       run: ./gradlew :app:checkTokens
 
+    - name: Verify THIRD_PARTY_LICENSES.txt matches release classpath
+      run: |
+        ./gradlew :app:generateThirdPartyLicensesTxt
+        git diff --exit-code -- app/src/main/assets/THIRD_PARTY_LICENSES.txt
+
     - name: Run Unit Tests
       run: ./gradlew testDebugUnitTest
 

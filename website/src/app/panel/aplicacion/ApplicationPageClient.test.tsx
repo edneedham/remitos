@@ -94,6 +94,10 @@ describe('ApplicationPageClient', () => {
     expect(
       screen.getByRole('heading', { name: 'Instalación en el teléfono (Android)' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/software de código abierto/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/THIRD_PARTY_LICENSES\.txt/)).toBeInTheDocument();
   });
 });
 
@@ -141,6 +145,9 @@ describe('ApplicationPageClient desktop QR transfer', () => {
     expect(
       screen.getByRole('heading', { name: 'Instalación en el teléfono (Android)' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/software de código abierto/i),
+    ).toBeInTheDocument();
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         'http://localhost:8080/auth/transfer/start',
@@ -176,6 +183,9 @@ describe('ApplicationPageClient iOS guard', () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /descargar apk/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/software de código abierto/i),
     ).not.toBeInTheDocument();
   });
 });
