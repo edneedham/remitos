@@ -8,10 +8,10 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { usePathname } from 'next/navigation';
 import { Bell } from 'lucide-react';
 import {
   fetchPanelNotificationsList,
+  fetchPanelNotificationsUnreadBadge,
   markPanelNotificationRead,
   isUnread,
 } from './fetchPanelNotifications';
@@ -40,11 +40,21 @@ export function PanelNotificationsProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
   const [notifications, setNotifications] = useState<PanelNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const refreshUnreadBadge = useCallback(async () => {
+    try {
+      const count = await fetchPanelNotificationsUnreadBadge();
+      if (count !== null) {
+        setUnreadCount(count);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -59,17 +69,35 @@ export function PanelNotificationsProvider({
     }
   }, []);
 
+  /** Bell badge: one small request on mount + when the window regains focus (no full list until the bell opens). */
   useEffect(() => {
-    void refresh();
-  }, [pathname, refresh]);
+    void refreshUnreadBadge();
+  }, [refreshUnreadBadge]);
 
   useEffect(() => {
     function onFocus() {
-      void refresh();
+      void refreshUnreadBadge();
     }
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [refresh]);
+  }, [refreshUnreadBadge]);
+
+  useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        void refreshUnreadBadge();
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () =>
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [refreshUnreadBadge]);
+
+  /** Full list when the user opens the panel (lazy load). */
+  useEffect(() => {
+    if (!open) return;
+    void refresh();
+  }, [open, refresh]);
 
   const toggleOpen = useCallback(() => {
     setOpen((o) => !o);

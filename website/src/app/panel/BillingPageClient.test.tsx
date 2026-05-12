@@ -15,6 +15,7 @@ const { mockUsePanelBootstrap } = vi.hoisted(() => ({
       role: 'admin',
     },
     errorMessage: null,
+    entitlement: null,
     refresh: vi.fn(),
   })),
 }));
@@ -54,6 +55,7 @@ describe('BillingPageClient', () => {
         role: 'admin',
       },
       errorMessage: null,
+      entitlement: null,
       refresh: vi.fn(),
     });
     mockFetchWithWebAuth.mockImplementation(async (path: unknown) => {

@@ -126,41 +126,57 @@ export async function logoutWebSession(): Promise<void> {
   }
 }
 
+let refreshWebSessionInFlight: Promise<boolean> | null = null;
+
 export async function refreshWebSession(): Promise<boolean> {
-  const api = getApiBaseUrl();
-  if (!api) {
-    return false;
-  }
-  if (isWebCookieSession()) {
-    const res = await fetch(`${api}/auth/refresh`, {
-      method: 'POST',
-      ...webCookieFetchInit({ 'Content-Type': 'application/json' }),
-      body: '{}',
-    });
-    return res.ok;
+  if (refreshWebSessionInFlight) {
+    return refreshWebSessionInFlight;
   }
 
-  const refreshToken = getWebRefreshToken();
-  if (!refreshToken) {
-    return false;
-  }
-  const res = await fetch(`${api}/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: refreshToken }),
+  const p = (async (): Promise<boolean> => {
+    const api = getApiBaseUrl();
+    if (!api) {
+      return false;
+    }
+    if (isWebCookieSession()) {
+      const res = await fetch(`${api}/auth/refresh`, {
+        method: 'POST',
+        ...webCookieFetchInit({ 'Content-Type': 'application/json' }),
+        body: '{}',
+      });
+      return res.ok;
+    }
+
+    const refreshToken = getWebRefreshToken();
+    if (!refreshToken) {
+      return false;
+    }
+    const res = await fetch(`${api}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) {
+      return false;
+    }
+    const data = (await res.json().catch(() => ({}))) as {
+      token?: string;
+      refresh_token?: string;
+    };
+    if (!data.token || !data.refresh_token) {
+      return false;
+    }
+    saveWebSession(data.token, data.refresh_token);
+    return true;
+  })();
+
+  refreshWebSessionInFlight = p;
+  void p.finally(() => {
+    if (refreshWebSessionInFlight === p) {
+      refreshWebSessionInFlight = null;
+    }
   });
-  if (!res.ok) {
-    return false;
-  }
-  const data = (await res.json().catch(() => ({}))) as {
-    token?: string;
-    refresh_token?: string;
-  };
-  if (!data.token || !data.refresh_token) {
-    return false;
-  }
-  saveWebSession(data.token, data.refresh_token);
-  return true;
+  return p;
 }
 
 export async function fetchWithWebAuth(path: string): Promise<Response> {

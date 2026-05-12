@@ -1,66 +1,47 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { fetchWithWebAuth, hasWebSession } from '../lib/webAuth';
+import { PanelDashboardSkeleton } from './components/PanelSkeletons';
 import { needsActivateSubscription } from './lib/activateSubscriptionGate';
-import type { Entitlement } from './lib/entitlementTypes';
+import { usePanelBootstrap } from './lib/usePanelBootstrap';
 
 export default function ActivateSubscriptionGate({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const { status, entitlement } = usePanelBootstrap();
+
+  const pathExempt =
+    pathname.startsWith('/panel/activar-suscripcion') ||
+    pathname.startsWith('/panel/facturacion');
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function run() {
-      if (
-        pathname?.startsWith('/panel/activar-suscripcion') ||
-        pathname?.startsWith('/panel/facturacion')
-      ) {
-        if (!cancelled) setReady(true);
-        return;
-      }
-      if (!hasWebSession()) {
-        if (!cancelled) setReady(true);
-        return;
-      }
-
-      const res = await fetchWithWebAuth('/auth/me/entitlement');
-      if (cancelled) return;
-      if (!res.ok) {
-        setReady(true);
-        return;
-      }
-      const ent = (await res.json()) as Entitlement;
-      if (needsActivateSubscription(ent)) {
-        router.replace('/panel/activar-suscripcion');
-        return;
-      }
-      setReady(true);
+    if (
+      pathname.startsWith('/panel/activar-suscripcion') ||
+      pathname.startsWith('/panel/facturacion')
+    ) {
+      return;
     }
+    if (status !== 'ready') return;
+    if (needsActivateSubscription(entitlement)) {
+      router.replace('/panel/activar-suscripcion');
+    }
+  }, [pathname, router, status, entitlement]);
 
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [pathname, router]);
+  if (pathExempt) {
+    return <>{children}</>;
+  }
 
-  if (
-    !ready &&
-    pathname &&
-    !pathname.startsWith('/panel/activar-suscripcion') &&
-    !pathname.startsWith('/panel/facturacion')
-  ) {
+  if (status === 'loading') {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center p-8 text-sm text-gray-600">
-        Cargando…
-      </div>
+      <>
+        <span className="sr-only">Cargando panel…</span>
+        <PanelDashboardSkeleton />
+      </>
     );
   }
 

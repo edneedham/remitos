@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PanelBootstrapProvider } from './lib/usePanelBootstrap';
 
 const mockReplace = vi.fn();
 const mockFetchWithWebAuth = vi.fn();
@@ -31,7 +32,11 @@ vi.mock('../lib/apiUrl', () => ({
 
 async function renderDashboardPageClient() {
   const mod = await import('./DashboardPageClient');
-  return render(<mod.default />);
+  return render(
+    <PanelBootstrapProvider>
+      <mod.default />
+    </PanelBootstrapProvider>,
+  );
 }
 
 describe('DashboardPageClient', () => {

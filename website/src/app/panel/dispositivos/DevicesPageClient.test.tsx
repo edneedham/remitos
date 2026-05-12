@@ -28,6 +28,7 @@ vi.mock('../lib/usePanelBootstrap', () => ({
       role: 'company_owner',
     },
     errorMessage: null,
+    entitlement: null,
     refresh: vi.fn(),
   }),
 }));

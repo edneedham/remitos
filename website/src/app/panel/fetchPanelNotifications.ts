@@ -25,6 +25,16 @@ export async function fetchPanelNotificationsList(params?: {
   return body;
 }
 
+/** Lightweight unread count for the bell badge (minimal rows; server still returns total `unread_count`). */
+export async function fetchPanelNotificationsUnreadBadge(): Promise<number | null> {
+  const data = await fetchPanelNotificationsList({
+    limit: 1,
+    unread_only: true,
+  });
+  if (!data) return null;
+  return typeof data.unread_count === 'number' ? data.unread_count : null;
+}
+
 export async function markPanelNotificationRead(id: string): Promise<boolean> {
   if (!hasWebSession()) return false;
   const res = await patchWithWebAuth(

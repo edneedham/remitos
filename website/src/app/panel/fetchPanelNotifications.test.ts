@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   fetchPanelNotificationsList,
+  fetchPanelNotificationsUnreadBadge,
   markPanelNotificationRead,
   isUnread,
 } from './fetchPanelNotifications';
@@ -60,6 +61,37 @@ describe('fetchPanelNotificationsList', () => {
     vi.mocked(fetchWithWebAuth).mockResolvedValue(new Response('', { status: 500 }));
     const out = await fetchPanelNotificationsList();
     expect(out).toBeNull();
+  });
+});
+
+describe('fetchPanelNotificationsUnreadBadge', () => {
+  beforeEach(() => {
+    vi.mocked(hasWebSession).mockReturnValue(true);
+    vi.mocked(fetchWithWebAuth).mockReset();
+  });
+
+  it('returns unread_count from minimal list request', async () => {
+    vi.mocked(fetchWithWebAuth).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          notifications: [],
+          unread_count: 4,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const count = await fetchPanelNotificationsUnreadBadge();
+    expect(count).toBe(4);
+    expect(fetchWithWebAuth).toHaveBeenCalledWith(
+      '/auth/me/notifications?limit=1&unread_only=true',
+    );
+  });
+
+  it('returns null when list request fails', async () => {
+    vi.mocked(fetchWithWebAuth).mockResolvedValue(new Response('', { status: 401 }));
+    const count = await fetchPanelNotificationsUnreadBadge();
+    expect(count).toBeNull();
   });
 });
 

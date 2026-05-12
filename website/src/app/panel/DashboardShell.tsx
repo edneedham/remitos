@@ -20,13 +20,12 @@ import {
   X,
 } from 'lucide-react';
 import HeaderAuthNav from '../ui/components/website/HeaderAuthNav';
-import {
-  canManageOperators,
-  fetchProfile,
-  hasWebSession,
-  logoutWebSession,
-} from '../lib/webAuth';
+import { canManageOperators, logoutWebSession } from '../lib/webAuth';
 import ActivateSubscriptionGate from './ActivateSubscriptionGate';
+import {
+  PanelBootstrapProvider,
+  usePanelBootstrap,
+} from './lib/usePanelBootstrap';
 import {
   PanelNotificationsProvider,
   PanelNotificationBell,
@@ -193,12 +192,12 @@ function PanelSidebarLinks({
   );
 }
 
-export default function DashboardShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [showOperadoresNav, setShowOperadoresNav] = useState(false);
+function DashboardShellInner({ children }: { children: React.ReactNode }) {
+  const { profile, status } = usePanelBootstrap();
+  const showOperadoresNav =
+    status === 'ready' &&
+    profile !== null &&
+    canManageOperators(profile.role);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -215,19 +214,6 @@ export default function DashboardShell({
   }
 
   useEffect(() => {
-    let cancelled = false;
-    if (!hasWebSession()) return;
-    void (async () => {
-      const p = await fetchProfile();
-      if (cancelled || !p) return;
-      setShowOperadoresNav(canManageOperators(p.role));
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
     if (!mobileNavOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMobileNavOpen(false);
@@ -242,7 +228,6 @@ export default function DashboardShell({
   }, [mobileNavOpen]);
 
   return (
-    <PanelNotificationsProvider>
     <div className="flex min-h-screen bg-gray-50">
       <aside
         className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-gray-200 bg-white md:flex"
@@ -359,6 +344,19 @@ export default function DashboardShell({
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DashboardShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <PanelNotificationsProvider>
+      <PanelBootstrapProvider>
+        <DashboardShellInner>{children}</DashboardShellInner>
+      </PanelBootstrapProvider>
     </PanelNotificationsProvider>
   );
 }

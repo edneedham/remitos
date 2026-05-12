@@ -70,7 +70,12 @@ function maybeEmitFirstScanCompleted(data: Entitlement): void {
 export default function DashboardPageClient() {
   const routerRef = useRouterRef();
   const now = useBillingClockMs();
-  const { status, profile, errorMessage: configError } = usePanelBootstrap();
+  const {
+    status,
+    profile,
+    errorMessage: configError,
+    entitlement: bootstrapEntitlement,
+  } = usePanelBootstrap();
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [invoicesLoading, setInvoicesLoading] = useState(true);
@@ -139,6 +144,36 @@ export default function DashboardPageClient() {
       setInvoicesLoading(true);
       setError(null);
 
+      if (bootstrapEntitlement) {
+        setEntitlement(bootstrapEntitlement);
+        maybeEmitFirstScanCompleted(bootstrapEntitlement);
+        setEntitlementLoading(false);
+      }
+
+      if (bootstrapEntitlement) {
+        const invRes = await fetchWithWebAuth('/auth/me/invoices');
+        if (cancelled) return;
+
+        if (invRes.status === 401) {
+          clearWebSession();
+          routerRef.current.replace('/ingresar');
+          return;
+        }
+
+        if (!invRes.ok) {
+          setInvoicesError(
+            'No se pudieron cargar las facturas. Probá de nuevo más tarde.',
+          );
+          setInvoices([]);
+        } else {
+          const raw = (await invRes.json()) as unknown;
+          setInvoicesError(null);
+          setInvoices(Array.isArray(raw) ? (raw as BillingInvoiceRow[]) : []);
+        }
+        setInvoicesLoading(false);
+        return;
+      }
+
       const [entRes, invRes] = await Promise.all([
         fetchWithWebAuth('/auth/me/entitlement'),
         fetchWithWebAuth('/auth/me/invoices'),
@@ -184,7 +219,7 @@ export default function DashboardPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [status, configError, routerRef]);
+  }, [status, configError, routerRef, bootstrapEntitlement]);
 
   const companyName = profile?.company_name ?? null;
 

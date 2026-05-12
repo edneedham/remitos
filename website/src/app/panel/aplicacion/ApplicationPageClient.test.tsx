@@ -10,22 +10,26 @@ const mockGetWebRefreshToken = vi.fn();
 const mockDetectDevicePlatform = vi.fn();
 const mockGetPublicSiteOrigin = vi.fn();
 
-const { mockUsePanelBootstrap } = vi.hoisted(() => ({
-  mockUsePanelBootstrap: vi.fn(() => ({
-    status: 'ready' as const,
-    profile: {
-      id: 'u1',
-      username: 'admin',
-      email: 'a@b.com',
-      company_id: 'c1',
-      company_name: 'Acme',
-      company_code: 'ACME',
-      role: 'admin',
-    },
-    errorMessage: null,
-    refresh: vi.fn(),
-  })),
-}));
+const { mockUsePanelBootstrap } = vi.hoisted(() => {
+  const ent = { can_download_app: true, subscription_plan: 'trial' };
+  return {
+    mockUsePanelBootstrap: vi.fn(() => ({
+      status: 'ready' as const,
+      profile: {
+        id: 'u1',
+        username: 'admin',
+        email: 'a@b.com',
+        company_id: 'c1',
+        company_name: 'Acme',
+        company_code: 'ACME',
+        role: 'admin',
+      },
+      errorMessage: null,
+      entitlement: ent,
+      refresh: vi.fn(),
+    })),
+  };
+});
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({

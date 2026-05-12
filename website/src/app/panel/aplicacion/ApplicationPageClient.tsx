@@ -25,7 +25,11 @@ import { useRouterRef } from '../lib/useRouterRef';
 export default function ApplicationPageClient() {
   const routerRef = useRouterRef();
   const cookieSession = isWebCookieSession();
-  const { status, errorMessage: configError } = usePanelBootstrap();
+  const {
+    status,
+    errorMessage: configError,
+    entitlement: bootstrapEntitlement,
+  } = usePanelBootstrap();
   const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -58,6 +62,13 @@ export default function ApplicationPageClient() {
       return;
     }
     if (status !== 'ready') {
+      return;
+    }
+
+    if (bootstrapEntitlement) {
+      setEntitlement(bootstrapEntitlement);
+      setEntitlementLoading(false);
+      setLoadError(null);
       return;
     }
 
@@ -96,7 +107,7 @@ export default function ApplicationPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [status, configError, routerRef]);
+  }, [status, configError, routerRef, bootstrapEntitlement]);
 
   const handleStartTransfer = useCallback(async () => {
     setTransferError(null);
