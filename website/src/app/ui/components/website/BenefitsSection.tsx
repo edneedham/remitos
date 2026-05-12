@@ -98,6 +98,7 @@ export default function BenefitsSection() {
           y: 0,
           overwrite: 'auto',
         });
+        queueMicrotask(() => setPanelOnlyLayout(true));
         return;
       }
 
@@ -116,6 +117,14 @@ export default function BenefitsSection() {
           duration: 0.72,
           stagger: 0.14,
           ease: 'power3.out',
+          onComplete: () => {
+            screenshotRevealedRef.current = true;
+            firstBenefitRevealedRef.current = true;
+            secondBenefitRevealedRef.current = true;
+            thirdBenefitRevealedRef.current = true;
+            panelSwapCompleteRef.current = true;
+            setPanelOnlyLayout(true);
+          },
           scrollTrigger: {
             trigger: section,
             start: 'top 82%',
@@ -499,10 +508,10 @@ export default function BenefitsSection() {
           <div className="relative w-full overflow-hidden rounded-xl bg-white shadow-[0_20px_60px_rgba(15,23,42,0.28),0_8px_20px_rgba(15,23,42,0.18)] transition-transform duration-300 hover:scale-[1.01] hover:shadow-[0_28px_80px_rgba(15,23,42,0.34),0_12px_28px_rgba(15,23,42,0.22)]">
             <div className="pointer-events-none absolute inset-0 -z-10 rounded-2xl bg-gradient-to-br from-blue-200/40 via-transparent to-indigo-300/30 blur-2xl" />
             <Image
-              src="/screenshots/panel.png"
+              src="/screenshots/panel-web.png"
               alt="Panel web de administración En Punto"
-              width={1920}
-              height={1080}
+              width={1505}
+              height={826}
               className="h-auto w-full rounded-xl object-contain"
               sizes="100vw"
               priority

@@ -17,7 +17,7 @@ ON CONFLICT (name) DO NOTHING;
 UPDATE companies 
 SET code = 'LOGSUR', 
     name = 'Logística del Sur S.A.',
-    subscription_plan = 'premium',
+    subscription_plan = 'empresa',
     is_verified = true,
     status = 'active'
 WHERE code = 'ADMIN';

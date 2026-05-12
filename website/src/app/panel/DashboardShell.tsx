@@ -120,6 +120,7 @@ function SidebarNavLink({
   icon: Icon,
   children,
   onNavigate,
+  className,
 }: {
   href: string;
   /** When true, only an exact pathname match is active (no prefix match). */
@@ -128,6 +129,8 @@ function SidebarNavLink({
   children: React.ReactNode;
   /** Called after navigation (e.g. close mobile drawer). */
   onNavigate?: () => void;
+  /** Extra classes on the link (e.g. `md:hidden` to show only in the mobile drawer). */
+  className?: string;
 }) {
   const pathname = usePathname();
   const active =
@@ -146,7 +149,7 @@ function SidebarNavLink({
         active
           ? 'bg-blue-50 text-blue-700'
           : 'text-gray-700 hover:bg-gray-50'
-      }`}
+      } ${className ?? ''}`}
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden />
       {children}
@@ -185,7 +188,13 @@ function PanelSidebarLinks({
       <SidebarNavLink href="/panel/aplicacion" icon={AppWindow} onNavigate={onNavigate}>
         Aplicación
       </SidebarNavLink>
-      <SidebarNavLink href="/panel/cambiar-clave" end icon={KeyRound} onNavigate={onNavigate}>
+      <SidebarNavLink
+        href="/panel/cambiar-clave"
+        end
+        icon={KeyRound}
+        onNavigate={onNavigate}
+        className="md:hidden"
+      >
         Contraseña
       </SidebarNavLink>
     </nav>

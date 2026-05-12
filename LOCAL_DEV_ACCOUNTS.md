@@ -30,7 +30,7 @@ Use the **company code** as `company_code`, and either the **email** or **userna
 
 ### Paid plan (entitled like a paid customer)
 
-- **Company code:** `SEEDPAID`
+- **Company code:** `SEEDPAID` (`subscription_plan`: **`empresa`**, same slugs as the website plan catalog)
 - **Owner**
   - **Email:** `seed-paid-owner@local.test`
 
@@ -48,6 +48,6 @@ Use the **company code** as `company_code`, and either the **email** or **userna
 
 ### Archived company (not entitled)
 
-- **Company code:** `SEEDARCH`
+- **Company code:** `SEEDARCH` (`subscription_plan`: **`pyme`** in seed)
 - **Owner**
   - **Email:** `seed-archived-owner@local.test`

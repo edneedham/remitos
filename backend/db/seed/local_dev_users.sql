@@ -199,7 +199,7 @@ INSERT INTO companies (
   'SEEDPAID',
   'Seed Co — Paid',
   NOW(), NOW(),
-  'active', true, 'premium',
+  'active', true, 'empresa',
   NULL, NULL,
   3, 10, 5000,
   'stub_mp_customer', 'stub_mp_card',
@@ -508,7 +508,7 @@ INSERT INTO companies (
   'SEEDARCH',
   'Seed Co — Archived',
   NOW(), NOW(),
-  'active', true, 'premium',
+  'active', true, 'pyme',
   NULL, NULL,
   1, 2, 3000,
   NULL, NULL,
@@ -597,21 +597,21 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- ---------------------------------------------------------------------------
 -- Billing invoices fixtures (for dashboard/billing UI)
--- Plan Premium: ARS 80.000,00 / mes → amount_minor 8000000 (centavos)
+-- Example amount: ARS 80.000,00 / mes → amount_minor 8000000 (centavos)
 -- ---------------------------------------------------------------------------
 INSERT INTO billing_invoices (
   id, company_id, amount_minor, currency, status, description, issued_at, mp_payment_id, created_at
 ) VALUES
   -- SEEDTRIAL: mostly pending/paid during trial lifecycle
   ('f1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 0,      'ARS', 'paid',    'Alta de prueba gratis (7 días)',                   NOW() - INTERVAL '28 days', 'mp_trial_init_001',       NOW() - INTERVAL '28 days'),
-  ('f1000000-0000-4000-8000-000000000002', 'a1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'pending', 'Suscripción mensual Premium (próximo ciclo)',      NOW() - INTERVAL '2 days',  'mp_trial_pending_002',    NOW() - INTERVAL '2 days'),
+  ('f1000000-0000-4000-8000-000000000002', 'a1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'pending', 'Suscripción mensual Empresa (próximo ciclo)',      NOW() - INTERVAL '2 days',  'mp_trial_pending_002',    NOW() - INTERVAL '2 days'),
   ('f1000000-0000-4000-8000-000000000003', 'a1000000-0000-4000-8000-000000000001', 120000, 'ARS', 'void',    'Ajuste prorrateo descartado',                       NOW() - INTERVAL '1 day',   'mp_trial_void_003',       NOW() - INTERVAL '1 day'),
 
   -- SEEDPAID: regular successful billing history
-  ('f2000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'paid',    'Plan Premium mensual',                              NOW() - INTERVAL '92 days', 'mp_paid_202601_001',      NOW() - INTERVAL '92 days'),
-  ('f2000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'paid',    'Plan Premium mensual',                              NOW() - INTERVAL '62 days', 'mp_paid_202602_002',      NOW() - INTERVAL '62 days'),
-  ('f2000000-0000-4000-8000-000000000003', 'b1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'paid',    'Plan Premium mensual',                              NOW() - INTERVAL '32 days', 'mp_paid_202603_003',      NOW() - INTERVAL '32 days'),
-  ('f2000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'paid',    'Plan Premium mensual',                              NOW() - INTERVAL '2 days',  'mp_paid_202604_004',      NOW() - INTERVAL '2 days'),
+  ('f2000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'paid',    'Plan Empresa mensual',                              NOW() - INTERVAL '92 days', 'mp_paid_202601_001',      NOW() - INTERVAL '92 days'),
+  ('f2000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'paid',    'Plan Empresa mensual',                              NOW() - INTERVAL '62 days', 'mp_paid_202602_002',      NOW() - INTERVAL '62 days'),
+  ('f2000000-0000-4000-8000-000000000003', 'b1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'paid',    'Plan Empresa mensual',                              NOW() - INTERVAL '32 days', 'mp_paid_202603_003',      NOW() - INTERVAL '32 days'),
+  ('f2000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'paid',    'Plan Empresa mensual',                              NOW() - INTERVAL '2 days',  'mp_paid_202604_004',      NOW() - INTERVAL '2 days'),
 
   -- SEEDFREE: no invoice yet (kept intentionally empty)
 
@@ -620,8 +620,8 @@ INSERT INTO billing_invoices (
   ('f4000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'void',    'Intento de cobro anulado por rechazo del emisor',   NOW() - INTERVAL '2 days',  'mp_expired_void_002',     NOW() - INTERVAL '2 days'),
 
   -- SEEDARCH: historical payments before archival
-  ('f5000000-0000-4000-8000-000000000001', 'e1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'paid',    'Plan Premium mensual',                              NOW() - INTERVAL '120 days','mp_arch_paid_001',        NOW() - INTERVAL '120 days'),
-  ('f5000000-0000-4000-8000-000000000002', 'e1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'paid',    'Plan Premium mensual',                              NOW() - INTERVAL '90 days', 'mp_arch_paid_002',        NOW() - INTERVAL '90 days')
+  ('f5000000-0000-4000-8000-000000000001', 'e1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'paid',    'Plan PyME mensual',                                 NOW() - INTERVAL '120 days','mp_arch_paid_001',        NOW() - INTERVAL '120 days'),
+  ('f5000000-0000-4000-8000-000000000002', 'e1000000-0000-4000-8000-000000000001', 8000000, 'ARS', 'paid',    'Plan PyME mensual',                                 NOW() - INTERVAL '90 days', 'mp_arch_paid_002',        NOW() - INTERVAL '90 days')
 ON CONFLICT (id) DO UPDATE SET
   company_id = EXCLUDED.company_id,
   amount_minor = EXCLUDED.amount_minor,

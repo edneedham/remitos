@@ -9,7 +9,7 @@ VALUES (
     'LOGSUR',
     'active',
     true,
-    'premium',
+    'empresa',
     NOW(),
     NOW()
 )

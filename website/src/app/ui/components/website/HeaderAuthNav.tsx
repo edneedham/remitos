@@ -78,9 +78,8 @@ export default function HeaderAuthNav() {
   const changePasswordNavActive = pathname.startsWith(
     '/panel/cambiar-clave',
   );
-  /** Sidebar replaces these links on desktop; hide them in the dropdown only there. */
-  const navLinksMobileOnlyInDropdown =
-    pathname.startsWith('/panel');
+  /** Sidebar duplicates these on desktop; keep them in the dropdown for small screens only. */
+  const navLinksMobileOnlyInDropdown = pathname.startsWith('/panel');
   const isPanelRoute = pathname.startsWith('/panel');
 
   async function handleLogout() {
@@ -175,6 +174,14 @@ export default function HeaderAuthNav() {
                 >
                   Aplicación
                 </Link>
+              </div>
+              <div
+                className={
+                  navLinksMobileOnlyInDropdown
+                    ? 'hidden border-t border-gray-100 pt-1 md:block'
+                    : 'border-t border-gray-100 pt-1'
+                }
+              >
                 <Link
                   href="/panel/cambiar-clave"
                   className={`block w-full rounded-md px-3 py-2 text-left text-sm font-semibold ${

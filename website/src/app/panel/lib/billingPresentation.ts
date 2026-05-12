@@ -1,3 +1,4 @@
+import { getPlanById } from '../../lib/planCatalog';
 import type { Entitlement } from './entitlementTypes';
 
 export function isPaidPlan(plan: string): boolean {
@@ -16,20 +17,29 @@ export function isPaidPlan(plan: string): boolean {
 }
 
 export function formatPlanLabel(planRaw: string | undefined): string {
-  const plan = (planRaw ?? '').toLowerCase().trim();
-  if (!plan) return '—';
-  switch (plan) {
-    case 'trial':
-      return 'Prueba';
-    case 'premium':
-      return 'Premium';
-    case 'paid':
-    case 'subscriber':
-    case 'standard':
-      return planRaw!.trim();
-    default:
-      return planRaw!.trim();
+  const trimmed = (planRaw ?? '').trim();
+  if (!trimmed) return '—';
+  const plan = trimmed.toLowerCase();
+
+  if (plan === 'trial') {
+    return 'Prueba';
   }
+
+  const fromCatalog = getPlanById(plan);
+  if (fromCatalog) {
+    return fromCatalog.name;
+  }
+
+  // Legacy DB slug (pre–self-serve catalog); treat like paid tier for display.
+  if (plan === 'premium') {
+    return getPlanById('empresa')?.name ?? 'Empresa';
+  }
+
+  if (['paid', 'subscriber', 'standard'].includes(plan)) {
+    return trimmed;
+  }
+
+  return trimmed;
 }
 
 export function formatDateTime(value?: string): string {
