@@ -13,33 +13,33 @@ export default function Footer() {
   return (
     <footer className="bg-gray-800 text-white p-6">
       <div className="mx-auto flex w-full max-w-[80rem] flex-col items-center justify-between space-y-4 px-4 sm:px-6 md:flex-row md:space-y-0 lg:px-8">
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-white">
           © {new Date().getFullYear()} En Punto. Todos los derechos reservados.
         </p>
-        <p className="text-xs text-gray-400">Disponible para Android.</p>
+        <p className="text-xs text-white">Disponible para Android.</p>
 
         <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 text-sm">
           <Link
             href="/contacto"
-            className="text-gray-300 hover:text-white transition-colors"
+            className="text-white underline-offset-4 transition-colors hover:underline"
           >
             Contacto
           </Link>
           <Link
             href="/privacidad"
-            className="text-gray-300 hover:text-white transition-colors"
+            className="text-white underline-offset-4 transition-colors hover:underline"
           >
             Política de privacidad
           </Link>
           <Link
             href="/terminos"
-            className="text-gray-300 hover:text-white transition-colors"
+            className="text-white underline-offset-4 transition-colors hover:underline"
           >
             Términos y condiciones
           </Link>
           <Link
             href="/cookies"
-            className="text-gray-300 hover:text-white transition-colors"
+            className="text-white underline-offset-4 transition-colors hover:underline"
           >
             Cookies
           </Link>
@@ -50,7 +50,7 @@ export default function Footer() {
             <Link
               href="https://www.x.com/enpuntoapp"
               aria-label="X/Twitter"
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-white opacity-90 transition-opacity hover:opacity-100"
             >
               <Image
                 src="/logo-white.png"
@@ -63,7 +63,7 @@ export default function Footer() {
             <Link
               href="https://www.linkedin.com/company/roasal/"
               aria-label="LinkedIn"
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-white opacity-90 transition-opacity hover:opacity-100"
             >
               <Image
                 src="/InBug-White.png"
@@ -76,6 +76,10 @@ export default function Footer() {
           </div>
         </div>
       </div>
+
+      <p className="mx-auto mt-4 max-w-[80rem] border-t border-gray-700 px-4 pt-4 text-center text-[11px] leading-snug text-white sm:px-6 lg:px-8">
+        Android y el logotipo de Android son marcas comerciales de Google LLC.
+      </p>
     </footer>
   );
 }
