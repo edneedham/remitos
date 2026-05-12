@@ -31,6 +31,11 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
+    - name: Verify THIRD_PARTY_LICENSES.txt matches go list -deps
+      run: |
+        ./scripts/gen-third-party-licenses.sh
+        git diff --exit-code -- THIRD_PARTY_LICENSES.txt
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:

@@ -43,12 +43,6 @@ export default function Footer() {
           >
             Cookies
           </Link>
-          <Link
-            href="/licencias"
-            className="text-gray-300 hover:text-white transition-colors"
-          >
-            Licencias
-          </Link>
         </div>
 
         <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-4">

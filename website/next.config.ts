@@ -66,7 +66,13 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    return [];
+    return [
+      {
+        source: '/licencias',
+        destination: '/',
+        permanent: true,
+      },
+    ];
   },
   async rewrites() {
     const apiUrl = process.env.API_URL || 'http://localhost:8080';
