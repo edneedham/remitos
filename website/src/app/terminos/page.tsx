@@ -2,29 +2,23 @@ import Link from 'next/link';
 
 export default async function Terms() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <main className="grow">
-        {/* Hero Section */}
-        <section className="py-20 px-8 bg-white">
-          <div className="max-w-content mx-auto">
-            <h1 className="text-4xl font-bold text-blue-600 mb-8 text-left">
+    <div className="min-h-screen bg-gray-50">
+      <main className="mx-auto max-w-content-prose px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
+        <article className="rounded-2xl bg-white px-5 py-8 shadow-sm sm:px-8 sm:py-10">
+          <header className="border-b border-gray-100 pb-8">
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
               Términos y Condiciones de Uso
             </h1>
-
-            <p className="text-l text-gray-600 mb-8 mx-auto text-left">
-              Última modificación: 30 de abril de 2026
+            <p className="mt-3 text-sm text-gray-500">
+              Última modificación: 12 de mayo de 2026
             </p>
-          </div>
-        </section>
+          </header>
 
-        {/* Introduction Section */}
-        <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
+          <div className="pt-8 text-sm leading-relaxed text-gray-600 sm:text-base">
+            <h2 className="text-xl font-semibold text-gray-900">
               Introducción
             </h2>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               Estos &quot;Términos y Condiciones de Uso&quot; rigen el acceso e
               interacción de cualquier individuo, persona física o entidad
               jurídica (de ahora en más denominado &quot;Usuario&quot;) para con
@@ -34,27 +28,58 @@ export default async function Terms() {
               &quot;Servicios&quot;) proporcionados por ROASAL S.A.S.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4">
+              Los Servicios incluyen, entre otros, el{' '}
+              <strong className="font-medium text-gray-800">
+                sitio web público
+              </strong>
+              , el{' '}
+              <strong className="font-medium text-gray-800">
+                panel web
+              </strong>{' '}
+              (acceso en navegador con inicio de sesión) y la{' '}
+              <strong className="font-medium text-gray-800">
+                aplicación móvil Android
+              </strong>{' '}
+              publicada por la compañía. El uso de cookies y almacenamiento local
+              en el sitio y el panel se describe en la{' '}
+              <Link
+                href="/cookies"
+                className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                Política de Cookies
+              </Link>
+              . El tratamiento de datos personales se rige por el{' '}
+              <Link
+                href="/privacidad"
+                className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                Acuerdo de Privacidad y Confidencialidad
+              </Link>
+              .
+            </p>
+
+            <p className="mb-6">
               &quot;En Punto Logística&quot; es una marca logística registrada
-              de la firma ROASAL S.A.S. CUIT 30-71793629-5., con domicilio legal
+              de la firma ROASAL S.A.S., CUIT 30-71793629-5, con domicilio legal
               en Pinar del Río 3631, Córdoba, Argentina, de ahora en más
               denominada como &quot;la compañía&quot;.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              <strong>
-                LEA ESTOS TÉRMINOS CUIDADOSAMENTE ANTES DE ACCEDER Y UTILIZAR
-                LOS SERVICIOS.
+            <p className="mb-6">
+              <strong className="font-medium text-gray-800">
+                LEA ESTOS TÉRMINOS CUIDADOSAMENTE ANTES DE ACCEDER Y UTILIZAR LOS
+                SERVICIOS.
               </strong>
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               En estos Términos, las palabras &quot;incluyendo&quot; e
               &quot;incluye&quot; significan &quot;incluyendo, pero no limitado
               a&quot;.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               Al acceder a la plataforma y/o hacer uso de los Servicios, el
               Usuario confirma estar de acuerdo y vinculado a estos Términos y
               Condiciones, que establecen una relación contractual entre el
@@ -66,100 +91,103 @@ export default async function Terms() {
               vigencia.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               La compañía, por medio de &quot;En Punto&quot;, presta servicios
-              de networking, coordinación de cargas terrestres, bolsa de
-              trabajo, administración y procesamiento de pagos para terceras
-              partes con fines de crear una red de logística dinámica y
-              eficiente a nivel Nacional.
+              de networking, coordinación de cargas terrestres, bolsa de trabajo,
+              administración y procesamiento de pagos para terceras partes con
+              fines de crear una red de logística dinámica y eficiente a nivel
+              nacional.
             </p>
-          </div>
-        </section>
 
-        {/* Section 1: Definiciones Generales */}
-        <section className="py-20 px-8 bg-white">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
               1. Definiciones Generales
             </h2>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               A los fines de estos Términos y Condiciones de Uso, se entenderán
               por:
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              <strong>Usuario:</strong> Toda persona humana o jurídica que
-              acceda, interactúe, utilice o se registre en cualquiera de las
-              plataformas, sistemas, aplicaciones, interfaces, canales de
-              comunicación oficiales, sitios web, software o servicios de
-              titularidad de ROASAL S.A.S., incluyendo la plataforma denominada
-              &quot;En Punto&quot;. La condición de Usuario no genera relación
-              laboral, societaria, ni vínculo de dependencia alguno con la
-              compañía.
+            <p className="mb-6">
+              <strong className="font-medium text-gray-800">Usuario:</strong>{' '}
+              Toda persona humana o jurídica que acceda, interactúe, utilice o
+              se registre en cualquiera de las plataformas, sistemas,
+              aplicaciones, interfaces, canales de comunicación oficiales, sitios
+              web, software o servicios de titularidad de ROASAL S.A.S.,
+              incluyendo la plataforma denominada &quot;En Punto&quot;. La
+              condición de Usuario no genera relación laboral, societaria, ni
+              vínculo de dependencia alguno con la compañía.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              <strong>Administrador:</strong> Persona física autorizada por una
-              persona jurídica usuaria para gestionar su perfil, acceso y
-              operaciones dentro de la plataforma. Es responsable por la
-              veracidad y legalidad de las acciones realizadas en nombre de la
-              organización representada.
+            <p className="mb-6">
+              <strong className="font-medium text-gray-800">
+                Administrador:
+              </strong>{' '}
+              Persona física autorizada por una persona jurídica usuaria para
+              gestionar su perfil, acceso y operaciones dentro de la plataforma.
+              Es responsable por la veracidad y legalidad de las acciones
+              realizadas en nombre de la organización representada.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              <strong>Transportista:</strong> Individuo o entidad registrada que
-              ofrece vehículos motorizados habilitados para el transporte de
-              Bienes quienes no pertencen a esta firma.
+            <p className="mb-6">
+              <strong className="font-medium text-gray-800">
+                Transportista:
+              </strong>{' '}
+              Individuo o entidad registrada que ofrece vehículos motorizados
+              habilitados para el transporte de bienes quienes no pertenecen a
+              esta firma.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              <strong>Conductor:</strong> Persona física que opera vehículos
-              para realizar servicios de transporte en nombre propio o de un
-              transportista.
+            <p className="mb-6">
+              <strong className="font-medium text-gray-800">Conductor:</strong>{' '}
+              Persona física que opera vehículos para realizar servicios de
+              transporte en nombre propio o de un transportista.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              <strong>Cliente y/o Dador de carga:</strong> Usuario que contrata
-              servicios de transporte, en carácter de remitente, consignante o
-              consignatario de la mercadería. Esta categoría excluye a los
-              consumidores finales en los terminus de la Ley 24.240.
+            <p className="mb-6">
+              <strong className="font-medium text-gray-800">
+                Cliente y/o Dador de carga:
+              </strong>{' '}
+              Usuario que contrata servicios de transporte, en carácter de
+              remitente, consignante o consignatario de la mercadería. Esta
+              categoría excluye a los consumidores finales en los términos de la
+              Ley 24.240.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              <strong>Despachador:</strong> Entidad o persona física que actúa
-              como coordinador logístico de cargas, asignando vehículos, rutas u
-              operadores a los fines del cumplimiento de traslados.
+            <p className="mb-6">
+              <strong className="font-medium text-gray-800">
+                Despachador:
+              </strong>{' '}
+              Entidad o persona física que actúa como coordinador logístico de
+              cargas, asignando vehículos, rutas u operadores a los fines del
+              cumplimiento de traslados.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              <strong>Transacción:</strong> Todo acuerdo comercial celebrado
-              entre usuarios de la plataforma, de forma directa o indirecta, que
-              derive en la prestación efectiva de un servicio logístico o
-              cualquier otra operación vinculada.
+            <p className="mb-6">
+              <strong className="font-medium text-gray-800">
+                Transacción:
+              </strong>{' '}
+              Todo acuerdo comercial celebrado entre usuarios de la plataforma,
+              de forma directa o indirecta, que derive en la prestación efectiva
+              de un servicio logístico o cualquier otra operación vinculada.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              <strong>Interacción:</strong> Toda acción realizada entre usuarios
-              dentro del entorno de la plataforma, ya sea mediante mensajería,
-              publicación, búsqueda, contacto, cotización, calificación u otras
-              funcionalidades disponibles.
+            <p className="mb-6">
+              <strong className="font-medium text-gray-800">
+                Interacción:
+              </strong>{' '}
+              Toda acción realizada entre usuarios dentro del entorno de la
+              plataforma, ya sea mediante mensajería, publicación, búsqueda,
+              contacto, cotización, calificación u otras funcionalidades
+              disponibles.
             </p>
-          </div>
-        </section>
 
-        {/* Section 2: Condiciones del servicio */}
-        <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
               2. Condiciones del servicio
             </h2>
 
-            <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-              2.1 Licencia
-            </h3>
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Sujeto a su cumplimiento de estos Términos y Condiciones, La
+            <h3 className="mt-8 text-lg font-semibold text-gray-900">2.1 Licencia</h3>
+            <p className="mb-4 mt-3">
+              Sujeto a su cumplimiento de estos Términos y Condiciones, la
               Compañía otorga una licencia limitada de uso al Usuario. Esta
               licencia no es exclusiva, no sublicenciable, y tampoco es
               transferible. La licencia puede ser revocada sin previo aviso a
@@ -168,7 +196,7 @@ export default async function Terms() {
               para la Compañía y sus afiliadas, según corresponda.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               Esta licencia limitada de uso permite al Usuario acceder a los
               Servicios de ROASAL S.A.S., registrarse en la bolsa de trabajo,
               aplicar a ofertas, postear servicios vacantes e interactuar con
@@ -176,10 +204,10 @@ export default async function Terms() {
               actividades logísticas.
             </p>
 
-            <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+            <h3 className="mt-8 text-lg font-semibold text-gray-900">
               2.2 Obligaciones
             </h3>
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               Es obligación del Usuario mantener en confidencialidad todas las
               credenciales para acceder y/o usar los Servicios, permitiendo que
               sólo personal autorizado a actuar en su nombre y representación
@@ -188,40 +216,40 @@ export default async function Terms() {
               su nombre dentro de las plataformas de la Compañía.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               El Usuario declara al hacer uso de los Servicios que se encuentra
               debidamente habilitado en materia tributaria y legal para la
-              prestación de actividades económicas, así como declara poseer has
-              habilitaciones pertinentes de transporte, sanitarias o de
-              cualquier rubro requerido para interactuar con la bolsa de trabajo
-              o Servicios específicos publicados en la misma.
+              prestación de actividades económicas, así como declara poseer las
+              habilitaciones pertinentes de transporte, sanitarias o de cualquier
+              rubro requerido para interactuar con la bolsa de trabajo o
+              Servicios específicos publicados en la misma.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               Para poder utilizar correctamente los servicios ofrecidos por la
               plataforma, el Usuario deberá garantizar que cuenta con toda la
               documentación técnica, legal y operativa necesaria según el tipo
               de actividad que desee realizar.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               ROASAL S.A.S. podrá, en cualquier momento y sin previo aviso,
               solicitar la presentación o validación de dicha documentación. El
               incumplimiento de este requisito puede derivar en la suspensión
               temporal, limitación o baja definitiva de la cuenta.
             </p>
 
-            <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+            <h3 className="mt-8 text-lg font-semibold text-gray-900">
               2.3 Limitaciones
             </h3>
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               La Compañía se reserva el derecho a cesar la prestación de
               Servicios total o parcialmente, en cualquier momento y por
               cualquier razón, y sin necesidad de previo aviso. Esto incluye
               pero no se limita a:
             </p>
 
-            <ul className="list-disc pl-6 text-gray-600 mb-6 leading-relaxed space-y-2">
+            <ul className="mb-6 list-disc space-y-2 pl-5">
               <li>
                 2.3.1. Al cese de operaciones total y cierre del sitio web;
               </li>
@@ -232,7 +260,7 @@ export default async function Terms() {
               </li>
             </ul>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               ROASAL S.A.S. se reserva además el derecho a modificar los
               Términos y Condiciones en cualquier momento para adecuarlo a
               requerimientos de sistema y la normativa legal vigente. Las
@@ -244,32 +272,50 @@ export default async function Terms() {
               relación a las actualizaciones.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Consulte el Acuerdo de Privacidad de ROASAL S.A.S. ubicado{' '}
-              <Link href="/privacidad" className="text-blue-600 hover:underline">
-                aquí
+            <h3 className="mt-8 text-lg font-semibold text-gray-900">
+              2.4 Pagos y procesadores de terceros
+            </h3>
+            <p className="mb-4 mt-3">
+              Cuando el Usuario cargue o actualice medios de pago (por ejemplo,
+              tarjeta) a través de integraciones con{' '}
+              <strong className="font-medium text-gray-800">
+                Mercado Pago
+              </strong>{' '}
+              u otros proveedores que la plataforma incorpore, también quedará
+              sujeto a los términos, condiciones y políticas de privacidad de
+              dicho proveedor. ROASAL S.A.S. no controla esos servicios ni la
+              custodia de datos que el proveedor recolecte en su propio entorno.
+            </p>
+
+            <p className="mb-6">
+              Para datos personales y cookies en el sitio y panel, puede
+              consultar el{' '}
+              <Link
+                href="/privacidad"
+                className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                Acuerdo de Privacidad y Confidencialidad
               </Link>{' '}
-              para obtener información sobre nuestra recopilación y uso de
-              información personal en conexión con los Servicios, en
-              cumplimiento con la Ley 25.326 de Protección de Datos Personales
+              y la{' '}
+              <Link
+                href="/cookies"
+                className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                Política de Cookies
+              </Link>
+              , en cumplimiento de la Ley 25.326 de Protección de Datos Personales
               de Argentina.
             </p>
-          </div>
-        </section>
 
-        {/* Section 3: Restricciones */}
-        <section className="py-20 px-8 bg-white">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
               3. Restricciones
             </h2>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               El usuario no tiene derecho de ejecutar ni instar a terceros a
               realizar las siguientes acciones:
             </p>
 
-            <ul className="list-none text-gray-600 mb-6 leading-relaxed space-y-4">
+            <ul className="mb-6 list-none space-y-4">
               <li>
                 (i) eliminar cualquier aviso de derechos de autor, marca
                 comercial u otros avisos propietarios de cualquier elemento,
@@ -280,8 +326,8 @@ export default async function Terms() {
                 en, distribuir, licenciar, arrendar, vender, revender,
                 transferir, mostrar públicamente, realizar públicamente,
                 transmitir, transmitir en streaming, difundir o explotar de otra
-                manera los Servicios excepto existiere un acuerdo legal entre
-                ROASAL S.A.S. y el usuario específico para tales fines;
+                manera los Servicios excepto que existiera un acuerdo legal
+                entre ROASAL S.A.S. y el usuario específico para tales fines;
               </li>
               <li>
                 (iii) descompilar, desensamblar, realizar ingeniería inversa o
@@ -307,7 +353,7 @@ export default async function Terms() {
               </li>
             </ul>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               Cualquier violación de estos puntos será considerada una grave
               infracción, además de causar perjuicio a ROASAL S.A.S., quien se
               reserva el derecho a requerir acciones legales y penalizaciones.
@@ -316,24 +362,18 @@ export default async function Terms() {
               estatutos provinciales, requiriendo la propicia intervención
               judicial.
             </p>
-          </div>
-        </section>
 
-        {/* Section 4: Propiedad */}
-        <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
               4. Propiedad
             </h2>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               Los Servicios y todos los derechos sobre los mismos son propiedad
               de ROASAL S.A.S. y sus licenciantes, incluida la marca registrada
-              &quot;En Punto Logística&quot;. El uso de los Servicios no otorgan
+              &quot;En Punto Logística&quot;. El uso de los Servicios no otorga
               al Usuario ningún derecho:
             </p>
 
-            <ul className="list-none text-gray-600 mb-6 leading-relaxed space-y-2">
+            <ul className="mb-6 list-none space-y-2">
               <li>
                 (i) sobre el software o las prestaciones de Servicios excepto
                 por la licencia de uso limitada otorgada anteriormente; o
@@ -346,7 +386,7 @@ export default async function Terms() {
               </li>
             </ul>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               La compañía informa al Usuario que toda información ingresada en
               sus entornos virtuales o medios de comunicación puede ser
               almacenada acorde al Acuerdo de Privacidad y Confidencialidad, que
@@ -355,18 +395,13 @@ export default async function Terms() {
               aceptación sin reservas de los términos y condiciones aquí
               establecidos.
             </p>
-          </div>
-        </section>
 
-        {/* Section 5: RESPONSABILIDAD */}
-        <section className="py-20 px-8 bg-white">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
-              5. RESPONSABILIDAD
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
+              5. Responsabilidad
             </h2>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              ROASAL S.A.S. Actúa exclusivamente como intermediario entre
+            <p className="mb-4 mt-3">
+              ROASAL S.A.S. actúa exclusivamente como intermediario entre
               dadores de carga, transportistas y/o conductores, brindando una
               plataforma digital para que las partes puedan contactarse, acordar
               condiciones comerciales y eventualmente celebrar contratos de
@@ -376,22 +411,22 @@ export default async function Terms() {
               business&quot;.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               La empresa no participa, interviene ni tiene injerencia en la
               ejecución del servicio de transporte, en la negociación de
               tarifas, condiciones logísticas, seguros, ni en el cumplimiento de
               las obligaciones asumidas por los usuarios.
             </p>
 
-            <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-              5.1. Descargo de responsabilidad
+            <h3 className="mt-8 text-lg font-semibold text-gray-900">
+              5.1 Descargo de responsabilidad
             </h3>
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               Los servicios se proporcionan &quot;tal cual&quot; y &quot;según
-              disponibilidad&quot;. ROASAL S.A.S. No se hace responsable de:
+              disponibilidad&quot;. ROASAL S.A.S. no se hace responsable de:
             </p>
 
-            <ul className="list-disc pl-6 text-gray-600 mb-6 leading-relaxed space-y-2">
+            <ul className="mb-6 list-disc space-y-2 pl-5">
               <li>
                 Inconvenientes surgidos por la cancelación de cargas pactadas
                 entre diferentes partes dentro del software.
@@ -415,37 +450,37 @@ export default async function Terms() {
               </li>
             </ul>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              ROASAL S.A.S. Declara que no tiene responsabilidad, obligación ni
+            <p className="mb-6">
+              ROASAL S.A.S. declara que no tiene responsabilidad, obligación ni
               incidencia sobre las mercancías transportadas o a transportar; la
               compañía confirma no tener acceso a la mercadería o bienes a
               transportar y/o ser transportada excepto explícita indicación de
               lo contrario.
             </p>
 
-            <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-              5.2 ALCANCE
+            <h3 className="mt-8 text-lg font-semibold text-gray-900">
+              5.2 Alcance
             </h3>
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               La compañía se exime y deslinda de cualquier responsabilidad
               solidaria para con choferes, dadores de carga, transportistas o
               clientes en caso de inconvenientes, siniestros, o disputas
               legales, civiles o sociales de ningún tipo.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               ROASAL S.A.S. renuncia a todas las representaciones expresas,
               implícitas o estatutarias, no establecidas expresamente en estos
-              términos. La compañía no hace ninguna representación ,o garantía
+              términos. La compañía no hace ninguna representación o garantía
               con respecto a la confiabilidad, puntualidad, calidad, adecuación
               o disponibilidad de los servicios, o que los servicios serán
-              ininterrumpidos o libres de errores. Usted acepta que todo el
+              ininterrumpidos o libres de errores. El Usuario acepta que todo el
               riesgo que surja de su acceso o uso de los servicios permanece
-              únicamente con usted, en la medida máxima permitida por la ley
+              únicamente con el Usuario, en la medida máxima permitida por la ley
               aplicable.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               ROASAL S.A.S. como organización privada independiente, no asume
               responsabilidad sobre la calidad tributaria, legal o social de sus
               usuarios. La compañía asume que todos los usuarios son personas
@@ -455,10 +490,10 @@ export default async function Terms() {
               sus acciones.
             </p>
 
-            <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+            <h3 className="mt-8 text-lg font-semibold text-gray-900">
               5.3 Limitación de responsabilidad
             </h3>
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               La compañía no será responsable por daños indirectos,
               incidentales, especiales, ejemplares, punitivos o consecuentes,
               incluyendo pero no limitado a pérdidas de ganancias, pérdidas de
@@ -470,7 +505,7 @@ export default async function Terms() {
               responsabilidad o pérdida que surja de:
             </p>
 
-            <ul className="list-none text-gray-600 mb-6 leading-relaxed space-y-2">
+            <ul className="mb-6 list-none space-y-2">
               <li>
                 5.3.1. Su uso o confianza en los servicios o su incapacidad para
                 acceder o usar los servicios; o
@@ -488,14 +523,14 @@ export default async function Terms() {
               </li>
             </ul>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               ROASAL S.A.S. no será responsable por retraso o fallos en la
               prestación de servicios de usuarios que presten actividades por
               medio de la bolsa de trabajo de la aplicación, lo que incluye pero
               no se limita a conductores, choferes, dadores de carga y clientes.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               La compañía no controla, respalda ni asume responsabilidad por
               ningún contenido de usuario o de terceros disponible en la
               plataforma En Punto (incluyendo información relacionada a la bolsa
@@ -504,17 +539,17 @@ export default async function Terms() {
               servidores estén libres de virus u otros componentes dañinos.
             </p>
 
-            <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+            <h3 className="mt-8 text-lg font-semibold text-gray-900">
               5.4 Alcance bajo la ley 24.240 – deber de información
             </h3>
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               En los excepcionales y/o extraordinarios casos en que los
               servicios de la plataforma sean utilizados por consumidores
               finales, conforme lo previsto por la ley 24.240, ROASAL S.A.S.
               declara que:
             </p>
 
-            <ul className="list-disc pl-6 text-gray-600 mb-6 leading-relaxed space-y-2">
+            <ul className="mb-6 list-disc space-y-2 pl-5">
               <li>
                 No ofrece ni garantiza servicios de transporte ni logística;
               </li>
@@ -528,23 +563,17 @@ export default async function Terms() {
               </li>
             </ul>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               No obstante, ROASAL S.A.S. se compromete a actuar de buena fe,
               brindar información clara sobre sus funciones, y ofrecer canales
               adecuados de atención para la resolución de consultas o conflictos
               que pudieran surgir en el uso de la plataforma.
             </p>
-          </div>
-        </section>
 
-        {/* Section 6: Propiedad Intelectual */}
-        <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
               6. Propiedad Intelectual
             </h2>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               Todo contenido que el Usuario cargue en la plataforma (como fotos,
               calificaciones, comentarios o documentos) seguirá siendo de
               propiedad del usuario, pero al hacerlo, otorga a ROASAL S.A.S. una
@@ -554,22 +583,16 @@ export default async function Terms() {
               Servicios, siempre en el marco legal vigente.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               La Compañía se compromete a no utilizar estos contenidos fuera del
               ámbito de la plataforma ni con fines que pudieran afectar la
               reputación o privacidad del Usuario sin consentimiento expreso.
             </p>
-          </div>
-        </section>
 
-        {/* Section 7: Indemnización */}
-        <section className="py-20 px-8 bg-white">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
               7. Indemnización
             </h2>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               El Usuario acepta indemnizar y mantener indemne a ROASAL S.A.S.,
               sus afiliadas y sus respectivos oficiales, directores, empleados y
               agentes de reclamaciones, demandas, pérdidas, responsabilidades y
@@ -577,7 +600,7 @@ export default async function Terms() {
               conexión con:
             </p>
 
-            <ul className="list-none text-gray-600 mb-6 leading-relaxed space-y-4">
+            <ul className="mb-6 list-none space-y-4">
               <li>
                 7.1. El uso indebido negligente o doloso de la plataforma o los
                 servicios ofrecidos a través de la misma, incluyendo, sin
@@ -592,7 +615,7 @@ export default async function Terms() {
               <li>
                 7.3 La comisión de actos ilícitos por parte del Usuario,
                 incluyendo sin limitarse a:
-                <ul className="list-disc pl-6 mt-2 space-y-2">
+                <ul className="mt-2 list-disc space-y-2 pl-5">
                   <li>
                     El uso fraudulento del sistema para contactar, pactar o
                     sustraer mercadería;
@@ -624,24 +647,18 @@ export default async function Terms() {
               </li>
             </ul>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               El Usuario reconoce y acepta que cualquier acto de esta naturaleza
               podrá dar lugar a la interposición de acciones civiles y/o penales
               correspondientes, conforme la legislación vigente en la República
               Argentina, sin perjuicio de las acciones de resarcimiento que
               pudieran corresponder en favor de ROASAL S.A.S.
             </p>
-          </div>
-        </section>
 
-        {/* Section 8: Ley Aplicable */}
-        <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
-              8. Ley Aplicable y Política de resolución de conflictos
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
+              8. Ley aplicable y política de resolución de conflictos
             </h2>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               Cualquier conflicto, controversia o reclamo que surja en relación
               con el uso de la plataforma, la interpretación, validez,
               cumplimiento o incumplimiento de los presentes Términos y
@@ -651,35 +668,33 @@ export default async function Terms() {
               otro fuero o jurisdicción que pudiera corresponder.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               A todos los efectos legales, las partes fijan como domicilio el
               correspondiente al domicilio legal de la Compañía, ubicado en
               calle Pinar del Río 3631, ciudad de Córdoba, provincia de Córdoba,
               Argentina.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               La vía judicial será el mecanismo aplicable ante cualquier
               desacuerdo entre la Compañía y el Usuario, sin perjuicio de que
               las partes puedan optar voluntariamente por instancias previas de
               conciliación o mediación en los términos de la ley local.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              El presente contrato se rige por ley 24.653, legislación
-              complementaria y Código Civil y Comercial de la Nación.
+            <p className="mb-6">
+              Las relaciones entre el Usuario y la Compañía se rigen por las
+              leyes de la República Argentina, en particular el Código Civil y
+              Comercial de la Nación y la legislación complementaria que resulte
+              aplicable. En lo pertinente a la actividad de transporte automotor
+              de cargas, resultan también de interés las normas especiales,
+              incluida la Ley 24.653 y su reglamentación.
             </p>
-          </div>
-        </section>
 
-        {/* Section 9: Notificaciones */}
-        <section className="py-20 px-8 bg-white">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
               9. Notificaciones
             </h2>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-4 mt-3">
               Todas las notificaciones que ROASAL S.A.S. deba realizar al
               Usuario en relación con el uso de la plataforma, modificaciones
               contractuales o cuestiones operativas, se considerarán válidamente
@@ -688,36 +703,26 @@ export default async function Terms() {
               dentro de la app o mensajes al teléfono informado).
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="mb-6">
               Es responsabilidad del Usuario mantener sus datos de contacto
               actualizados. El uso continuado de la plataforma luego de recibir
               una notificación será interpretado como aceptación de la misma,
               salvo que se indique lo contrario por vía expresa.
             </p>
-          </div>
-        </section>
 
-        {/* Final CTA Section */}
-        <section className="py-20 px-8 bg-gray-100">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-4xl font-bold text-gray-900 mb-6 text-center">
-              ¿Preguntas?
-            </h2>
-
-            <p className="text-xl text-gray-600 mb-8 text-center">
-              Si tiene alguna pregunta sobre estos Términos, contáctenos.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="mt-10 border-t border-gray-100 pt-8 text-center">
+              <p className="mb-4 text-gray-600">
+                ¿Dudas sobre estos términos? Escribinos.
+              </p>
               <Link
                 href="/contacto"
-                className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
               >
-                Contactar
+                Contacto
               </Link>
             </div>
           </div>
-        </section>
+        </article>
       </main>
     </div>
   );
