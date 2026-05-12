@@ -99,8 +99,13 @@ fun TemplateConfigScreen(onBack: () -> Unit) {
         }
     ) { padding ->
         if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Cargando...")
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+            ) {
+                com.remitos.app.ui.components.ListSkeleton(count = 4)
             }
         } else {
             Column(

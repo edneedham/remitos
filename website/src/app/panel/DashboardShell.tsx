@@ -344,7 +344,7 @@ export default function DashboardShell({
                 <button
                   type="button"
                   onClick={() => void handleDrawerLogout()}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-(--color-brand-red-subtle) bg-(--color-brand-red-subtle) px-3 py-2.5 text-sm font-semibold text-(--color-brand-red) hover:bg-(--color-brand-red) hover:text-white"
                 >
                   <LogOut className="h-4 w-4 shrink-0" aria-hidden strokeWidth={2} />
                   Cerrar sesión

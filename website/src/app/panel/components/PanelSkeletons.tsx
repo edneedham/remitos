@@ -205,8 +205,8 @@ export function PanelBillingSkeleton() {
 }
 
 /**
- * Narrow list routes (depósitos, operadores): matches max-w-5xl shell + back link, title,
- * intro lines, and warehouse-style list rows (same density as live pages).
+ * List routes (depósitos, operadores): matches max-w-[92rem] shell + back link,
+ * title, intro lines, and warehouse-style list rows (same density as live pages).
  */
 export function PanelListSkeleton({
   rows = PANEL_LIST_ROUTE_ROWS,
@@ -215,7 +215,7 @@ export function PanelListSkeleton({
 }) {
   return (
     <PanelOuter>
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="mx-auto max-w-[92rem] space-y-6">
         <header className="space-y-2">
           <div className={`h-4 w-28 rounded ${pulse}`} />
           <div className={`h-9 w-56 max-w-full rounded-md ${pulse}`} />
@@ -254,7 +254,7 @@ export function PanelListSkeleton({
 export function PanelDevicesRouteSkeleton() {
   return (
     <PanelOuter>
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="mx-auto max-w-[92rem] space-y-6">
         <header className="space-y-2">
           <div className={`h-4 w-28 rounded ${pulse}`} />
           <div className={`h-9 w-56 max-w-full rounded-md ${pulse}`} />
@@ -276,7 +276,7 @@ export function PanelApplicationRouteSkeleton() {
   return (
     <PanelOuter>
       <div className="mx-auto max-w-[92rem] space-y-8 text-left">
-        <div className={`h-8 w-44 max-w-full rounded-md ${pulse}`} />
+        <div className={`h-9 w-44 max-w-full rounded-md ${pulse}`} />
         <ApplicationContentSkeleton />
       </div>
     </PanelOuter>

@@ -205,7 +205,7 @@ export default function HowItWorksSection() {
       className="border-b border-gray-200 bg-gray-50 py-20 px-4 sm:px-6 lg:px-8"
       aria-labelledby="how-it-works-heading"
     >
-      <div className="mx-auto w-full max-w-[80vw]">
+      <div className="mx-auto w-full max-w-5xl">
         <div className="mb-6 w-full max-w-content-prose text-left md:mb-14">
           <h2
             id="how-it-works-heading"
@@ -219,7 +219,7 @@ export default function HowItWorksSection() {
           </p>
         </div>
 
-        <div className="mx-auto max-w-5xl snap-y snap-mandatory">
+        <div className="snap-y snap-mandatory">
           {steps.map((step, index) => (
             <HowItWorksStep key={step.id} step={step} index={index} />
           ))}

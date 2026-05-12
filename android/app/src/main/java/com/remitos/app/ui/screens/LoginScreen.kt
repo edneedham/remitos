@@ -48,6 +48,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTextFieldVariant
+import com.remitos.app.ui.components.StatusBanner
+import com.remitos.app.ui.components.StatusBannerVariant
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -178,13 +180,9 @@ fun LoginScreen(
         }
     }
     
-    // Show errors in snackbar
-    LaunchedEffect(uiState) {
-        if (uiState is LoginUiState.Error) {
-            val message = (uiState as LoginUiState.Error).message
-            snackbarHostState.showSnackbar(message)
-        }
-    }
+    // Form-level errors are surfaced inline inside LoginContent as a
+    // StatusBanner above the form. The snackbar host remains in place so
+    // transient feedback from the offline-operator path can still be shown.
     
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -356,12 +354,6 @@ private fun LoginContent(
                     contentDescription = "en punto",
                     modifier = Modifier.size(width = 200.dp, height = 52.dp),
                 )
-                Text(
-                    text = "Remitos",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium,
-                )
             }
         }
         
@@ -511,7 +503,27 @@ private fun LoginContent(
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
-        
+
+        Text(
+            text = "Iniciar sesión",
+            style = MaterialTheme.typography.displaySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = Spacing.SectionSpacing),
+        )
+
+        if (uiState is LoginUiState.Error) {
+            StatusBanner(
+                variant = StatusBannerVariant.Error,
+                message = uiState.message,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = Spacing.SectionSpacing),
+            )
+        }
+
         // Company Code field
         RemitosTextField(
             value = companyCode,
@@ -536,7 +548,7 @@ private fun LoginContent(
         RemitosTextField(
             value = username,
             onValueChange = { username = it },
-            label = "Usuario",
+            label = "Correo o usuario",
             placeholder = {
                 Text(
                     if (isOperatorMode) DevSeedDefaults.prefillOperatorUsername
@@ -562,7 +574,7 @@ private fun LoginContent(
         RemitosTextField(
             value = password,
             onValueChange = { password = it },
-            label = if (isOperatorMode) "Contraseña de operador" else "Contraseña de administrador",
+            label = "Contraseña",
             singleLine = true,
             visualTransformation = if (passwordVisible) {
                 VisualTransformation.None
@@ -641,9 +653,13 @@ private fun LoginContent(
         ) {
             Text("Continuar sin conexión")
         }
-        
+
+        Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
+
+        com.remitos.app.ui.components.LegalLinksFooter()
+
         Spacer(modifier = Modifier.height(Spacing.LargeSpacing))
-        
+
         // Version info
         Text(
             text = "v${com.remitos.app.BuildConfig.VERSION_NAME}",

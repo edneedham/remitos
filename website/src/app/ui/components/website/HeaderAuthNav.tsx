@@ -190,7 +190,7 @@ export default function HeaderAuthNav() {
               <button
                 type="button"
                 onClick={() => void handleLogout()}
-                className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-(--color-brand-red) hover:bg-(--color-brand-red-subtle)"
               >
                 <span>Cerrar sesión</span>
                 <LogOut className="h-4 w-4" aria-hidden />

@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import Button from '../ui/components/shared/Button';
+import StatusBanner from '../ui/components/shared/StatusBanner';
+import TextField from '../ui/components/shared/TextField';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import {
   validateForgotPasswordField,
@@ -164,16 +167,16 @@ export default function ForgotPasswordForm() {
                 </h1>
               </header>
 
-              <div className="mt-6 rounded-xl border border-green-100 bg-green-50 p-5 text-left sm:p-6">
-                <p className="text-gray-800">
+              <StatusBanner variant="success" className="mt-6">
+                <p>
                   Si los datos coinciden con una cuenta, te enviamos un correo
                   con un enlace para restablecer la contraseña.
                 </p>
-                <p className="mt-4 text-sm text-gray-600">
+                <p className="mt-2 text-xs opacity-80">
                   Revisá la carpeta de spam si no lo ves en la bandeja de
                   entrada.
                 </p>
-              </div>
+              </StatusBanner>
 
               <p className="mt-6 border-t border-gray-100 pt-6 text-center text-sm text-gray-600 sm:mt-8 sm:pt-8">
                 <BackToLoginLink />
@@ -196,105 +199,41 @@ export default function ForgotPasswordForm() {
                 className="mt-6 space-y-5 sm:mt-8"
                 noValidate
               >
-                {error && (
-                  <p
-                    className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700"
-                    role="alert"
-                  >
-                    {error}
-                  </p>
-                )}
+                {error && <StatusBanner variant="error">{error}</StatusBanner>}
 
-                <div>
-                  <label
-                    htmlFor="forgot-company"
-                    className="mb-1 block text-sm font-medium text-gray-700"
-                  >
-                    Código de empresa
-                  </label>
-                  <input
-                    id="forgot-company"
-                    value={companyCode}
-                    onChange={(e) => {
-                      setCompanyCode(e.target.value.toUpperCase());
-                      clearForgotFieldError('company_code');
-                    }}
-                    onBlur={() => handleForgotFieldBlur('company_code')}
-                    autoComplete="organization"
-                    aria-invalid={Boolean(fieldErrors.company_code)}
-                    aria-describedby={
-                      fieldErrors.company_code
-                        ? 'forgot-company-error'
-                        : undefined
-                    }
-                    aria-required
-                    className={`w-full rounded-lg border px-4 py-3 font-mono uppercase focus:ring-2 ${
-                      fieldErrors.company_code
-                        ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                    }`}
-                  />
-                  {fieldErrors.company_code ? (
-                    <p
-                      id="forgot-company-error"
-                      className="mt-1 text-sm text-red-600"
-                      role="alert"
-                    >
-                      {fieldErrors.company_code}
-                    </p>
-                  ) : null}
-                </div>
+                <TextField
+                  id="forgot-company"
+                  label="Código de empresa"
+                  value={companyCode}
+                  onChange={(e) => {
+                    setCompanyCode(e.target.value.toUpperCase());
+                    clearForgotFieldError('company_code');
+                  }}
+                  onBlur={() => handleForgotFieldBlur('company_code')}
+                  autoComplete="organization"
+                  aria-required
+                  error={fieldErrors.company_code}
+                  inputClassName="font-mono uppercase"
+                />
 
-                <div>
-                  <label
-                    htmlFor="forgot-user"
-                    className="mb-1 block text-sm font-medium text-gray-700"
-                  >
-                    Correo o usuario
-                  </label>
-                  <input
-                    id="forgot-user"
-                    type="text"
-                    value={username}
-                    onChange={(e) => {
-                      setUsername(e.target.value);
-                      clearForgotFieldError('username');
-                    }}
-                    onBlur={() => handleForgotFieldBlur('username')}
-                    autoComplete="username"
-                    aria-invalid={Boolean(fieldErrors.username)}
-                    aria-describedby={
-                      fieldErrors.username ? 'forgot-user-error' : undefined
-                    }
-                    aria-required
-                    className={`w-full rounded-lg border px-4 py-3 focus:ring-2 ${
-                      fieldErrors.username
-                        ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                    }`}
-                  />
-                  {fieldErrors.username ? (
-                    <p
-                      id="forgot-user-error"
-                      className="mt-1 text-sm text-red-600"
-                      role="alert"
-                    >
-                      {fieldErrors.username}
-                    </p>
-                  ) : null}
-                </div>
+                <TextField
+                  id="forgot-user"
+                  label="Correo o usuario"
+                  type="text"
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    clearForgotFieldError('username');
+                  }}
+                  onBlur={() => handleForgotFieldBlur('username')}
+                  autoComplete="username"
+                  aria-required
+                  error={fieldErrors.username}
+                />
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    'Enviar instrucciones'
-                  )}
-                </button>
+                <Button type="submit" isLoading={loading} variant="primary">
+                  Enviar instrucciones
+                </Button>
               </form>
 
               <p className="mt-6 border-t border-gray-100 pt-6 text-center text-sm text-gray-600 sm:mt-8 sm:pt-8">

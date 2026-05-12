@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.remitos.app.ui.theme.Tokens
 
 @Composable
 fun LoadingButton(
@@ -23,6 +24,12 @@ fun LoadingButton(
         onClick = onClick,
         enabled = enabled && !isLoading,
         modifier = modifier.height(48.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = Tokens.Color.buttonDisabledBackground,
+            disabledContentColor = Tokens.Color.buttonDisabledContent,
+        ),
     ) {
         if (isLoading) {
             CircularProgressIndicator(
