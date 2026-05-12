@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import Button from '../ui/components/shared/Button';
+import StatusBanner from '../ui/components/shared/StatusBanner';
+import TextField from '../ui/components/shared/TextField';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import { safeRedirectPath } from '../lib/safeRedirectPath';
 import {
@@ -258,157 +260,65 @@ export default function LoginForm() {
             noValidate
           >
             {justReset && (
-              <p
-                className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-sm text-green-800"
-                role="status"
-              >
+              <StatusBanner variant="success">
                 Contraseña actualizada. Iniciá sesión con tu nueva clave.
-              </p>
+              </StatusBanner>
             )}
             {passwordChanged && (
-              <p
-                className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-sm text-green-800"
-                role="status"
-              >
+              <StatusBanner variant="success">
                 Cambiaste tu contraseña. Iniciá sesión de nuevo.
-              </p>
+              </StatusBanner>
             )}
-            {error && (
-              <p
-                className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700"
-                role="alert"
-              >
-                {error}
-              </p>
-            )}
+            {error && <StatusBanner variant="error">{error}</StatusBanner>}
 
-            <div>
-              <label
-                htmlFor="login-company"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Código de empresa
-              </label>
-              <input
-                id="login-company"
-                value={companyCode}
-                onChange={(e) => {
-                  setCompanyCode(e.target.value.toUpperCase());
-                  clearLoginFieldError('company_code');
-                }}
-                onBlur={() => handleLoginFieldBlur('company_code')}
-                autoComplete="organization"
-                aria-invalid={Boolean(fieldErrors.company_code)}
-                aria-describedby={
-                  fieldErrors.company_code ? 'login-company-error' : undefined
-                }
-                aria-required
-                className={`w-full rounded-lg border px-4 py-3 font-mono uppercase focus:ring-2 ${
-                  fieldErrors.company_code
-                    ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                }`}
-              />
-              {fieldErrors.company_code ? (
-                <p
-                  id="login-company-error"
-                  className="mt-1 text-sm text-red-600"
-                  role="alert"
-                >
-                  {fieldErrors.company_code}
-                </p>
-              ) : null}
-            </div>
+            <TextField
+              id="login-company"
+              label="Código de empresa"
+              value={companyCode}
+              onChange={(e) => {
+                setCompanyCode(e.target.value.toUpperCase());
+                clearLoginFieldError('company_code');
+              }}
+              onBlur={() => handleLoginFieldBlur('company_code')}
+              autoComplete="organization"
+              aria-required
+              error={fieldErrors.company_code}
+              inputClassName="font-mono uppercase"
+            />
 
-            <div>
-              <label
-                htmlFor="login-user"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Correo o usuario
-              </label>
-              <input
-                id="login-user"
-                type="text"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  clearLoginFieldError('username');
-                }}
-                onBlur={() => handleLoginFieldBlur('username')}
-                autoComplete="username"
-                aria-invalid={Boolean(fieldErrors.username)}
-                aria-describedby={
-                  fieldErrors.username ? 'login-user-error' : undefined
-                }
-                aria-required
-                className={`w-full rounded-lg border px-4 py-3 focus:ring-2 ${
-                  fieldErrors.username
-                    ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                }`}
-              />
-              {fieldErrors.username ? (
-                <p
-                  id="login-user-error"
-                  className="mt-1 text-sm text-red-600"
-                  role="alert"
-                >
-                  {fieldErrors.username}
-                </p>
-              ) : null}
-            </div>
+            <TextField
+              id="login-user"
+              label="Correo o usuario"
+              type="text"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                clearLoginFieldError('username');
+              }}
+              onBlur={() => handleLoginFieldBlur('username')}
+              autoComplete="username"
+              aria-required
+              error={fieldErrors.username}
+            />
 
-            <div>
-              <label
-                htmlFor="login-pass"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Contraseña
-              </label>
-              <input
-                id="login-pass"
-                type="password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  clearLoginFieldError('password');
-                }}
-                onBlur={() => handleLoginFieldBlur('password')}
-                autoComplete="current-password"
-                aria-invalid={Boolean(fieldErrors.password)}
-                aria-describedby={
-                  fieldErrors.password ? 'login-pass-error' : undefined
-                }
-                aria-required
-                className={`w-full rounded-lg border px-4 py-3 focus:ring-2 ${
-                  fieldErrors.password
-                    ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                }`}
-              />
-              {fieldErrors.password ? (
-                <p
-                  id="login-pass-error"
-                  className="mt-1 text-sm text-red-600"
-                  role="alert"
-                >
-                  {fieldErrors.password}
-                </p>
-              ) : null}
-            </div>
+            <TextField
+              id="login-pass"
+              label="Contraseña"
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                clearLoginFieldError('password');
+              }}
+              onBlur={() => handleLoginFieldBlur('password')}
+              autoComplete="current-password"
+              aria-required
+              error={fieldErrors.password}
+            />
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                'Entrar a mi cuenta'
-              )}
-            </button>
+            <Button type="submit" isLoading={loading} variant="primary">
+              Iniciar sesión
+            </Button>
 
             <p className="text-center text-sm">
               <Link

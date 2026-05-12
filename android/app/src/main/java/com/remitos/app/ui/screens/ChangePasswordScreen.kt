@@ -44,8 +44,10 @@ import com.remitos.app.ui.components.LoadingButton
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTextFieldVariant
 import com.remitos.app.ui.components.RemitosTopBar
-import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.components.StatusBanner
+import com.remitos.app.ui.components.StatusBannerVariant
 import com.remitos.app.ui.theme.Spacing
+import com.remitos.app.ui.theme.Tokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +65,7 @@ fun ChangePasswordScreen(
     var confirm by remember { mutableStateOf("") }
     var showCurrent by remember { mutableStateOf(false) }
     var showNew by remember { mutableStateOf(false) }
+    var showConfirm by remember { mutableStateOf(false) }
     var didFinishLogout by remember { mutableStateOf(false) }
 
     val focusManager = LocalFocusManager.current
@@ -96,16 +99,15 @@ fun ChangePasswordScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.SectionSpacing),
         ) {
             Text(
-                text = "Al guardar, cerramos la sesión en este dispositivo. Volvé a iniciar sesión con la nueva clave.",
+                text = "Al guardar, cerramos la sesión en todos los dispositivos. Volvé a iniciar sesión con la nueva clave.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             if (uiState is ChangePasswordUiState.Error) {
-                Text(
-                    text = (uiState as ChangePasswordUiState.Error).message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                StatusBanner(
+                    variant = StatusBannerVariant.Error,
+                    message = (uiState as ChangePasswordUiState.Error).message,
                 )
             }
 
@@ -131,7 +133,7 @@ fun ChangePasswordScreen(
                         Icon(
                             imageVector = if (showCurrent) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                             contentDescription = null,
-                            tint = BrandBlue,
+                            tint = Tokens.Color.brandPrimary,
                         )
                     }
                 },
@@ -162,7 +164,7 @@ fun ChangePasswordScreen(
                         Icon(
                             imageVector = if (showNew) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                             contentDescription = null,
-                            tint = BrandBlue,
+                            tint = Tokens.Color.brandPrimary,
                         )
                     }
                 },
@@ -176,7 +178,11 @@ fun ChangePasswordScreen(
                 onValueChange = { confirm = it },
                 label = "Confirmar nueva contraseña",
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (showConfirm) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done,
@@ -189,6 +195,15 @@ fun ChangePasswordScreen(
                         }
                     },
                 ),
+                trailingIcon = {
+                    IconButton(onClick = { showConfirm = !showConfirm }) {
+                        Icon(
+                            imageVector = if (showConfirm) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = null,
+                            tint = Tokens.Color.brandPrimary,
+                        )
+                    }
+                },
                 enabled = uiState !is ChangePasswordUiState.Loading,
                 modifier = Modifier.fillMaxWidth(),
                 variant = RemitosTextFieldVariant.Reversed,

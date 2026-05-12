@@ -14,12 +14,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
-import com.remitos.app.ui.theme.BrandBlue
+import com.remitos.app.ui.theme.Tokens
 
 enum class RemitosTextFieldVariant {
-    Branded,    // Blue background, white text
-    Reversed,   // White background, blue text/borders/icons
-    Surface,    // White background, dark text (default)
+    /**
+     * Brand-blue fill, white text. Reserved for content that sits on top of a
+     * white surface and needs to dominate visually (rare; kept for the device
+     * setup wizard).
+     */
+    Branded,
+
+    /**
+     * Default neutral field: gray outline, dark text, brand-blue focus ring,
+     * brand-red error state. Kept as an alias for backwards compatibility.
+     */
+    Reversed,
+
+    /**
+     * Default neutral field: gray outline, dark text, brand-blue focus ring,
+     * brand-red error state. Matches the input visual used on the website.
+     */
+    Surface,
 }
 
 @Composable
@@ -44,37 +59,16 @@ fun RemitosTextField(
     variant: RemitosTextFieldVariant = RemitosTextFieldVariant.Surface,
 ) {
     val isBranded = variant == RemitosTextFieldVariant.Branded
-    val isReversed = variant == RemitosTextFieldVariant.Reversed
-    val textColor = when {
-        isBranded -> Color.White
-        isReversed -> BrandBlue
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-    val labelColor = when {
-        isBranded -> Color.White.copy(alpha = 0.8f)
-        isReversed -> BrandBlue.copy(alpha = 0.6f)
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val placeholderColor = when {
-        isBranded -> Color.White.copy(alpha = 0.6f)
-        isReversed -> BrandBlue.copy(alpha = 0.5f)
-        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-    }
-    val borderColor = when {
-        isBranded -> Color.White
-        isReversed -> BrandBlue
-        else -> MaterialTheme.colorScheme.outline
-    }
-    val iconTint = when {
-        isBranded -> Color.White
-        isReversed -> BrandBlue
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val cursorColor = when {
-        isBranded -> Color.White
-        isReversed -> BrandBlue
-        else -> MaterialTheme.colorScheme.primary
-    }
+
+    val textColor = if (isBranded) Color.White else Tokens.Color.surfaceText
+    val labelColor = if (isBranded) Color.White.copy(alpha = 0.8f) else Tokens.Color.surfaceTextMuted
+    val placeholderColor =
+        if (isBranded) Color.White.copy(alpha = 0.6f) else Tokens.Color.surfaceTextMuted.copy(alpha = 0.6f)
+    val unfocusedBorderColor = if (isBranded) Color.White else Tokens.Color.surfaceBorder
+    val focusedBorderColor = if (isBranded) Color.White else Tokens.Color.brandPrimary
+    val focusedLabelColor = if (isBranded) Color.White else Tokens.Color.brandPrimary
+    val iconTint = if (isBranded) Color.White else Tokens.Color.brandPrimary
+    val cursorColor = if (isBranded) Color.White else Tokens.Color.brandPrimary
 
     OutlinedTextField(
         value = value,
@@ -107,15 +101,17 @@ fun RemitosTextField(
         visualTransformation = visualTransformation,
         shape = MaterialTheme.shapes.small,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = borderColor,
-            unfocusedBorderColor = borderColor,
-            focusedLabelColor = labelColor,
+            focusedBorderColor = focusedBorderColor,
+            unfocusedBorderColor = unfocusedBorderColor,
+            focusedLabelColor = focusedLabelColor,
             unfocusedLabelColor = labelColor,
             focusedPlaceholderColor = placeholderColor,
             unfocusedPlaceholderColor = placeholderColor,
             cursorColor = cursorColor,
             focusedTextColor = textColor,
             unfocusedTextColor = textColor,
+            errorBorderColor = MaterialTheme.colorScheme.error,
+            errorLabelColor = MaterialTheme.colorScheme.error,
         ),
         modifier = modifier.fillMaxWidth(),
     )

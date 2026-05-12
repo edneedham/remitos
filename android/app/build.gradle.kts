@@ -1,3 +1,4 @@
+import groovy.json.JsonSlurper
 import java.util.Properties
 
 plugins {
@@ -5,6 +6,173 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
+}
+
+/* Design-token codegen. Reads design-tokens/tokens.json (shared with the web)
+ * and writes android/app/src/main/java/com/remitos/app/ui/theme/Tokens.kt.
+ * The generated file is committed; CI runs `:app:checkTokens` to verify it is
+ * in sync. Do NOT hand-edit Tokens.kt — change tokens.json then run
+ * `./gradlew :app:genTokens`. */
+val designTokensFile: File = rootProject.file("../design-tokens/tokens.json")
+val generatedTokensFile: File = file(
+    "src/main/java/com/remitos/app/ui/theme/Tokens.kt",
+)
+
+fun renderTokensKt(json: Map<String, Any?>): String {
+    @Suppress("UNCHECKED_CAST")
+    val color = json["color"] as Map<String, Any?>
+    @Suppress("UNCHECKED_CAST")
+    val brand = color["brand"] as Map<String, String>
+    @Suppress("UNCHECKED_CAST")
+    val neutral = color["neutral"] as Map<String, String>
+    @Suppress("UNCHECKED_CAST")
+    val semantic = color["semantic"] as Map<String, String>
+    @Suppress("UNCHECKED_CAST")
+    val surface = color["surface"] as Map<String, String>
+    @Suppress("UNCHECKED_CAST")
+    val button = color["button"] as Map<String, String>
+    @Suppress("UNCHECKED_CAST")
+    val radius = json["radius"] as Map<String, Number>
+    @Suppress("UNCHECKED_CAST")
+    val spacing = json["spacing"] as Map<String, Number>
+    @Suppress("UNCHECKED_CAST")
+    val type = json["type"] as Map<String, Any?>
+    @Suppress("UNCHECKED_CAST")
+    val scale = type["scale"] as Map<String, Map<String, Number>>
+
+    fun hex(s: String): String {
+        val raw = s.removePrefix("#").uppercase()
+        val withAlpha = if (raw.length == 6) "FF$raw" else raw
+        return "0x$withAlpha"
+    }
+
+    val sb = StringBuilder()
+    sb.appendLine("// AUTO-GENERATED FROM design-tokens/tokens.json — DO NOT EDIT.")
+    sb.appendLine("// Run `./gradlew :app:genTokens` after editing tokens.json.")
+    sb.appendLine("@file:Suppress(\"unused\", \"MayBeConstant\")")
+    sb.appendLine()
+    sb.appendLine("package com.remitos.app.ui.theme")
+    sb.appendLine()
+    sb.appendLine("import androidx.compose.ui.graphics.Color")
+    sb.appendLine("import androidx.compose.ui.text.font.FontWeight")
+    sb.appendLine("import androidx.compose.ui.unit.dp")
+    sb.appendLine("import androidx.compose.ui.unit.sp")
+    sb.appendLine("import androidx.compose.ui.unit.TextUnit")
+    sb.appendLine("import androidx.compose.ui.unit.Dp")
+    sb.appendLine()
+    sb.appendLine("object Tokens {")
+    sb.appendLine("    object Color {")
+    sb.appendLine("        // Brand")
+    sb.appendLine("        val brandPrimary = Color(${hex(brand.getValue("primary"))})")
+    sb.appendLine("        val brandPrimaryHover = Color(${hex(brand.getValue("primaryHover"))})")
+    sb.appendLine("        val brandPrimaryPressed = Color(${hex(brand.getValue("primaryPressed"))})")
+    sb.appendLine("        val brandPrimarySubtle = Color(${hex(brand.getValue("primarySubtle"))})")
+    sb.appendLine("        val brandPrimarySurface = Color(${hex(brand.getValue("primarySurface"))})")
+    sb.appendLine("        val brandRed = Color(${hex(brand.getValue("red"))})")
+    sb.appendLine("        val brandRedHover = Color(${hex(brand.getValue("redHover"))})")
+    sb.appendLine("        val brandRedSubtle = Color(${hex(brand.getValue("redSubtle"))})")
+    sb.appendLine()
+    sb.appendLine("        // Neutrals")
+    for ((k, v) in neutral) {
+        sb.appendLine("        val ${k} = Color(${hex(v)})")
+    }
+    sb.appendLine()
+    sb.appendLine("        // Semantic")
+    sb.appendLine("        val success = Color(${hex(semantic.getValue("success"))})")
+    sb.appendLine("        val successSubtle = Color(${hex(semantic.getValue("successSubtle"))})")
+    sb.appendLine("        val successOn = Color(${hex(semantic.getValue("successOn"))})")
+    sb.appendLine("        val warning = Color(${hex(semantic.getValue("warning"))})")
+    sb.appendLine("        val warningSubtle = Color(${hex(semantic.getValue("warningSubtle"))})")
+    sb.appendLine("        val warningOn = Color(${hex(semantic.getValue("warningOn"))})")
+    sb.appendLine("        val error = Color(${hex(semantic.getValue("error"))})")
+    sb.appendLine("        val errorSubtle = Color(${hex(semantic.getValue("errorSubtle"))})")
+    sb.appendLine("        val errorOn = Color(${hex(semantic.getValue("errorOn"))})")
+    sb.appendLine("        val info = Color(${hex(semantic.getValue("info"))})")
+    sb.appendLine("        val infoSubtle = Color(${hex(semantic.getValue("infoSubtle"))})")
+    sb.appendLine("        val infoOn = Color(${hex(semantic.getValue("infoOn"))})")
+    sb.appendLine()
+    sb.appendLine("        // Surface")
+    sb.appendLine("        val surfaceBackground = Color(${hex(surface.getValue("background"))})")
+    sb.appendLine("        val surfaceMuted = Color(${hex(surface.getValue("muted"))})")
+    sb.appendLine("        val surfaceBorder = Color(${hex(surface.getValue("border"))})")
+    sb.appendLine("        val surfaceText = Color(${hex(surface.getValue("text"))})")
+    sb.appendLine("        val surfaceTextMuted = Color(${hex(surface.getValue("textMuted"))})")
+    sb.appendLine()
+    sb.appendLine("        // Buttons")
+    sb.appendLine("        val buttonDisabledBackground = Color(${hex(button.getValue("disabledBackground"))})")
+    sb.appendLine("        val buttonDisabledContent = Color(${hex(button.getValue("disabledContent"))})")
+    sb.appendLine("    }")
+    sb.appendLine()
+    sb.appendLine("    object Radius {")
+    for ((k, v) in radius) {
+        sb.appendLine("        val ${k}: Dp = ${v.toInt()}.dp")
+    }
+    sb.appendLine("    }")
+    sb.appendLine()
+    sb.appendLine("    object Spacing {")
+    for ((k, v) in spacing) {
+        sb.appendLine("        val ${k}: Dp = ${v.toInt()}.dp")
+    }
+    sb.appendLine("    }")
+    sb.appendLine()
+    sb.appendLine("    object Type {")
+    sb.appendLine("        const val family: String = \"${type["family"]}\"")
+    sb.appendLine("        data class Style(val size: TextUnit, val lineHeight: TextUnit, val weight: FontWeight, val letterSpacing: TextUnit)")
+    for ((name, props) in scale) {
+        val size = props.getValue("size")
+        val lineHeight = props.getValue("lineHeight")
+        val weight = props.getValue("weight").toInt()
+        val letterSpacing = props.getValue("letterSpacing")
+        sb.appendLine(
+            "        val ${name} = Style(${size}.sp, ${lineHeight}.sp, FontWeight(${weight}), ${letterSpacing}.sp)",
+        )
+    }
+    sb.appendLine("    }")
+    sb.appendLine("}")
+    return sb.toString()
+}
+
+fun generateTokensKtContents(): String {
+    val parsed = JsonSlurper().parse(designTokensFile) as Map<String, Any?>
+    return renderTokensKt(parsed)
+}
+
+val genTokens by tasks.registering {
+    group = "build"
+    description = "Regenerates ui/theme/Tokens.kt from design-tokens/tokens.json."
+    inputs.file(designTokensFile)
+    outputs.file(generatedTokensFile)
+    doLast {
+        val content = generateTokensKtContents()
+        generatedTokensFile.parentFile.mkdirs()
+        generatedTokensFile.writeText(content)
+        println("genTokens: wrote ${generatedTokensFile.relativeTo(rootProject.rootDir)}")
+    }
+}
+
+/* checkTokens deliberately does NOT depend on genTokens; it compares the
+ * committed Tokens.kt against what tokens.json would produce. CI runs this
+ * before any compilation. */
+tasks.register("checkTokens") {
+    group = "verification"
+    description = "Fails if ui/theme/Tokens.kt is out of sync with design-tokens/tokens.json."
+    inputs.file(designTokensFile)
+    mustRunAfter(genTokens)
+    doLast {
+        val expected = generateTokensKtContents()
+        val actual = if (generatedTokensFile.exists()) generatedTokensFile.readText() else ""
+        if (expected != actual) {
+            throw GradleException(
+                "Tokens.kt is out of sync with design-tokens/tokens.json. " +
+                    "Run `./gradlew :app:genTokens` and commit the result.",
+            )
+        }
+        println("checkTokens: Tokens.kt in sync with tokens.json")
+    }
+}
+
+tasks.named("preBuild") {
+    dependsOn(genTokens)
 }
 
 /** Debug API base: `-PBACKEND_BASE_URL=...` > android/local.properties > default emulator host. */
@@ -110,6 +278,7 @@ dependencies {
 
     implementation("androidx.compose.ui:ui:1.6.2")
     implementation("androidx.compose.ui:ui-tooling-preview:1.6.2")
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.6.2")
     implementation("androidx.compose.material3:material3:1.2.0")
     implementation("androidx.compose.material:material-icons-extended:1.6.2")
     implementation("androidx.compose.animation:animation:1.6.2")

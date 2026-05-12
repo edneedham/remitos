@@ -46,7 +46,7 @@ export default function Header() {
   return (
     <>
       <header className="relative z-10 w-full min-w-0 shrink-0 border-b border-gray-100 bg-white">
-        <div className="w-full min-w-0 max-w-none px-6 sm:px-6 lg:mx-auto lg:max-w-site-chrome lg:px-8">
+        <div className="w-full min-w-0 max-w-none px-6 sm:px-6 lg:mx-auto lg:max-w-[80rem] lg:px-8">
           <div className="flex min-h-[4.5rem] flex-row items-center justify-between gap-3 py-4 sm:gap-4 lg:h-24 lg:py-0">
             <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-8">
               <Link

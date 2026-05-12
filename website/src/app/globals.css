@@ -7,6 +7,7 @@
   --foreground: #171717;
 }
 
+/* >>> DESIGN_TOKENS_BEGIN (generated — do not edit) */
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -14,14 +15,28 @@
   --font-mono: var(--font-geist-mono);
 
   /* Brand */
-  --color-brand: #2563eb;
-  --color-brand-hover: #1d4ed8;
-  --color-brand-light: #dbeafe;
+  --color-brand: #006cff;
+  --color-brand-hover: #0058d6;
+  --color-brand-pressed: #0048b3;
+  --color-brand-subtle: #dbeafe;
+  --color-brand-surface: #f0f5ff;
+  --color-brand-red: #D0001E;
+  --color-brand-red-hover: #A8001B;
+  --color-brand-red-subtle: #fbe4e8;
 
-  /* Accent */
-  --color-accent: #047857;
-  --color-accent-hover: #065f46;
-  --color-accent-light: #d1fae5;
+  /* Semantic */
+  --color-success: #1f9d55;
+  --color-success-subtle: #d1fae5;
+  --color-success-on: #065f46;
+  --color-warning: #b45309;
+  --color-warning-subtle: #fef3c7;
+  --color-warning-on: #7c2d12;
+  --color-error: #D0001E;
+  --color-error-subtle: #fee2e2;
+  --color-error-on: #7f1d1d;
+  --color-info: #006cff;
+  --color-info-subtle: #dbeafe;
+  --color-info-on: #1e3a8a;
 
   /* Neutrals */
   --color-surface: #ffffff;
@@ -29,7 +44,34 @@
   --color-text: #111827;
   --color-text-muted: #4b5563;
   --color-border: #e5e7eb;
+
+  /* Buttons */
+  --color-button-disabled-bg: #e1e2e4;
+  --color-button-disabled-content: #919194;
+
+  /* Radii (px) */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
+
+  /* Tailwind palette overrides so existing `bg-blue-600` / `text-red-600`
+     etc. callsites adopt the brand palette without needing per-file edits. */
+  --color-blue-50: #f0f5ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-500: #006cff;
+  --color-blue-600: #006cff;
+  --color-blue-700: #0058d6;
+  --color-blue-800: #0048b3;
+  --color-red-50: #fbe4e8;
+  --color-red-100: #fbe4e8;
+  --color-red-500: #D0001E;
+  --color-red-600: #D0001E;
+  --color-red-700: #A8001B;
 }
+/* <<< DESIGN_TOKENS_END */
 
 body {
   background: var(--background);
@@ -56,20 +98,11 @@ body {
     max-width: 36.12rem; /* max-w-2xl */
   }
 
-  /* Header/footer row: wider than page columns at large viewports */
-  .max-w-site-chrome {
-    max-width: 68.8rem;
-  }
-
   @media (min-width: 1200px) {
     .max-w-content,
     .max-w-content-wide,
     .max-w-content-narrow {
       max-width: 70vw;
-    }
-
-    .max-w-site-chrome {
-      max-width: 80vw;
     }
   }
 }

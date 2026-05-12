@@ -38,6 +38,8 @@ import com.remitos.app.ui.components.LoadingButton
 import com.remitos.app.ui.components.RemitosTextField
 import com.remitos.app.ui.components.RemitosTextFieldVariant
 import com.remitos.app.ui.components.RemitosTopBar
+import com.remitos.app.ui.components.StatusBanner
+import com.remitos.app.ui.components.StatusBannerVariant
 import com.remitos.app.ui.theme.Spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,7 +65,7 @@ fun ForgotPasswordScreen(
         containerColor = Color.White,
         topBar = {
             RemitosTopBar(
-                title = "Recuperar contraseña",
+                title = "¿Olvidaste tu contraseña?",
                 onBack = onBack,
                 showLogo = false,
             )
@@ -85,19 +87,16 @@ fun ForgotPasswordScreen(
             )
 
             if (uiState is ForgotPasswordUiState.Success) {
-                Text(
-                    text = "Si los datos coinciden, revisá tu correo (y spam) para el enlace de restablecimiento.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium,
+                StatusBanner(
+                    variant = StatusBannerVariant.Success,
+                    message = "Si los datos coinciden con una cuenta, revisá tu correo (y spam) para el enlace de restablecimiento.",
                 )
             }
 
             if (uiState is ForgotPasswordUiState.Error) {
-                Text(
-                    text = (uiState as ForgotPasswordUiState.Error).message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                StatusBanner(
+                    variant = StatusBannerVariant.Error,
+                    message = (uiState as ForgotPasswordUiState.Error).message,
                 )
             }
 
@@ -121,7 +120,7 @@ fun ForgotPasswordScreen(
             RemitosTextField(
                 value = username,
                 onValueChange = { username = it },
-                label = "Usuario o correo",
+                label = "Correo o usuario",
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,

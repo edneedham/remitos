@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - 'website/**'
+      - 'design-tokens/**'
       - '.github/workflows/website.yml'
   pull_request:
     paths:
       - 'website/**'
+      - 'design-tokens/**'
       - '.github/workflows/website.yml'
 
 defaults:
@@ -33,6 +35,9 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      - name: Verify design tokens are in sync
+        run: pnpm gen:tokens:check
 
       - name: Lint
         run: pnpm lint

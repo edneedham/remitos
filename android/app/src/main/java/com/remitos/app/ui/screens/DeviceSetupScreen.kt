@@ -463,6 +463,10 @@ fun DeviceSetupScreen(
                         isLoading = isLoading,
                         modifier = Modifier.fillMaxWidth(),
                     )
+
+                    Spacer(modifier = Modifier.height(Spacing.SectionSpacing))
+
+                    com.remitos.app.ui.components.LegalLinksFooter()
                 }
             }
         }

@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import Button from '../ui/components/shared/Button';
+import StatusBanner from '../ui/components/shared/StatusBanner';
+import TextField from '../ui/components/shared/TextField';
 import { getApiBaseUrl } from '../lib/apiUrl';
 
 export default function ResetPasswordForm() {
@@ -98,10 +100,10 @@ export default function ResetPasswordForm() {
   if (!token) {
     return (
       <div className="mx-auto max-w-md space-y-6 px-4 py-12">
-        <p className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <StatusBanner variant="warning">
           Abrí esta página desde el enlace que te enviamos por correo, o pedí un
           nuevo restablecimiento.
-        </p>
+        </StatusBanner>
         <p className="text-center text-sm text-gray-600">
           <Link
             href="/olvide-clave"
@@ -130,81 +132,41 @@ export default function ResetPasswordForm() {
         className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
         noValidate
       >
-        {error && (
-          <p
-            className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700"
-            role="alert"
-          >
-            {error}
-          </p>
-        )}
+        {error && <StatusBanner variant="error">{error}</StatusBanner>}
         {fieldErrors.token ? (
           <p className="text-sm text-red-600" role="alert">
             {fieldErrors.token}
           </p>
         ) : null}
 
-        <div>
-          <label
-            htmlFor="reset-pass"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Nueva contraseña
-          </label>
-          <input
-            id="reset-pass"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-            aria-invalid={fieldErrors.password ? true : undefined}
-            className={`w-full rounded-lg border px-4 py-3 focus:ring-2 ${
-              fieldErrors.password
-                ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            }`}
-            required
-            minLength={8}
-            maxLength={72}
-          />
-          {fieldErrors.password ? (
-            <p className="mt-1 text-sm text-red-600" role="alert">
-              {fieldErrors.password}
-            </p>
-          ) : null}
-        </div>
+        <TextField
+          id="reset-pass"
+          label="Nueva contraseña"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
+          required
+          minLength={8}
+          maxLength={72}
+          error={fieldErrors.password}
+        />
 
-        <div>
-          <label
-            htmlFor="reset-pass2"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Repetir contraseña
-          </label>
-          <input
-            id="reset-pass2"
-            type="password"
-            value={passwordConfirm}
-            onChange={(e) => setPasswordConfirm(e.target.value)}
-            autoComplete="new-password"
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-            required
-            minLength={8}
-            maxLength={72}
-          />
-        </div>
+        <TextField
+          id="reset-pass2"
+          label="Repetir contraseña"
+          type="password"
+          value={passwordConfirm}
+          onChange={(e) => setPasswordConfirm(e.target.value)}
+          autoComplete="new-password"
+          required
+          minLength={8}
+          maxLength={72}
+        />
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            'Guardar contraseña'
-          )}
-        </button>
+        <Button type="submit" isLoading={loading} variant="primary">
+          Guardar contraseña
+        </Button>
       </form>
 
       <p className="text-center text-sm text-gray-600">

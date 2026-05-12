@@ -8,10 +8,12 @@ on:
     branches: [ "main" ]
     paths:
       - 'android/**'
+      - 'design-tokens/**'
   push:
     branches: [ "main" ]
     paths:
       - 'android/**'
+      - 'design-tokens/**'
     tags:
       - 'v*'
   workflow_dispatch:
@@ -61,6 +63,9 @@ jobs:
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
+
+    - name: Verify design tokens are in sync
+      run: ./gradlew :app:checkTokens
 
     - name: Run Unit Tests
       run: ./gradlew testDebugUnitTest

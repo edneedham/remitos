@@ -519,7 +519,11 @@ private fun LineHistoryDialog(
         text = {
             when {
                 state.isLoading -> {
-                    Text("Cargando historial...")
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        com.remitos.app.ui.components.ShimmerLine(width = 180.dp, height = 12.dp)
+                        com.remitos.app.ui.components.ShimmerLine(width = 220.dp, height = 14.dp)
+                        com.remitos.app.ui.components.ShimmerLine(width = 160.dp, height = 14.dp)
+                    }
                 }
                 state.message != null -> {
                     Text(state.message)

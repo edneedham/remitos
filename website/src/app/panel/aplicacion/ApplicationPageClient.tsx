@@ -224,7 +224,7 @@ export default function ApplicationPageClient() {
   return (
     <div className="bg-gray-50 px-4 pb-12 pt-6">
       <div className="mx-auto max-w-[92rem] space-y-8 text-left">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
           Aplicación
         </h1>
 

@@ -81,7 +81,7 @@ fun UserManagementScreen(
                 .padding(16.dp)
         ) {
             if (uiState.isLoading && uiState.users.isEmpty()) {
-                Text("Cargando...")
+                com.remitos.app.ui.components.ListSkeleton(count = 6)
             } else if (uiState.error != null) {
                 Text(
                     text = uiState.error ?: "",

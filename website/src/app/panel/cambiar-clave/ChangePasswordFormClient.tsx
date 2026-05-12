@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import Button from '../../ui/components/shared/Button';
+import StatusBanner from '../../ui/components/shared/StatusBanner';
+import TextField from '../../ui/components/shared/TextField';
 import { getApiBaseUrl } from '../../lib/apiUrl';
 import {
   clearWebSession,
@@ -106,104 +108,47 @@ export default function ChangePasswordFormClient() {
             className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
             noValidate
           >
-        {error && (
-          <p
-            className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700"
-            role="alert"
-          >
-            {error}
-          </p>
-        )}
+        {error && <StatusBanner variant="error">{error}</StatusBanner>}
 
-        <div>
-          <label
-            htmlFor="cp-current"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Contraseña actual
-          </label>
-          <input
-            id="cp-current"
-            type="password"
-            value={current}
-            onChange={(e) => setCurrent(e.target.value)}
-            autoComplete="current-password"
-            aria-invalid={fieldErrors.current_password ? true : undefined}
-            className={`w-full rounded-lg border px-4 py-3 focus:ring-2 ${
-              fieldErrors.current_password
-                ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            }`}
-            required
-          />
-          {fieldErrors.current_password ? (
-            <p className="mt-1 text-sm text-red-600" role="alert">
-              {fieldErrors.current_password}
-            </p>
-          ) : null}
-        </div>
+        <TextField
+          id="cp-current"
+          label="Contraseña actual"
+          type="password"
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          autoComplete="current-password"
+          required
+          error={fieldErrors.current_password}
+        />
 
-        <div>
-          <label
-            htmlFor="cp-next"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Nueva contraseña
-          </label>
-          <input
-            id="cp-next"
-            type="password"
-            value={next}
-            onChange={(e) => setNext(e.target.value)}
-            autoComplete="new-password"
-            aria-invalid={fieldErrors.new_password ? true : undefined}
-            className={`w-full rounded-lg border px-4 py-3 focus:ring-2 ${
-              fieldErrors.new_password
-                ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            }`}
-            required
-            minLength={8}
-            maxLength={72}
-          />
-          {fieldErrors.new_password ? (
-            <p className="mt-1 text-sm text-red-600" role="alert">
-              {fieldErrors.new_password}
-            </p>
-          ) : null}
-        </div>
+        <TextField
+          id="cp-next"
+          label="Nueva contraseña"
+          type="password"
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+          autoComplete="new-password"
+          required
+          minLength={8}
+          maxLength={72}
+          error={fieldErrors.new_password}
+        />
 
-        <div>
-          <label
-            htmlFor="cp-confirm"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Confirmar nueva contraseña
-          </label>
-          <input
-            id="cp-confirm"
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            autoComplete="new-password"
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-            required
-            minLength={8}
-            maxLength={72}
-          />
-        </div>
+        <TextField
+          id="cp-confirm"
+          label="Confirmar nueva contraseña"
+          type="password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          autoComplete="new-password"
+          required
+          minLength={8}
+          maxLength={72}
+        />
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            'Actualizar contraseña'
-          )}
-        </button>
+        <Button type="submit" isLoading={loading} variant="primary">
+          Actualizar contraseña
+        </Button>
           </form>
         </div>
       </div>

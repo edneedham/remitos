@@ -2,98 +2,44 @@ package com.remitos.app.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontFamily
 
-val RemitosTypography = Typography(
-    displayLarge = TextStyle(
-        fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
-        letterSpacing = (-0.5).sp,
-    ),
-    displayMedium = TextStyle(
-        fontWeight = FontWeight.Bold,
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
-        letterSpacing = (-0.25).sp,
-    ),
-    displaySmall = TextStyle(
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
-        lineHeight = 32.sp,
-        letterSpacing = 0.sp,
-    ),
-    headlineLarge = TextStyle(
-        fontWeight = FontWeight.Bold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp,
-    ),
-    headlineMedium = TextStyle(
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 20.sp,
-        lineHeight = 26.sp,
-        letterSpacing = 0.sp,
-    ),
-    headlineSmall = TextStyle(
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 18.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.sp,
-    ),
-    titleLarge = TextStyle(
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 18.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.sp,
-    ),
-    titleMedium = TextStyle(
-        fontWeight = FontWeight.Medium,
-        fontSize = 16.sp,
-        lineHeight = 22.sp,
-        letterSpacing = 0.1.sp,
-    ),
-    titleSmall = TextStyle(
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp,
-    ),
-    bodyLarge = TextStyle(
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.15.sp,
-    ),
-    bodyMedium = TextStyle(
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.25.sp,
-    ),
-    bodySmall = TextStyle(
-        fontWeight = FontWeight.Normal,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.4.sp,
-    ),
-    labelLarge = TextStyle(
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp,
-    ),
-    labelMedium = TextStyle(
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp,
-    ),
-    labelSmall = TextStyle(
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp,
-    ),
-)
+/* Material 3 typography wired to the shared type scale (`Tokens.Type`).
+ *
+ * Font family is supplied via `RemitosFontFamily`, which downloads Inter via
+ * Google Fonts (see Theme.kt). All sizes / weights / letter-spacings come from
+ * the generated `Tokens.Type` table.
+ */
+fun buildRemitosTypography(family: FontFamily): Typography {
+    fun style(s: Tokens.Type.Style): TextStyle =
+        TextStyle(
+            fontFamily = family,
+            fontWeight = s.weight,
+            fontSize = s.size,
+            lineHeight = s.lineHeight,
+            letterSpacing = s.letterSpacing,
+        )
+
+    return Typography(
+        displayLarge = style(Tokens.Type.displayLarge),
+        displayMedium = style(Tokens.Type.displayMedium),
+        displaySmall = style(Tokens.Type.displaySmall),
+        headlineLarge = style(Tokens.Type.headlineLarge),
+        headlineMedium = style(Tokens.Type.headlineMedium),
+        headlineSmall = style(Tokens.Type.headlineSmall),
+        titleLarge = style(Tokens.Type.titleLarge),
+        titleMedium = style(Tokens.Type.titleMedium),
+        titleSmall = style(Tokens.Type.titleSmall),
+        bodyLarge = style(Tokens.Type.bodyLarge),
+        bodyMedium = style(Tokens.Type.bodyMedium),
+        bodySmall = style(Tokens.Type.bodySmall),
+        labelLarge = style(Tokens.Type.labelLarge),
+        labelMedium = style(Tokens.Type.labelMedium),
+        labelSmall = style(Tokens.Type.labelSmall),
+    )
+}
+
+/* Backwards-compatible top-level value; uses the default font family until
+ * Inter is wired in (RemitosTheme overrides this with the downloadable Inter
+ * family). */
+val RemitosTypography: Typography = buildRemitosTypography(FontFamily.Default)
