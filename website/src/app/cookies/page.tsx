@@ -2,174 +2,235 @@ import Link from 'next/link';
 
 export default async function Cookies() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <main className="grow">
-        {/* Hero Section */}
-        <section className="py-20 px-8 bg-white">
-          <div className="max-w-content mx-auto">
-            <h1 className="text-4xl font-bold text-blue-600 mb-8 text-left">
+    <div className="min-h-screen bg-gray-50">
+      <main className="mx-auto max-w-content-prose px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
+        <article className="rounded-2xl bg-white px-5 py-8 shadow-sm sm:px-8 sm:py-10">
+          <header className="border-b border-gray-100 pb-8">
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
               Política de Cookies
             </h1>
-
-            <p className="text-l text-gray-600 mb-8 mx-auto text-left">
-              Última modificación: 30 de abril de 2026
+            <p className="mt-3 text-sm text-gray-500">
+              Última modificación: 12 de mayo de 2026
             </p>
-          </div>
-        </section>
+          </header>
 
-        {/* Introduction Section */}
-        <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-content mx-auto">
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              El presente documento complementa los Términos y Condiciones de
-              los servicios provistos por ROASAL S.A.S. a través de la
-              plataforma registrada como &quot;En Punto&quot;, en adelante
-              denominada &quot;la compañía&quot;.
-            </p>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              ROASAL S.A.S. utiliza cookies en sus sitios web y aplicaciones
-              móviles (colectivamente, los &quot;Servicios en Línea&quot;) para
-              fines esenciales, en cumplimiento con la Ley 25.326 de Protección
-              de Datos Personales y demás regulaciones aplicables en Argentina.
+          <div className="pt-8 text-sm leading-relaxed text-gray-600 sm:text-base">
+            <p className="mb-6">
+              Este documento complementa los Términos y Condiciones de los
+              servicios provistos por ROASAL S.A.S. a través de la plataforma
+              &quot;En Punto&quot;. Se aplica al{' '}
+              <strong className="font-medium text-gray-800">
+                sitio web y panel web
+              </strong>{' '}
+              (navegador). La aplicación móvil Android tiene su propio paquete y
+              configuración de permisos; acá describimos tecnologías del sitio.
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Estas cookies son requeridas para fines esenciales, como la gestión
-              de sesiones de autenticación. Actualmente se utiliza una cookie
-              llamada &apos;auth-token&apos; para mantener la sesión del usuario
-              de forma segura y permitir el acceso a funciones personalizadas
-              luego de iniciar sesión. ROASAL S.A.S. no utiliza cookies de
-              seguimiento, cookies publicitarias de terceros, píxeles de rastreo
-              ni otras tecnologías de seguimiento en este momento. Esta política
-              será actualizada si se introducen cambios y, cuando corresponda, se
-              solicitará el consentimiento conforme a la normativa aplicable en
-              la República Argentina o en el país donde se preste el servicio.
+            <p className="mb-6">
+              En cumplimiento de la Ley 25.326 de Protección de Datos Personales
+              y normativa aplicable en Argentina, informamos qué tecnologías de
+              almacenamiento usamos y con qué fines.
             </p>
-          </div>
-        </section>
 
-        {/* Section 1: Cookies Overview */}
-        <section className="py-20 px-8 bg-white">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
-              1. ¿Qué son las Cookies?
+            <h2 className="mt-10 text-xl font-semibold text-gray-900 first:mt-0">
+              1. ¿Qué son las cookies y tecnologías similares?
             </h2>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Las cookies son pequeños archivos de texto que se almacenan en el
-              navegador o dispositivo del usuario por sitios web y aplicaciones.
-              Se utilizan para recordar información del navegador o dispositivo
-              durante una visita y entre visitas.
+            <p className="mb-4 mt-3">
+              Las cookies son archivos pequeños que el sitio guarda en el
+              navegador. El{' '}
+              <strong className="font-medium text-gray-800">
+                almacenamiento local
+              </strong>{' '}
+              (<code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">localStorage</code> y{' '}
+              <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">sessionStorage</code>) cumple funciones parecidas pero vive en el
+              dispositivo sin enviarse automáticamente al servidor en cada
+              pedido.
             </p>
 
-            <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-              Cookies que utilizamos
-            </h3>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              En Punto utiliza únicamente cookies esenciales necesarias para el
-              funcionamiento del servicio:
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
+              2. Sesión en el panel web (cookies y modo alternativo)
+            </h2>
+            <p className="mb-4 mt-3">
+              Para mantener iniciada la sesión después de que ingresás al panel,
+              usamos una de estas configuraciones (según cómo esté desplegado el
+              sitio):
             </p>
-
-            <ul className="list-disc list-inside text-gray-600 mb-6 leading-relaxed space-y-2">
+            <ul className="mb-6 list-disc space-y-2 pl-5">
               <li>
-                <strong>auth-token:</strong> Cookie de autenticación que
-                mantiene la sesión del usuario segura y permite el acceso a
-                funciones personalizadas después de iniciar sesión.
+                <strong className="font-medium text-gray-800">
+                  Modo recomendado (cookies HttpOnly)
+                </strong>
+                : el servidor establece cookies llamadas{' '}
+                <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">
+                  enpunto_access
+                </code>{' '}
+                y{' '}
+                <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">
+                  enpunto_refresh
+                </code>{' '}
+                (tokens de sesión; no son legibles por JavaScript de la página).
+                Además puede establecerse la cookie{' '}
+                <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">
+                  enpunto_web_hint
+                </code>
+                , un marcador no secreto para que la aplicación web detecte que
+                hay sesión activa.
+              </li>
+              <li>
+                <strong className="font-medium text-gray-800">
+                  Modo alternativo
+                </strong>{' '}
+                (si la cookie-session está desactivada en la configuración del
+                sitio): los mismos tokens se guardan en{' '}
+                <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">
+                  sessionStorage
+                </code>{' '}
+                bajo las claves{' '}
+                <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">
+                  enpunto_web_access_token
+                </code>{' '}
+                y{' '}
+                <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">
+                  enpunto_web_refresh_token
+                </code>
+                . No son cookies HTTP, pero cumplen el mismo fin esencial de
+                sesión.
               </li>
             </ul>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Estas cookies son estrictamente necesarias para proporcionar los
-              servicios que el usuario ha solicitado y no pueden ser
-              desactivadas sin afectar la funcionalidad del servicio.
+            <p className="mb-6">
+              Sin una de estas opciones activa no podés usar las funciones del
+              panel que requieren inicio de sesión.
             </p>
-          </div>
-        </section>
 
-        {/* Section 2: No Tracking or Advertising */}
-        <section className="py-20 px-8 bg-gray-50">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
-              2. Publicidad y Seguimiento
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
+              3. Almacenamiento local del panel (sin publicidad)
             </h2>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Actualmente, En Punto no utiliza:
+            <p className="mb-4 mt-3">
+              Para funciones básicas de la experiencia (checklist de prueba,
+              recordatorios de interfaz y eventos internos de uso), el panel
+              puede guardar datos en{' '}
+              <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">
+                localStorage
+              </code>{' '}
+              bajo claves como:
             </p>
-
-            <ul className="list-disc list-inside text-gray-600 mb-6 leading-relaxed space-y-2">
-              <li>Cookies de publicidad personalizada</li>
-              <li>Cookies de seguimiento de terceros</li>
-              <li>Etiquetas de píxel o beacons</li>
-              <li>SDKs de terceros para recopilación de datos</li>
-              <li>Herramientas de análisis de terceros</li>
+            <ul className="mb-6 list-disc space-y-2 pl-5">
+              <li>
+                <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">
+                  remitos_checklist_download_page_visited
+                </code>{' '}
+                — recordar que visitaste la página de descarga de la app.
+              </li>
+              <li>
+                <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">
+                  remitos_first_scan_completed_analytics_sent
+                </code>{' '}
+                — evitar duplicar un evento interno asociado al primer uso
+                exitoso del escaneo.
+              </li>
+              <li>
+                <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">
+                  remitos_trial_success_screen_viewed_at
+                </code>{' '}
+                — marcar que viste la pantalla de bienvenida tras el registro.
+              </li>
+              <li>
+                <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">
+                  enpunto_panel_mobile_desktop_hint_dismissed
+                </code>{' '}
+                — recordar que cerraste un aviso de uso entre móvil y escritorio.
+              </li>
             </ul>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Si en el futuro se implementan tales funciones, esta política será
-              actualizada antes de su implementación y se proporcionarán
-              opciones para optar por no participar donde sea requerido por la
-              ley.
+            <p className="mb-6">
+              No usamos esas claves para publicidad personalizada ni para
+              perfilar comportamiento en sitios de terceros.
             </p>
-          </div>
-        </section>
 
-        {/* Section 3: User Choices */}
-        <section className="py-20 px-8 bg-white">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">
-              3. Opciones del usuario
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
+              4. Pagos con tarjeta (Mercado Pago)
             </h2>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Dado que las cookies que utilizamos son estrictamente necesarias
-              para el funcionamiento de los Servicios en Línea, si el usuario
-              elige rechazar o eliminar estas cookies, no podrá acceder a las
-              funciones autenticadas del servicio.
+            <p className="mb-6 mt-3">
+              Cuando cargás o actualizás un medio de pago con tarjeta en el
+              panel, podés interactuar con componentes de{' '}
+              <strong className="font-medium text-gray-800">Mercado Pago</strong>
+              . Esos componentes pueden usar cookies o almacenamiento propios
+              según la política de Mercado Pago; ROASAL S.A.S. no controla esas
+              tecnologías. Te recomendamos revisar la{' '}
+              <a
+                href="https://www.mercadopago.com.ar/privacidad"
+                className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                privacidad de Mercado Pago
+              </a>
+              .
             </p>
 
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              La mayoría de los navegadores web están configurados para aceptar
-              cookies por defecto. Si el usuario lo prefiere, puede configurar
-              su navegador para eliminar o rechazar cookies. Para hacerlo, el
-              usuario debe seguir las instrucciones proporcionadas por su
-              navegador, que generalmente se encuentran en el menú
-              &apos;Ayuda&apos; o &apos;Preferencias&apos;.
-            </p>
-
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Para obtener más información sobre cookies y sus derechos bajo la
-              Ley 25.326, incluyendo cómo ejercer derechos de acceso y
-              oposición, contáctese con ROASAL S.A.S. o visite el sitio de la
-              Agencia de Acceso a la Información Pública (AAIP).
-            </p>
-          </div>
-        </section>
-
-        {/* Final CTA Section */}
-        <section className="py-20 px-8 bg-gray-100">
-          <div className="max-w-content mx-auto">
-            <h2 className="text-4xl font-bold text-gray-900 mb-6 text-center">
-              ¿Preguntas?
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
+              5. Publicidad y seguimiento de terceros
             </h2>
-
-            <p className="text-xl text-gray-600 mb-8 text-center">
-              Si tiene alguna pregunta sobre esta Política de Cookies,
-              contáctenos.
+            <p className="mb-4 mt-3">
+              En Punto no utiliza, por cuenta propia en el sitio web descrito
+              acá:
+            </p>
+            <ul className="mb-6 list-disc space-y-2 pl-5">
+              <li>cookies de publicidad personalizada;</li>
+              <li>cookies de medición de audiencia de terceros;</li>
+              <li>píxeles o beacons de remarketing;</li>
+              <li>SDKs de terceros instalados en este front para recolección de
+                datos de navegación.</li>
+            </ul>
+            <p className="mb-6">
+              Si en el futuro incorporáramos tecnologías distintas, actualizaremos
+              esta política con anticipación razonable y, cuando la ley lo exija,
+              pediremos consentimiento u ofreceremos opciones adicionales.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <h2 className="mt-10 text-xl font-semibold text-gray-900">
+              6. Tus opciones
+            </h2>
+            <p className="mb-4 mt-3">
+              Podés configurar el navegador para borrar cookies o datos del
+              sitio. Si eliminás las cookies o el almacenamiento de sesión
+              descritos arriba, es probable que tengas que iniciar sesión de
+              nuevo o que se pierdan preferencias locales del panel (por ejemplo
+              avisos ya cerrados).
+            </p>
+            <p className="mb-6">
+              Para más información sobre datos personales y derechos (acceso,
+              rectificación, etc.), podés consultar nuestra{' '}
+              <Link
+                href="/privacidad"
+                className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                política de privacidad
+              </Link>{' '}
+              y el sitio de la{' '}
+              <a
+                href="https://www.argentina.gob.ar/aaip"
+                className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Agencia de Acceso a la Información Pública (AAIP)
+              </a>
+              .
+            </p>
+
+            <div className="mt-10 border-t border-gray-100 pt-8 text-center">
+              <p className="mb-4 text-gray-600">
+                ¿Dudas sobre esta política? Escribinos.
+              </p>
               <Link
                 href="/contacto"
-                className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
               >
-                Contactar
+                Contacto
               </Link>
             </div>
           </div>
-        </section>
+        </article>
       </main>
     </div>
   );
