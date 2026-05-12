@@ -1,191 +1,242 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { Mail, User, MessageSquare } from 'lucide-react';
-import { ContactFormState } from '../../lib/validations/contacto';
-import SubmitArea from '../components/shared/Submit';
+import Link from 'next/link';
+import { useState } from 'react';
+import Button from '../components/shared/Button';
+import StatusBanner from '../components/shared/StatusBanner';
+import TextAreaField from '../components/shared/TextAreaField';
+import TextField from '../components/shared/TextField';
+import {
+  ContactFormSchema,
+  type ContactFieldErrors,
+} from '../../lib/validations/contacto';
+
+type ContactField = keyof ContactFieldErrors;
+
+const CONTACT_FIELD_ORDER: ContactField[] = ['name', 'email', 'message'];
+
+const CONTACT_FIELD_DOM_ID: Record<ContactField, string> = {
+  name: 'contact-name',
+  email: 'contact-email',
+  message: 'contact-message',
+};
+
+function scrollAndFocusById(elementId: string) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  window.requestAnimationFrame(() => {
+    if (el instanceof HTMLElement && typeof el.focus === 'function') {
+      const tag = el.tagName.toLowerCase();
+      if (
+        tag === 'input' ||
+        tag === 'select' ||
+        tag === 'textarea' ||
+        tag === 'button'
+      ) {
+        el.focus({ preventScroll: true });
+      }
+    }
+  });
+}
+
+function scrollFirstContactError(errs: ContactFieldErrors) {
+  for (const key of CONTACT_FIELD_ORDER) {
+    if (errs[key]) {
+      scrollAndFocusById(CONTACT_FIELD_DOM_ID[key]);
+      break;
+    }
+  }
+}
+
+function mapApiFieldErrors(
+  raw: Record<string, string[] | undefined> | undefined,
+): ContactFieldErrors {
+  if (!raw) return {};
+  const pick = (k: ContactField) =>
+    Array.isArray(raw[k]) && raw[k]![0] ? raw[k]![0] : undefined;
+  return {
+    name: pick('name'),
+    email: pick('email'),
+    message: pick('message'),
+  };
+}
 
 export default function ContactForm() {
-  const [state, setState] = useState<ContactFormState>({ success: false });
-  const [isPending, startTransition] = useTransition();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<ContactFieldErrors>({});
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (formData: FormData) => {
-    startTransition(async () => {
-      try {
-        const response = await fetch('/api/contacto', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: formData.get('name'),
-            email: formData.get('email'),
-            message: formData.get('message'),
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setState({
-            success: false,
-            errors: data.errors,
-            message:
-              data.message ||
-              'Error al enviar el mensaje. Por favor, intenta de nuevo.',
-          });
-          return;
-        }
-
-        setState({
-          success: true,
-          message:
-            data.message ||
-            '¡Gracias! Hemos recibido tu mensaje y te contactaremos pronto.',
-        });
-
-        // Reset form on success
-        const form = document.querySelector('form') as HTMLFormElement;
-        if (form) {
-          form.reset();
-        }
-      } catch (error) {
-        console.error('Error submitting contact form:', error);
-        setState({
-          success: false,
-          message: 'Error al enviar el mensaje. Por favor, intenta de nuevo.',
-        });
-      }
+  const clearFieldError = (field: ContactField) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
     });
   };
 
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setFormError(null);
+    setFormSuccess(null);
+
+    const payload = {
+      name: name.trim(),
+      email: email.trim(),
+      message: message.trim(),
+    };
+
+    const clientParsed = ContactFormSchema.safeParse(payload);
+    if (!clientParsed.success) {
+      const flat = clientParsed.error.flatten().fieldErrors;
+      const next: ContactFieldErrors = {
+        name: flat.name?.[0],
+        email: flat.email?.[0],
+        message: flat.message?.[0],
+      };
+      setFieldErrors(next);
+      setFormError('Revisá los datos del formulario.');
+      scrollFirstContactError(next);
+      return;
+    }
+
+    setFieldErrors({});
+    setLoading(true);
+    try {
+      const response = await fetch('/api/contacto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(clientParsed.data),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        message?: string;
+        errors?: Record<string, string[] | undefined>;
+      };
+
+      if (!response.ok) {
+        const apiErrs = mapApiFieldErrors(data.errors);
+        setFieldErrors(apiErrs);
+        setFormError(
+          typeof data.message === 'string' && data.message
+            ? data.message
+            : 'No se pudo enviar el mensaje. Probá de nuevo.',
+        );
+        scrollFirstContactError(apiErrs);
+        return;
+      }
+
+      setFormSuccess(
+        typeof data.message === 'string' && data.message
+          ? data.message
+          : '¡Gracias! Recibimos tu mensaje y te vamos a contactar a la brevedad.',
+      );
+      setName('');
+      setEmail('');
+      setMessage('');
+    } catch {
+      setFormError('Error de red. Verificá la conexión e intentá de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <form
-      action={handleSubmit}
-      className="w-full bg-white rounded-lg shadow-lg border border-gray-200"
-    >
-      {/* Header */}
-      <div className="px-6 py-5 border-b border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <Mail className="h-6 w-6 text-blue-600" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Envíanos un mensaje
-            </h2>
-            <p className="text-sm text-gray-600">
-              Complete el formulario y nos pondremos en contacto contigo
+    <div className="min-h-[60vh] bg-gray-50 px-4 py-10 lg:py-14">
+      <div className="mx-auto w-full max-w-md">
+        <section className="flex flex-col rounded-2xl border border-gray-200 bg-white px-5 py-7 shadow-sm sm:px-6 sm:py-8 lg:py-10">
+          <header className="space-y-2 text-left sm:space-y-3">
+            <h1 className="text-[1.625rem] font-bold leading-snug tracking-tight text-gray-900 sm:text-3xl sm:leading-tight">
+              Contáctanos
+            </h1>
+            <p className="text-base leading-relaxed text-gray-600 sm:text-sm sm:leading-relaxed">
+              Si tenés una consulta o comentario, escribinos y te respondemos a
+              la brevedad.
             </p>
-          </div>
-        </div>
+          </header>
+
+          <form
+            onSubmit={(e) => void handleSubmit(e)}
+            className="mt-6 space-y-5 sm:mt-8"
+            noValidate
+          >
+            {formSuccess && (
+              <StatusBanner variant="success">{formSuccess}</StatusBanner>
+            )}
+            {formError && !formSuccess && (
+              <StatusBanner variant="error">{formError}</StatusBanner>
+            )}
+
+            <TextField
+              id={CONTACT_FIELD_DOM_ID.name}
+              label="Nombre completo"
+              value={name}
+              onChange={(ev) => {
+                setName(ev.target.value);
+                clearFieldError('name');
+                if (formError) setFormError(null);
+                if (formSuccess) setFormSuccess(null);
+              }}
+              autoComplete="name"
+              aria-required
+              error={fieldErrors.name}
+              placeholder="Tu nombre"
+            />
+
+            <TextField
+              id={CONTACT_FIELD_DOM_ID.email}
+              label="Correo electrónico"
+              type="email"
+              value={email}
+              onChange={(ev) => {
+                setEmail(ev.target.value);
+                clearFieldError('email');
+                if (formError) setFormError(null);
+                if (formSuccess) setFormSuccess(null);
+              }}
+              autoComplete="email"
+              aria-required
+              error={fieldErrors.email}
+              placeholder="ejemplo@correo.com"
+            />
+
+            <TextAreaField
+              id={CONTACT_FIELD_DOM_ID.message}
+              label="Mensaje"
+              value={message}
+              onChange={(ev) => {
+                setMessage(ev.target.value);
+                clearFieldError('message');
+                if (formError) setFormError(null);
+                if (formSuccess) setFormSuccess(null);
+              }}
+              aria-required
+              error={fieldErrors.message}
+              rows={6}
+              placeholder="Contanos en qué podemos ayudarte…"
+            />
+
+            <Button type="submit" isLoading={loading} variant="primary">
+              Enviar mensaje
+            </Button>
+          </form>
+
+          <p className="mt-6 border-t border-gray-100 pt-6 text-center text-sm text-gray-600 sm:mt-8 sm:pt-8">
+            <Link
+              href="/"
+              className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              Ir al inicio
+            </Link>
+          </p>
+        </section>
       </div>
-
-      {/* Form Content */}
-      <div className="p-8 space-y-6">
-        {/* Success/Error Messages */}
-        {state?.message && (
-          <div
-            className={`p-4 rounded-lg ${
-              state.success
-                ? 'bg-green-50 border border-green-200 text-green-800'
-                : 'bg-red-50 border border-red-200 text-red-800'
-            }`}
-          >
-            {state.message}
-          </div>
-        )}
-
-        {/* Name Field */}
-        <div className="space-y-2">
-          <label
-            htmlFor="name"
-            className="flex items-center gap-2 text-sm font-medium text-gray-700"
-          >
-            <User className="h-4 w-4 text-gray-500" />
-            Nombre completo
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            placeholder="Ingrese su nombre completo"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder-gray-400"
-            required
-            aria-describedby="name-error"
-          />
-          {state?.errors?.name && (
-            <div id="name-error" className="mt-2 text-sm text-red-500">
-              {state.errors.name.map((error, index) => (
-                <p key={index}>{error}</p>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Email Field */}
-        <div className="space-y-2">
-          <label
-            htmlFor="email"
-            className="flex items-center gap-2 text-sm font-medium text-gray-700"
-          >
-            <Mail className="h-4 w-4 text-gray-500" />
-            Correo electrónico
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            placeholder="ejemplo@correo.com"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder-gray-400"
-            required
-            aria-describedby="email-error"
-          />
-          {state?.errors?.email && (
-            <div id="email-error" className="mt-2 text-sm text-red-500">
-              {state.errors.email.map((error, index) => (
-                <p key={index}>{error}</p>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Message Field */}
-        <div className="space-y-2">
-          <label
-            htmlFor="message"
-            className="flex items-center gap-2 text-sm font-medium text-gray-700"
-          >
-            <MessageSquare className="h-4 w-4 text-gray-500" />
-            Mensaje
-          </label>
-          <textarea
-            id="message"
-            name="message"
-            rows={6}
-            placeholder="Cuéntenos sobre sus necesidades logísticas, consultas o cómo podemos ayudarle..."
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder-gray-400 resize-none"
-            required
-            aria-describedby="message-error"
-          />
-          {state?.errors?.message && (
-            <div id="message-error" className="mt-2 text-sm text-red-500">
-              {state.errors.message.map((error, index) => (
-                <p key={index}>{error}</p>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Submit Button */}
-        <div className="pt-6">
-          <SubmitArea
-            buttonText="Enviar Mensaje"
-            submittingText="Enviando mensaje..."
-            isSubmitting={isPending}
-          />
-        </div>
-      </div>
-    </form>
+    </div>
   );
 }

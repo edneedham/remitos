@@ -1,21 +1,17 @@
 import { z } from 'zod';
 
 export const ContactFormSchema = z.object({
-  name: z.string().min(2, { message: 'Por favor, ingresa tu nombre.' }),
+  name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
   email: z
     .string()
-    .email({ message: 'Por favor, ingresa un correo electrónico válido.' }),
+    .email({ message: 'Ingresá un correo electrónico válido.' }),
   message: z
     .string()
-    .min(10, { message: 'Tu mensaje debe tener al menos 10 caracteres.' }),
+    .min(10, { message: 'El mensaje debe tener al menos 10 caracteres.' }),
 });
 
-export type ContactFormState = {
-  errors?: {
-    name?: string[];
-    email?: string[];
-    message?: string[];
-  };
+export type ContactFieldErrors = {
+  name?: string;
+  email?: string;
   message?: string;
-  success: boolean;
 };

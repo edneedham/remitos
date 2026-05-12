@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           errors: validatedFields.error.flatten().fieldErrors,
-          message: 'Por favor, corrige los errores en el formulario.',
+          message: 'Corregí los errores del formulario.',
         },
         { status: 400 },
       );
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       return NextResponse.json(
-        { success: false, message: 'Error al enviar el mensaje.' },
+        { success: false, message: 'No se pudo enviar el mensaje.' },
         { status: response.status }
       );
     }
@@ -103,14 +103,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: '¡Gracias! Hemos recibido tu mensaje y te contactaremos pronto.',
+      message:
+        '¡Gracias! Recibimos tu mensaje y te vamos a contactar a la brevedad.',
     });
   } catch (error) {
     console.error('/api/contacto error:', error);
     return NextResponse.json(
       {
         success: false,
-        message: 'Error al enviar el mensaje. Por favor, intenta de nuevo.',
+        message: 'No se pudo enviar el mensaje. Probá de nuevo.',
       },
       { status: 500 },
     );
