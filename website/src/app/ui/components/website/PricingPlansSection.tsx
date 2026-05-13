@@ -143,7 +143,7 @@ export default function PricingPlansSection({
           <ShieldCheck className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" aria-hidden />
           <span>Sin permanencia. Cancela cuando quieras.</span>
         </div>
-        <p className="mx-auto mt-3 max-w-3xl text-center text-xs leading-relaxed text-gray-500 sm:text-sm">
+        <p className="mx-auto mt-3 max-w-3xl text-left text-xs leading-relaxed text-gray-500 sm:text-sm">
           {BILLING_LEGAL_NOTICE_AR}
         </p>
       </div>

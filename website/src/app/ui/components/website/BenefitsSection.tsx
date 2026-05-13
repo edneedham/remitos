@@ -453,7 +453,7 @@ export default function BenefitsSection() {
       className="scroll-mt-0 border-b border-gray-200 bg-white py-10 px-4 sm:py-14 sm:px-6 lg:px-8 lg:py-20"
       aria-labelledby="benefits-heading"
     >
-      <div className="mx-auto w-full max-w-[70%]">
+      <div className="mx-auto w-full max-w-[68.8rem]">
         <div className="mx-auto mb-12 max-w-content-prose text-left md:text-center">
           <h2
             id="benefits-heading"
@@ -465,7 +465,7 @@ export default function BenefitsSection() {
       </div>
 
       {!panelOnlyLayout ? (
-        <div className="mx-auto mt-10 w-full max-w-[70%]">
+        <div className="mx-auto mt-10 w-full max-w-[68.8rem]">
           <div className="grid grid-cols-1 gap-10 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-x-6 lg:gap-x-10">
             <div className="flex max-w-xl flex-col gap-6 justify-self-start md:col-start-1 md:self-center">
               <p
@@ -504,7 +504,7 @@ export default function BenefitsSection() {
           </div>
         </div>
       ) : (
-        <div ref={panelFullRef} className="mx-auto mt-10 w-full md:w-1/2">
+        <div ref={panelFullRef} className="mx-auto mt-10 w-full max-w-[68.8rem]">
           <div className="relative w-full overflow-hidden rounded-xl bg-white shadow-[0_20px_60px_rgba(15,23,42,0.28),0_8px_20px_rgba(15,23,42,0.18)] transition-transform duration-300 hover:scale-[1.01] hover:shadow-[0_28px_80px_rgba(15,23,42,0.34),0_12px_28px_rgba(15,23,42,0.22)]">
             <div className="pointer-events-none absolute inset-0 -z-10 rounded-2xl bg-gradient-to-br from-blue-200/40 via-transparent to-indigo-300/30 blur-2xl" />
             <Image
