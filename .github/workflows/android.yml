@@ -27,7 +27,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+    concurrency:
+      group: android-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+
     defaults:
       run:
         working-directory: ./android
@@ -36,7 +39,15 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
+    - name: Cache OpenCV Android SDK
+      id: opencv-cache
+      uses: actions/cache@v4
+      with:
+        path: android/opencv-sdk
+        key: opencv-4.12.0-android-sdk-${{ runner.os }}-v1
+
     - name: Download OpenCV Android SDK
+      if: steps.opencv-cache.outputs.cache-hit != 'true'
       run: |
         mkdir -p opencv-sdk
         cd opencv-sdk

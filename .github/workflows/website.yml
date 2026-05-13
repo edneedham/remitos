@@ -1,5 +1,9 @@
 name: Website CI
 
+concurrency:
+  group: website-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -8,6 +12,7 @@ on:
       - 'design-tokens/**'
       - '.github/workflows/website.yml'
   pull_request:
+    branches: [main]
     paths:
       - 'website/**'
       - 'design-tokens/**'
