@@ -47,12 +47,21 @@ func Connect(cfg *config.Config) error {
 	poolConfig.MaxConnLifetime = time.Hour
 	poolConfig.MaxConnIdleTime = 30 * time.Minute
 
-	Pool, err = pgxpool.NewWithConfig(context.Background(), poolConfig)
+	// Avoid hanging forever on Cloud Run if DB host/port/firewall is wrong (startup probe timeout).
+	if poolConfig.ConnConfig != nil && poolConfig.ConnConfig.ConnectTimeout == 0 {
+		poolConfig.ConnConfig.ConnectTimeout = 45 * time.Second
+	}
+
+	poolCtx, poolCancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer poolCancel()
+	Pool, err = pgxpool.NewWithConfig(poolCtx, poolConfig)
 	if err != nil {
 		return fmt.Errorf("unable to create connection pool: %w", err)
 	}
 
-	if err := Pool.Ping(context.Background()); err != nil {
+	pingCtx, pingCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer pingCancel()
+	if err := Pool.Ping(pingCtx); err != nil {
 		return fmt.Errorf("unable to ping database: %w", err)
 	}
 

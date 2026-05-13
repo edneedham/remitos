@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -35,13 +37,18 @@ func ListenAndShutdown(cfg ListenConfig) error {
 		IdleTimeout:       120 * time.Second,
 	}
 
+	ln, err := net.Listen("tcp", cfg.Addr)
+	if err != nil {
+		return fmt.Errorf("listen %s: %w", cfg.Addr, err)
+	}
+
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- srv.ListenAndServe()
+		errCh <- srv.Serve(ln)
 	}()
 
 	logger.Log.Info().
-		Str("addr", cfg.Addr).
+		Str("addr", ln.Addr().String()).
 		Str("version", cfg.Version).
 		Dur("read_header_timeout", srv.ReadHeaderTimeout).
 		Dur("read_timeout", srv.ReadTimeout).
@@ -76,7 +83,7 @@ func ListenAndShutdown(cfg ListenConfig) error {
 		logger.Log.Info().Msg("HTTP server shut down gracefully")
 	}
 
-	// Drain ListenAndServe return after Shutdown.
+	// Drain Serve return after Shutdown.
 	<-errCh
 	return nil
 }
