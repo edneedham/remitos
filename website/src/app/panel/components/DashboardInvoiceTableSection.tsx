@@ -24,14 +24,9 @@ export default function DashboardInvoiceTableSection({
       className="hidden md:block rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
       aria-labelledby="invoices-heading"
     >
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-        <h2 id="invoices-heading" className="text-base font-semibold text-gray-900">
-          Facturas
-        </h2>
-        <p className="text-xs text-gray-500 sm:text-sm">
-          Descargá el detalle de cada comprobante.
-        </p>
-      </div>
+      <h2 id="invoices-heading" className="text-base font-semibold text-gray-900">
+        Facturas
+      </h2>
 
       {invoicesError ? (
         <p
@@ -65,8 +60,14 @@ export default function DashboardInvoiceTableSection({
                 <th scope="col" className="px-4 py-3 font-semibold text-gray-700">
                   Concepto
                 </th>
-                <th scope="col" className="px-4 py-3 text-right font-semibold text-gray-700">
-                  Descargar
+                <th
+                  scope="col"
+                  className="w-px whitespace-nowrap py-3 pl-4 pr-3 text-right text-gray-700"
+                >
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-transparent px-2.5 py-2 text-xs font-semibold">
+                    Descargar
+                    <span className="h-4 w-4 shrink-0" aria-hidden />
+                  </span>
                 </th>
               </tr>
             </thead>
@@ -85,15 +86,15 @@ export default function DashboardInvoiceTableSection({
                   <td className="max-w-[20rem] px-4 py-3 text-gray-700">
                     {inv.description?.trim() ? inv.description : '—'}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                  <td className="w-px whitespace-nowrap py-3 pl-4 pr-3 text-right">
                     <button
                       type="button"
                       onClick={() => onDownloadTextInvoice(inv)}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-2.5 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
                       aria-label={`Descargar factura ${inv.id}`}
                     >
-                      <Download className="h-4 w-4 text-blue-600" aria-hidden />
                       Descargar
+                      <Download className="h-4 w-4 shrink-0 text-blue-600" aria-hidden />
                     </button>
                   </td>
                 </tr>
