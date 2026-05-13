@@ -8,7 +8,7 @@ const inter = Inter({ variable: '--font-inter', subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'En Punto',
-  description: 'En Punto - Soluciones digitales para tu negocio en Argentina',
+  description: 'En Punto - Herramientas de logística para manejar tu negocio',
 };
 
 export default function WebsiteLayout({
