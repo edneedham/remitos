@@ -143,6 +143,13 @@ func Build(cfg *config.Config) (http.Handler, context.CancelFunc, error) {
 		logger.Log.Info().Msg("Subscription lapse notice emails enabled (1h ticker)")
 	}
 
+	waitlistRepo := repository.NewWaitlistRepository(db.Pool)
+	publicHandler := handlers.NewPublicHandler(handlers.PublicHandlerConfig{
+		WaitlistRepo:  waitlistRepo,
+		Mailer:        mailSender,
+		PublicSiteURL: cfg.PublicSiteURL,
+	})
+
 	authHandler := handlers.NewAuthHandlerFromConfig(handlers.AuthHandlerConfig{
 		UserRepo:                userRepo,
 		CompanyRepo:             companyRepo,
@@ -167,6 +174,7 @@ func Build(cfg *config.Config) (http.Handler, context.CancelFunc, error) {
 		BillingFXBufferFraction: cfg.BillingFXBufferFraction,
 		FacturaEmitter:          facturaEmitter,
 		AfipClient:              afipClient,
+		WaitlistOnly:            cfg.WaitlistOnly,
 	})
 
 	mpWebhookHandler := handlers.NewMercadoPagoWebhookHandler(
@@ -229,6 +237,7 @@ func Build(cfg *config.Config) (http.Handler, context.CancelFunc, error) {
 	}
 
 	h.Mount("/auth", authHandler.Routes())
+	h.Mount("/public", publicHandler.Routes())
 	var renewalSvc *billing.RenewalService
 	if cfg.BillingRenewalSecret != "" || cfg.BillingAutomaticRenewalEnabled {
 		renewalSvc = billing.NewRenewalService(

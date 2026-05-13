@@ -24,6 +24,10 @@ import {
   isWebCookieSession,
   webCookieFetchInit,
 } from '../lib/webAuth';
+import {
+  isWaitlistOnly,
+  marketingSignupPath,
+} from '../lib/waitlistOnly';
 
 const LOGIN_FIELD_DOM_ID: Record<LoginFormField, string> = {
   company_code: 'login-company',
@@ -330,15 +334,17 @@ export default function LoginForm() {
             </p>
           </form>
 
-          <p className="mt-6 border-t border-gray-100 pt-6 text-center text-sm text-gray-600 sm:mt-8 sm:pt-8">
-            ¿Todavía no tenés cuenta?{' '}
-            <Link
-              href="/registro"
-              className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
-            >
-              Registrate
-            </Link>
-          </p>
+          {!isWaitlistOnly() ? (
+            <p className="mt-6 border-t border-gray-100 pt-6 text-center text-sm text-gray-600 sm:mt-8 sm:pt-8">
+              ¿Todavía no tenés cuenta?{' '}
+              <Link
+                href={marketingSignupPath()}
+                className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                Registrate
+              </Link>
+            </p>
+          ) : null}
         </section>
       </div>
     </div>

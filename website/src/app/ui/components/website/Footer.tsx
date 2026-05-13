@@ -78,7 +78,8 @@ export default function Footer() {
       </div>
 
       <p className="mx-auto mt-4 max-w-[80rem] border-t border-gray-700 px-4 pt-4 text-center text-[11px] leading-snug text-white sm:px-6 lg:px-8">
-        Android y el logotipo de Android son marcas comerciales de Google LLC.
+        Android y el logotipo de Android, Google Drive y el logotipo de Google Drive son marcas
+        comerciales de Google LLC.
       </p>
     </footer>
   );

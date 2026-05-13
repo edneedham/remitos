@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/link', () => ({
   default: ({ href, children, ...props }: any) => (
@@ -8,6 +8,10 @@ vi.mock('next/link', () => ({
     </a>
   ),
 }));
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 async function renderPricingPlans(showCtas = false) {
   const mod = await import('./PricingPlansSection');
@@ -27,6 +31,30 @@ describe('PricingPlansSection', () => {
     expect(
       screen.getByRole('link', { name: /hablar con ventas/i }),
     ).toHaveAttribute('href', '/contacto');
+  });
+
+  it('uses lista de espera CTAs and copy when waitlist mode is enabled', async () => {
+    vi.stubEnv('NEXT_PUBLIC_WAITLIST_ONLY', 'true');
+    vi.resetModules();
+    const mod = await import('./PricingPlansSection');
+    render(<mod.default showCtas={true} />);
+
+    expect(
+      screen.getByRole('heading', { name: /planes y precios de referencia/i }),
+    ).toBeInTheDocument();
+
+    const waitlistLinks = screen.getAllByRole('link', {
+      name: /lista de espera/i,
+    });
+    expect(waitlistLinks).toHaveLength(2);
+    expect(waitlistLinks[0]).toHaveAttribute(
+      'href',
+      '/lista-de-espera?plan=pyme',
+    );
+    expect(waitlistLinks[1]).toHaveAttribute(
+      'href',
+      '/lista-de-espera?plan=empresa',
+    );
   });
 
   it('does not render CTA links in summary mode', async () => {

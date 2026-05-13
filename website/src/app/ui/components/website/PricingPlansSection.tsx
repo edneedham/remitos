@@ -9,8 +9,13 @@ import {
   Warehouse,
 } from 'lucide-react';
 import Link from 'next/link';
-import { BILLING_LEGAL_NOTICE_AR } from '../../../lib/billingLegalNotice';
+import { BILLING_LEGAL_NOTICE_AR, WAITLIST_PRICING_FOOTNOTE_AR } from '../../../lib/billingLegalNotice';
 import { PLAN_CATALOG } from '../../../lib/planCatalog';
+import {
+  isWaitlistOnly,
+  marketingSignupLabel,
+  trialSignupHref,
+} from '../../../lib/waitlistOnly';
 
 type WebsitePlan = {
   id: string;
@@ -45,6 +50,8 @@ export default function PricingPlansSection({
 }: {
   showCtas?: boolean;
 }) {
+  const waitlist = isWaitlistOnly();
+
   return (
     <section
       className="border-b border-gray-200 bg-white py-20 px-4 sm:px-6 lg:px-8"
@@ -56,10 +63,12 @@ export default function PricingPlansSection({
             id="pricing-plans-heading"
             className="mb-4 text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl"
           >
-            Planes para tu suscripción
+            {waitlist ? 'Planes y precios de referencia' : 'Planes para tu suscripción'}
           </h2>
           <p className="text-lg leading-snug text-gray-600 sm:text-xl lg:text-2xl">
-            Todos los planes incluyen 7 días de prueba gratis para empezar.
+            {waitlist
+              ? 'Son orientativos y pueden actualizarse. Hoy el acceso es por lista de espera; la prueba gratis y el alta en línea se habilitarán cuando abramos el registro.'
+              : 'Todos los planes incluyen 7 días de prueba gratis para empezar.'}
           </p>
         </div>
 
@@ -119,7 +128,7 @@ export default function PricingPlansSection({
                   href={
                     plan.customPricing
                       ? '/contacto'
-                      : `/registro?plan=${encodeURIComponent(plan.id)}`
+                      : trialSignupHref(plan.id)
                   }
                   className={`mt-6 inline-flex w-full items-center justify-center gap-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors sm:text-base sm:py-3 ${
                     plan.featured
@@ -130,7 +139,9 @@ export default function PricingPlansSection({
                   <span>
                     {plan.customPricing
                       ? 'Hablar con ventas'
-                      : 'Comenzar prueba gratis'}
+                      : waitlist
+                        ? marketingSignupLabel()
+                        : 'Comenzar prueba gratis'}
                   </span>
                   {!plan.customPricing && <ArrowRight className="h-4 w-4" aria-hidden />}
                 </Link>
@@ -141,10 +152,14 @@ export default function PricingPlansSection({
 
         <div className="mx-auto mt-6 flex max-w-6xl items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800 sm:text-base sm:px-5 sm:py-3.5">
           <ShieldCheck className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" aria-hidden />
-          <span>Sin permanencia. Cancela cuando quieras.</span>
+          <span>
+            {waitlist
+              ? 'Hoy el acceso es por lista de espera. Al abrir la suscripción, sin permanencia mínima.'
+              : 'Sin permanencia. Cancela cuando quieras.'}
+          </span>
         </div>
         <p className="mx-auto mt-3 max-w-3xl text-left text-xs leading-relaxed text-gray-500 sm:text-sm">
-          {BILLING_LEGAL_NOTICE_AR}
+          {waitlist ? WAITLIST_PRICING_FOOTNOTE_AR : BILLING_LEGAL_NOTICE_AR}
         </p>
       </div>
     </section>

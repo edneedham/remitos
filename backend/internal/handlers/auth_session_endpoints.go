@@ -21,6 +21,10 @@ import (
 )
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	if h.waitlistOnly {
+		RespondWithError(w, r, ErrCodeForbidden, "El registro abierto no está disponible todavía. Podés sumarte a la lista de espera desde la web.", http.StatusForbidden)
+		return
+	}
 	var req models.CreateUserRequest
 	if !decodeJSONBody(w, r, httputil.MaxJSONAuthBody, &req) {
 		return

@@ -7,6 +7,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { getApiBaseUrl } from '../lib/apiUrl';
 import { isLikelyMobileDevice } from '../lib/mobileDevice';
 import { getPublicSiteOrigin } from '../lib/siteUrl';
+import { marketingSignupPath } from '../lib/waitlistOnly';
 import { hasWebSession, postWithWebAuth } from '../lib/webAuth';
 import { trackTrialOnboardingEvent } from '../lib/trialOnboardingAnalytics';
 import LoadingSpinner from '../ui/components/shared/LoadingSpinner';
@@ -43,7 +44,7 @@ export default function SignupGate() {
 
     queueMicrotask(() => {
       const origin = getPublicSiteOrigin();
-      setMobileUrl(`${origin}/registro`);
+      setMobileUrl(`${origin}${marketingSignupPath()}`);
       const wide = mq?.matches ?? false;
       setShowSignupQr(!isLikelyMobileDevice() || wide);
       setReady(true);

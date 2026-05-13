@@ -30,6 +30,10 @@ const (
 
 // Signup creates one company (trial tier), one warehouse, the first user (company_owner), and subscription row.
 func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
+	if h.waitlistOnly {
+		RespondWithError(w, r, ErrCodeForbidden, "El registro abierto no está disponible todavía. Podés sumarte a la lista de espera desde la web.", http.StatusForbidden)
+		return
+	}
 	var req models.SignupRequest
 	if !decodeJSONBody(w, r, httputil.MaxJSONAuthBody, &req) {
 		return

@@ -68,19 +68,49 @@ func messageForFieldError(fe validator.FieldError) string {
 		if field == "company_cuit" {
 			return "El CUIT de la empresa es obligatorio."
 		}
+		switch field {
+		case "delivery_notes_per_day_band":
+			return "Elegí cuántos remitos procesás por día en promedio."
+		case "processing_mode":
+			return "Elegí cómo procesás los remitos hoy."
+		case "warehouse_count":
+			return "Indicá cuántos depósitos tenés."
+		}
 		return fmt.Sprintf("%s es requerido", field)
 	case "email":
 		return fmt.Sprintf("%s debe ser un email válido", field)
 	case "min":
 		return fmt.Sprintf("%s debe tener al menos %s caracteres", field, fe.Param())
 	case "max":
+		switch field {
+		case "logistics_pain_points":
+			return "El texto sobre problemas de logística es demasiado largo (máximo " + fe.Param() + " caracteres)."
+		case "email":
+			return "El correo electrónico es demasiado largo."
+		}
 		return fmt.Sprintf("%s debe tener como máximo %s caracteres", field, fe.Param())
 	case "oneof":
+		switch field {
+		case "delivery_notes_per_day_band":
+			return "Elegí una opción válida para remitos por día."
+		case "processing_mode":
+			return "Elegí una opción válida para cómo procesás los remitos."
+		}
 		return fmt.Sprintf("%s debe ser uno de: %s", field, fe.Param())
 	case "company_code_chars":
 		return "Usá solo letras, números, guiones o guiones bajos."
 	case "cuit_ar":
 		return "El CUIT no es válido (revisá los 11 dígitos y el dígito verificador)."
+	case "gte", "lte":
+		switch field {
+		case "warehouse_count":
+			if tag == "gte" {
+				return "La cantidad de depósitos no puede ser negativa."
+			}
+			return "La cantidad de depósitos es demasiado alta."
+		default:
+			return fmt.Sprintf("%s no cumple el rango permitido", field)
+		}
 	default:
 		return fmt.Sprintf("validación fallida para %s: %s", field, tag)
 	}

@@ -6,6 +6,11 @@ import HomeGate from './HomeGate';
 import HomeBelowFoldFallback from './HomeBelowFoldFallback';
 import HeroSignupRow from './ui/components/website/HeroSignupRow';
 import HeroQrOverlay from './ui/components/website/HeroQrOverlay';
+import {
+  isWaitlistOnly,
+  marketingSignupPath,
+  waitlistGuestHeaderCtaLabel,
+} from './lib/waitlistOnly';
 
 const BenefitsSection = dynamic(
   () => import('./ui/components/website/BenefitsSection'),
@@ -21,6 +26,8 @@ const PricingPlansSection = dynamic(
 );
 
 export default function Home() {
+  const waitlist = isWaitlistOnly();
+
   return (
     <HomeGate>
       <div className="flex flex-col min-h-screen">
@@ -94,17 +101,19 @@ export default function Home() {
                     ¿Cuánto tarda la implementación?
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-gray-600 sm:text-base lg:text-lg">
-                    Podés empezar el mismo día. El onboarding está pensado para que
-                    tu equipo cargue sus primeros remitos en minutos.
+                    {waitlist
+                      ? 'Cuando habilitemos el acceso, el onboarding está pensado para que tu equipo cargue sus primeros remitos en minutos.'
+                      : 'Podés empezar el mismo día. El onboarding está pensado para que tu equipo cargue sus primeros remitos en minutos.'}
                   </p>
                 </article>
                 <article className="rounded-xl border border-gray-200 bg-gray-50 p-5 sm:p-6">
                   <h3 className="text-base font-semibold text-gray-900 sm:text-lg lg:text-xl">
-                    ¿Cómo pruebo la plataforma?
+                    {waitlist ? '¿Cómo consigo acceso?' : '¿Cómo pruebo la plataforma?'}
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-gray-600 sm:text-base lg:text-lg">
-                    Tenés una prueba gratis de 7 días para validar el flujo completo
-                    con tu propia operación.
+                    {waitlist
+                      ? 'Estamos con la lista de espera. Dejanos tus datos en la página de lista de espera y te avisamos cuando podamos darte acceso.'
+                      : 'Tenés una prueba gratis de 7 días para validar el flujo completo con tu propia operación.'}
                   </p>
                 </article>
               </div>
@@ -114,32 +123,55 @@ export default function Home() {
           {/* CTA Section */}
           <section className="bg-gray-900 py-20 px-4 sm:px-6 lg:px-8">
             <div className="mx-auto w-full max-w-[68.8rem] text-center">
-              <h2 className="mb-6 text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
-                ¿Listo para probarlo en tu operación?
-              </h2>
-              <p className="mb-8 text-lg leading-snug text-gray-300 sm:text-xl lg:text-2xl">
-                Empezá hoy con 7 días gratis. Disponible para Android y con soporte
-                para tu equipo desde el primer día.
-              </p>
-              <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-                <Link
-                  href="/registro"
-                  className="inline-flex items-center rounded-lg bg-white px-8 py-4 text-base font-semibold text-gray-900 transition-colors duration-200 hover:bg-gray-100 sm:text-lg"
-                >
-                  Probar en{' '}
-                  <Image
-                    src="/brands/android-head_flat.svg"
-                    alt=""
-                    width={152}
-                    height={89}
-                    className="mx-1 inline-block h-[1.15em] w-auto shrink-0 align-[-0.12em]"
-                    unoptimized
-                    aria-hidden
-                  />
-                  Android
-                  <ArrowRight className="ml-2 h-5 w-5 shrink-0" />
-                </Link>
-              </div>
+              {waitlist ? (
+                <>
+                  <h2 className="mb-6 text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
+                    ¿Querés sumarte cuando abramos?
+                  </h2>
+                  <p className="mb-8 text-lg leading-snug text-gray-300 sm:text-xl lg:text-2xl">
+                    Estamos preparando el acceso. Dejanos tus datos en la lista
+                    de espera y te avisamos.
+                  </p>
+                  <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+                    <Link
+                      href={marketingSignupPath()}
+                      className="inline-flex items-center rounded-lg bg-white px-8 py-4 text-base font-semibold text-gray-900 transition-colors duration-200 hover:bg-gray-100 sm:text-lg"
+                    >
+                      {waitlistGuestHeaderCtaLabel()}
+                      <ArrowRight className="ml-2 h-5 w-5 shrink-0" aria-hidden />
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="mb-6 text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
+                    ¿Listo para probarlo en tu operación?
+                  </h2>
+                  <p className="mb-8 text-lg leading-snug text-gray-300 sm:text-xl lg:text-2xl">
+                    Empezá hoy con 7 días gratis. Disponible para Android y con
+                    soporte para tu equipo desde el primer día.
+                  </p>
+                  <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+                    <Link
+                      href={marketingSignupPath()}
+                      className="inline-flex items-center rounded-lg bg-white px-8 py-4 text-base font-semibold text-gray-900 transition-colors duration-200 hover:bg-gray-100 sm:text-lg"
+                    >
+                      Probar en{' '}
+                      <Image
+                        src="/brands/android-head_flat.svg"
+                        alt=""
+                        width={152}
+                        height={89}
+                        className="mx-1 inline-block h-[1.15em] w-auto shrink-0 align-[-0.12em]"
+                        unoptimized
+                        aria-hidden
+                      />
+                      Android
+                      <ArrowRight className="ml-2 h-5 w-5 shrink-0" aria-hidden />
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
           </section>
         </main>

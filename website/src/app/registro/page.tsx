@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import { isWaitlistOnly } from '../lib/waitlistOnly';
 import LoadingSpinner from '../ui/components/shared/LoadingSpinner';
 import SignupGate from './SignupGate';
 
@@ -9,6 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default function SignupPage() {
+  if (isWaitlistOnly()) {
+    redirect('/lista-de-espera');
+  }
   return (
     <Suspense
       fallback={
