@@ -3,13 +3,20 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { LogOut } from 'lucide-react';
+import { ArrowRight, LogOut } from 'lucide-react';
 import {
   fetchProfile,
   hasWebSession,
   logoutWebSession,
   type WebProfile,
 } from '../../../lib/webAuth';
+import {
+  isMarketingSignupPath,
+  isWaitlistOnly,
+  marketingSignupLabel,
+  marketingSignupPath,
+  waitlistGuestHeaderCtaLabel,
+} from '../../../lib/waitlistOnly';
 
 /**
  * Right-hand auth controls for the site header and account dashboard top bar.
@@ -69,8 +76,7 @@ export default function HeaderAuthNav() {
     };
   }, [accountMenuOpen]);
 
-  const signupActive =
-    pathname === '/registro' || pathname.startsWith('/registro/');
+  const signupActive = isMarketingSignupPath(pathname);
   const loginActive = pathname === '/ingresar';
   const dashboardHomeActive = pathname === '/panel';
   const billingNavActive = pathname.startsWith('/panel/facturacion');
@@ -206,6 +212,21 @@ export default function HeaderAuthNav() {
           ) : null}
         </div>
         </>
+      ) : isWaitlistOnly() ? (
+        <div className="hidden lg:flex">
+          <Link
+            href={marketingSignupPath()}
+            aria-label={waitlistGuestHeaderCtaLabel()}
+            className={`inline-flex max-w-[min(100%,14rem)] shrink-0 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-center text-sm font-semibold leading-snug shadow-sm transition-colors sm:max-w-[18rem] sm:px-5 sm:py-2.5 ${
+              signupActive
+                ? 'bg-blue-700 text-white hover:bg-blue-800'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            <span className="min-w-0">{waitlistGuestHeaderCtaLabel()}</span>
+            <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+          </Link>
+        </div>
       ) : (
         <div className="hidden items-center gap-2 sm:gap-4 lg:flex">
           {/* Desktop: plain login + pill signup; mobile uses full-screen menu in Header */}
@@ -221,14 +242,14 @@ export default function HeaderAuthNav() {
             Iniciar sesión
           </Link>
           <Link
-            href="/registro"
+            href={marketingSignupPath()}
             className={`inline-flex shrink-0 items-center rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition-colors sm:px-5 sm:py-2.5 ${
               signupActive
                 ? 'bg-blue-700 text-white hover:bg-blue-800'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
-            Registro
+            {marketingSignupLabel()}
           </Link>
         </div>
       )}

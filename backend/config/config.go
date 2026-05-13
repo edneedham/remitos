@@ -26,6 +26,8 @@ type Config struct {
 	CorsAllowedOrigins []string
 	// If true, signup accepts trial without a real card token (development only).
 	SignupAllowMockPayment bool
+	// WaitlistOnly disables POST /auth/signup, /auth/signup/trial, and /auth/registrarse (public account creation).
+	WaitlistOnly bool
 
 	// Shared secret for POST /internal/billing/trigger-renewal (header X-Billing-Secret). Empty disables the route.
 	BillingRenewalSecret string
@@ -109,6 +111,7 @@ func Load() *Config {
 		MercadoPagoWebhookSecret:       strings.TrimSpace(getEnv("MERCADOPAGO_WEBHOOK_SECRET", "")),
 		CorsAllowedOrigins:             splitCommaTrim(getEnv("CORS_ALLOWED_ORIGINS", "")),
 		SignupAllowMockPayment:         getEnv("SIGNUP_ALLOW_MOCK_PAYMENT", "") == "true",
+		WaitlistOnly:                   getEnv("WAITLIST_ONLY", "") == "true",
 		BillingRenewalSecret:           strings.TrimSpace(getEnv("BILLING_RENEWAL_SECRET", "")),
 		BillingAutomaticRenewalEnabled: getEnv("BILLING_AUTOMATIC_RENEWAL_ENABLED", "") == "true",
 		BillingRenewalPollMinutes:      getEnvAsInt("BILLING_RENEWAL_POLL_MINUTES", 60),

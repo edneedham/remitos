@@ -2,11 +2,18 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X } from 'lucide-react';
+import { ArrowRight, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import HeaderAuthNav from './HeaderAuthNav';
 import { hasWebSession } from '../../../lib/webAuth';
+import {
+  isMarketingSignupPath,
+  isWaitlistOnly,
+  marketingSignupLabel,
+  marketingSignupPath,
+  waitlistGuestHeaderCtaLabel,
+} from '../../../lib/waitlistOnly';
 
 export default function Header() {
   const pathname = usePathname();
@@ -14,8 +21,7 @@ export default function Header() {
   const [guest, setGuest] = useState(true);
 
   const loginActive = pathname === '/ingresar';
-  const signupActive =
-    pathname === '/registro' || pathname.startsWith('/registro/');
+  const signupActive = isMarketingSignupPath(pathname);
 
   useEffect(() => {
     queueMicrotask(() => setGuest(!hasWebSession()));
@@ -65,12 +71,23 @@ export default function Header() {
                 />
               </Link>
 
-              <Link
-                href="/precios"
-                className="hidden text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 lg:inline"
+              <nav
+                className="hidden items-center gap-6 lg:flex"
+                aria-label="Principal"
               >
-                Precios
-              </Link>
+                <Link
+                  href="/precios"
+                  className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+                >
+                  Precios
+                </Link>
+                <Link
+                  href="/contacto"
+                  className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+                >
+                  Contacto
+                </Link>
+              </nav>
             </div>
 
             <div className="flex shrink-0 items-center gap-3">
@@ -143,31 +160,58 @@ export default function Header() {
             >
               Precios
             </Link>
+            <Link
+              href="/contacto"
+              className="block rounded-lg py-4 text-lg font-medium text-gray-900 hover:bg-gray-50"
+              onClick={() => setSiteMenuOpen(false)}
+            >
+              Contacto
+            </Link>
           </nav>
 
           <div className="shrink-0 bg-white px-4 pt-2 sm:px-6 pb-[max(4.5rem,calc(env(safe-area-inset-bottom)+3.5rem))]">
             <div className="mx-auto flex w-full max-w-[min(17rem,100%)] flex-col gap-4">
-              <Link
-                href="/ingresar"
-                aria-label="Iniciar sesión"
-                className={`flex min-h-12 w-full items-center justify-center rounded-full border border-gray-200 bg-white py-3 text-center text-base font-semibold transition-colors ${
-                  loginActive
-                    ? 'border-blue-600 text-blue-700'
-                    : 'text-gray-900 hover:bg-gray-50'
-                }`}
-                onClick={() => setSiteMenuOpen(false)}
-              >
-                Iniciar sesión
-              </Link>
-              <Link
-                href="/registro"
-                className={`flex min-h-12 w-full items-center justify-center rounded-full py-3 text-center text-base font-semibold text-white shadow-sm transition-colors ${
-                  signupActive ? 'bg-blue-700 hover:bg-blue-800' : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-                onClick={() => setSiteMenuOpen(false)}
-              >
-                Registro
-              </Link>
+              {isWaitlistOnly() ? (
+                <Link
+                  href={marketingSignupPath()}
+                  aria-label={waitlistGuestHeaderCtaLabel()}
+                  className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-3 py-3 text-center text-base font-semibold leading-snug text-white shadow-sm transition-colors ${
+                    signupActive
+                      ? 'bg-blue-700 hover:bg-blue-800'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                  onClick={() => setSiteMenuOpen(false)}
+                >
+                  <span className="min-w-0">{waitlistGuestHeaderCtaLabel()}</span>
+                  <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/ingresar"
+                    aria-label="Iniciar sesión"
+                    className={`flex min-h-12 w-full items-center justify-center rounded-full border border-gray-200 bg-white py-3 text-center text-base font-semibold transition-colors ${
+                      loginActive
+                        ? 'border-blue-600 text-blue-700'
+                        : 'text-gray-900 hover:bg-gray-50'
+                    }`}
+                    onClick={() => setSiteMenuOpen(false)}
+                  >
+                    Iniciar sesión
+                  </Link>
+                  <Link
+                    href={marketingSignupPath()}
+                    className={`flex min-h-12 w-full items-center justify-center rounded-full py-3 text-center text-base font-semibold text-white shadow-sm transition-colors ${
+                      signupActive
+                        ? 'bg-blue-700 hover:bg-blue-800'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                    onClick={() => setSiteMenuOpen(false)}
+                  >
+                    {marketingSignupLabel()}
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

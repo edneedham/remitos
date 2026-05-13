@@ -35,6 +35,8 @@ type AuthHandlerConfig struct {
 	BillingFXBufferFraction float64
 	FacturaEmitter          *billing.FacturaEmitter
 	AfipClient              *afip.Client
+	// WaitlistOnly disables public account creation (signup + registrarse); keep handlers for later.
+	WaitlistOnly bool
 }
 
 // NewAuthHandlerFromConfig builds an AuthHandler from AuthHandlerConfig.
@@ -63,5 +65,6 @@ func NewAuthHandlerFromConfig(c AuthHandlerConfig) *AuthHandler {
 		facturaEmitter:          c.FacturaEmitter,
 		afipClient:              c.AfipClient,
 		notificationRepo:        c.NotificationRepo,
+		waitlistOnly:            c.WaitlistOnly,
 	}
 }

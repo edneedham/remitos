@@ -45,6 +45,7 @@ type AuthHandler struct {
 	facturaEmitter          *billing.FacturaEmitter
 	afipClient              *afip.Client
 	notificationRepo        *repository.UserNotificationRepository
+	waitlistOnly            bool
 }
 
 type RegisterDeviceRequest struct {

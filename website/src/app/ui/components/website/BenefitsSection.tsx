@@ -8,8 +8,8 @@ import { ensureGsapScrollTrigger } from '../../../lib/gsapClient';
 const FIRST_BENEFIT_LINE = 'Encontrá documentos al toque.';
 const SECOND_BENEFIT_LINE =
   'Generá checklists para tus entregas sin errores.';
-const THIRD_BENEFIT_LINE =
-  'Subí tus datos donde los necesites con nuestra integración de Google Drive.';
+const THIRD_BENEFIT_BEFORE = 'Subí tus datos donde los necesites con nuestra integración de';
+const THIRD_BENEFIT_PRODUCT = 'Google Drive';
 const PANEL_CAPTION_LINE = 'Gestioná tu cuenta desde la web.';
 
 /** Section is “pinned” at the top of the viewport (desktop snap target). */
@@ -482,9 +482,21 @@ export default function BenefitsSection() {
               </p>
               <p
                 ref={benefitText3Ref}
-                className="border-l-[3px] border-blue-600 pl-4 text-left text-xl font-semibold leading-snug tracking-tight text-gray-900 sm:text-2xl lg:text-3xl md:[visibility:hidden]"
+                className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-l-[3px] border-blue-600 pl-4 text-left text-xl font-semibold leading-snug tracking-tight text-gray-900 sm:text-2xl lg:text-3xl md:[visibility:hidden]"
               >
-                {THIRD_BENEFIT_LINE}
+                <span>{THIRD_BENEFIT_BEFORE}</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Image
+                    src="/brands/google-drive-logo.png"
+                    alt=""
+                    width={28}
+                    height={28}
+                    className="size-7 shrink-0 translate-y-0.5"
+                    aria-hidden
+                  />
+                  <span className="whitespace-nowrap">{THIRD_BENEFIT_PRODUCT}</span>
+                </span>
+                <span aria-hidden>.</span>
               </p>
             </div>
 
@@ -519,7 +531,7 @@ export default function BenefitsSection() {
           </div>
           <p
             ref={panelCaptionRef}
-            className="mx-auto mt-8 max-w-content-prose px-4 text-left text-lg font-medium leading-relaxed text-gray-800 md:text-center sm:text-xl lg:text-2xl"
+            className="mx-auto mt-8 max-w-content-prose px-4 text-left text-xl font-semibold leading-snug tracking-tight text-gray-900 sm:text-2xl lg:text-3xl md:text-center"
           >
             {PANEL_CAPTION_LINE}
           </p>
