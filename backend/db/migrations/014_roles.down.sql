@@ -1,4 +1,0 @@
--- Revert roles table
-ALTER TABLE users DROP COLUMN IF EXISTS role_id;
-ALTER TABLE users DROP COLUMN IF EXISTS role;
-DROP TABLE IF EXISTS roles;
