@@ -50,7 +50,9 @@ func Build(cfg *config.Config) (http.Handler, context.CancelFunc, error) {
 
 	var authReleases *handlers.AuthReleasesConfig
 	if cfg.GCSReleasesBucket != "" && cfg.AndroidReleaseObject != "" {
-		releaseClient, err := storage.NewClient(context.Background())
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		releaseClient, err := storage.NewClient(ctx)
+		cancel()
 		if err != nil {
 			logger.Log.Warn().Err(err).Msg("GCS releases storage unavailable; /auth/downloads/android disabled")
 		} else {

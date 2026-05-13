@@ -22,7 +22,8 @@ type ScanHandler struct {
 }
 
 func NewScanHandler() (*ScanHandler, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
 	client, err := vision.NewImageAnnotatorClient(ctx)
 	if err != nil {
 		return nil, err

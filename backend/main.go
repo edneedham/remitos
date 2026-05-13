@@ -58,7 +58,7 @@ func main() {
 		logger.Log.Fatal().Err(err).Msg("Failed to build HTTP handler")
 	}
 
-	addr := ":" + server.Port()
+	addr := server.ListenAddr()
 	if err := server.ListenAndShutdown(server.ListenConfig{
 		Addr:      addr,
 		Handler:   handler,

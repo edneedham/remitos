@@ -89,3 +89,9 @@ func Port() string {
 	}
 	return port
 }
+
+// ListenAddr returns host:port for HTTP. Uses 0.0.0.0 so Cloud Run and similar
+// platforms accept IPv4 health checks (binding only to [::] can fail readiness).
+func ListenAddr() string {
+	return "0.0.0.0:" + Port()
+}

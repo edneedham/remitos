@@ -35,7 +35,8 @@ func NewImageHandler(imageRepo *repository.ImageRepository, deviceRepo *reposito
 		return nil, nil
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
 
 	// Initialize GCS client
 	// On Cloud Run, this uses the default service account automatically
