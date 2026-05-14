@@ -98,8 +98,12 @@ jobs:
           region: '${{ env.REGION }}'
           image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest'
           flags: '--service-account=${{ env.SERVICE_ACCOUNT }}'
-          # By not specifying env_vars here, it preserves the existing ones set in Cloud Run
-          # By not specifying secrets here, it preserves the existing DB_PASSWORD and JWT_SECRET bindings
+          # Must list secret env bindings on each deploy; omitting them has dropped bindings in practice.
+          # Names match backend/scripts/deploy-cloud-run.sh (Secret Manager: db-password, jwt-secret).
+          secrets: |
+            DB_PASSWORD=db-password:latest
+            JWT_SECRET=jwt-secret:latest
+          # Omit env_vars so DB_HOST, DB_PORT, etc. stay as set in the console / prior deploys.
 
       - name: Post-deploy smoke (optional)
         if: ${{ vars.PROD_API_BASE_URL != '' }}
