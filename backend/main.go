@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/joho/godotenv"
 	"server/config"
@@ -72,21 +76,54 @@ func main() {
 }
 
 func runMigrations(cfg *config.Config) error {
+	migrateURL := migrateDatabaseURL(cfg)
 	m, err := migrate.New(
 		"file://db/migrations",
-		fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-			cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBSSLMode),
+		migrateURL,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create migrate instance: %w", err)
 	}
+	defer func() {
+		_, _ = m.Close()
+	}()
+
+	if ver, dirty, verr := m.Version(); verr == nil {
+		logger.Log.Info().
+			Uint("current_migration_version", ver).
+			Bool("dirty", dirty).
+			Msg("Migration state before Up")
+	} else if errors.Is(verr, migrate.ErrNilVersion) {
+		logger.Log.Info().Msg("Migration state before Up: no version yet (fresh database)")
+	} else {
+		logger.Log.Warn().Err(verr).Msg("Could not read migration version before Up")
+	}
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		var dirty migrate.ErrDirty
+		if errors.As(err, &dirty) {
+			return fmt.Errorf("migrations are dirty at version %d (fix DB then migrate force): %w", dirty.Version, err)
+		}
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	logger.Log.Info().Msg("Migrations completed successfully")
 	return nil
+}
+
+// migrateDatabaseURL uses the pgx5 migrate driver (same stack as pgxpool) and
+// URL-encodes credentials so passwords with @, :, etc. match lib/pq behavior.
+func migrateDatabaseURL(cfg *config.Config) string {
+	u := &url.URL{
+		Scheme: "pgx5",
+		User:   url.UserPassword(cfg.DBUser, cfg.DBPassword),
+		Host:   net.JoinHostPort(cfg.DBHost, strconv.Itoa(cfg.DBPort)),
+		Path:   "/" + cfg.DBName,
+	}
+	q := url.Values{}
+	q.Set("sslmode", cfg.DBSSLMode)
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 func seedLocalDevUsers(ctx context.Context) error {
