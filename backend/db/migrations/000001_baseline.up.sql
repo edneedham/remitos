@@ -9,8 +9,6 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
-SET default_tablespace = '';
-
 SET default_table_access_method = heap;
 
 --
@@ -89,7 +87,7 @@ CREATE TABLE public.billing_invoices (
     factura_request_id uuid,
     factura_last_error text,
     factura_attempts integer DEFAULT 0 NOT NULL,
-    CONSTRAINT billing_invoices_status_check CHECK (((status)::text = ANY ((ARRAY['paid'::character varying, 'pending'::character varying, 'void'::character varying])::text[])))
+    CONSTRAINT billing_invoices_status_check CHECK (((status)::text = ANY (ARRAY[('paid'::character varying)::text, ('pending'::character varying)::text, ('void'::character varying)::text])))
 );
 
 
@@ -380,9 +378,9 @@ CREATE TABLE public.documents (
     verified_at timestamp without time zone,
     extra_fields_json jsonb DEFAULT '{}'::jsonb,
     cloud_id uuid DEFAULT gen_random_uuid(),
-    CONSTRAINT documents_ocr_engine_used_check CHECK (((ocr_engine_used)::text = ANY ((ARRAY['local'::character varying, 'cloud'::character varying])::text[]))),
-    CONSTRAINT documents_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'verifying'::character varying, 'verified'::character varying, 'finalized'::character varying])::text[]))),
-    CONSTRAINT documents_type_check CHECK (((type)::text = ANY ((ARRAY['incoming_remito'::character varying, 'outgoing_remito'::character varying])::text[])))
+    CONSTRAINT documents_ocr_engine_used_check CHECK (((ocr_engine_used)::text = ANY (ARRAY[('local'::character varying)::text, ('cloud'::character varying)::text]))),
+    CONSTRAINT documents_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::character varying)::text, ('verifying'::character varying)::text, ('verified'::character varying)::text, ('finalized'::character varying)::text]))),
+    CONSTRAINT documents_type_check CHECK (((type)::text = ANY (ARRAY[('incoming_remito'::character varying)::text, ('outgoing_remito'::character varying)::text])))
 );
 
 
@@ -417,7 +415,7 @@ CREATE TABLE public.images (
     uploaded_by uuid,
     uploaded_at timestamp without time zone DEFAULT now() NOT NULL,
     storage_class character varying(20) DEFAULT 'STANDARD'::character varying,
-    CONSTRAINT images_entity_type_check CHECK (((entity_type)::text = ANY ((ARRAY['inbound_note'::character varying, 'outbound_list'::character varying, 'scan'::character varying])::text[])))
+    CONSTRAINT images_entity_type_check CHECK (((entity_type)::text = ANY (ARRAY[('inbound_note'::character varying)::text, ('outbound_list'::character varying)::text, ('scan'::character varying)::text])))
 );
 
 
@@ -462,7 +460,7 @@ CREATE TABLE public.ocr_results (
     processed_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     company_id uuid NOT NULL,
-    CONSTRAINT ocr_results_source_check CHECK (((source)::text = ANY ((ARRAY['mlkit'::character varying, 'cloud_vision'::character varying])::text[])))
+    CONSTRAINT ocr_results_source_check CHECK (((source)::text = ANY (ARRAY[('mlkit'::character varying)::text, ('cloud_vision'::character varying)::text])))
 );
 
 
@@ -596,7 +594,7 @@ CREATE TABLE public.scan_events (
     confidence_score double precision,
     processed_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT scan_events_source_check CHECK (((source)::text = ANY ((ARRAY['mlkit'::character varying, 'cloud_vision'::character varying])::text[])))
+    CONSTRAINT scan_events_source_check CHECK (((source)::text = ANY (ARRAY[('mlkit'::character varying)::text, ('cloud_vision'::character varying)::text])))
 );
 
 
@@ -719,6 +717,25 @@ CREATE TABLE public.users (
     is_verified boolean DEFAULT false,
     role_id uuid,
     external_id character varying(50)
+);
+
+
+--
+-- Name: waitlist_entries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.waitlist_entries (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    email_normalized text NOT NULL,
+    full_name text,
+    company_name text,
+    source text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    delivery_notes_per_day_band text,
+    processing_mode text,
+    digital_application text,
+    warehouse_count integer,
+    logistics_pain_points text
 );
 
 
@@ -1104,6 +1121,14 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: waitlist_entries waitlist_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.waitlist_entries
+    ADD CONSTRAINT waitlist_entries_pkey PRIMARY KEY (id);
 
 
 --
@@ -1733,6 +1758,13 @@ CREATE INDEX idx_web_session_transfers_user_id ON public.web_session_transfers U
 
 
 --
+-- Name: waitlist_entries_email_normalized_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX waitlist_entries_email_normalized_key ON public.waitlist_entries USING btree (email_normalized);
+
+
+--
 -- Name: audit_logs audit_logs_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2179,3 +2211,4 @@ ALTER TABLE ONLY public.web_session_transfers
 ALTER TABLE ONLY public.web_session_transfers
     ADD CONSTRAINT web_session_transfers_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
+SET search_path TO public;
