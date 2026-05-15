@@ -23,6 +23,7 @@ type WaitlistCreateParams struct {
 	DigitalApplication      *string
 	LogisticsPainPoints     *string
 	WarehouseCount          *int
+	ProductUpdatesOptIn     bool
 }
 
 type WaitlistRepository struct {
@@ -39,11 +40,13 @@ func (r *WaitlistRepository) Create(ctx context.Context, p WaitlistCreateParams)
 	query := `
 		INSERT INTO waitlist_entries (
 			id, email_normalized, full_name, company_name, source,
-			delivery_notes_per_day_band, processing_mode, digital_application, logistics_pain_points, warehouse_count
+			delivery_notes_per_day_band, processing_mode, digital_application, logistics_pain_points, warehouse_count,
+			product_updates_opt_in
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id, email_normalized, full_name, company_name, source,
-			delivery_notes_per_day_band, processing_mode, digital_application, logistics_pain_points, warehouse_count, created_at
+			delivery_notes_per_day_band, processing_mode, digital_application, logistics_pain_points, warehouse_count,
+			product_updates_opt_in, created_at
 	`
 	var row models.WaitlistEntry
 	err := r.pool.QueryRow(ctx, query,
@@ -57,6 +60,7 @@ func (r *WaitlistRepository) Create(ctx context.Context, p WaitlistCreateParams)
 		p.DigitalApplication,
 		p.LogisticsPainPoints,
 		p.WarehouseCount,
+		p.ProductUpdatesOptIn,
 	).Scan(
 		&row.ID,
 		&row.EmailNormalized,
@@ -68,6 +72,7 @@ func (r *WaitlistRepository) Create(ctx context.Context, p WaitlistCreateParams)
 		&row.DigitalApplication,
 		&row.LogisticsPainPoints,
 		&row.WarehouseCount,
+		&row.ProductUpdatesOptIn,
 		&row.CreatedAt,
 	)
 	if err != nil {

@@ -81,6 +81,7 @@ func (h *PublicHandler) PostWaitlist(w http.ResponseWriter, r *http.Request) {
 		DigitalApplication:      digApp,
 		LogisticsPainPoints:     logisticsPain,
 		WarehouseCount:          req.WarehouseCount,
+		ProductUpdatesOptIn:     req.ProductUpdatesOptIn,
 	})
 	if err != nil {
 		if err == repository.ErrWaitlistDuplicate {
