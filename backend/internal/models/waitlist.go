@@ -21,6 +21,8 @@ type WaitlistRequest struct {
 	LogisticsPainPoints string `json:"logistics_pain_points" validate:"omitempty,max=2000"`
 	// WarehouseCount pointer so JSON 0 is valid (validator `required` rejects plain int 0).
 	WarehouseCount *int `json:"warehouse_count" validate:"required,gte=0,lte=50000"`
+	// ProductUpdatesOptIn: optional marketing / product news emails.
+	ProductUpdatesOptIn bool `json:"product_updates_opt_in"`
 }
 
 // WaitlistEntry is a persisted waitlist row (email_normalized is unique).
@@ -35,5 +37,6 @@ type WaitlistEntry struct {
 	DigitalApplication      *string   `json:"digital_application,omitempty"`
 	LogisticsPainPoints     *string   `json:"logistics_pain_points,omitempty"`
 	WarehouseCount          *int      `json:"warehouse_count,omitempty"`
+	ProductUpdatesOptIn     bool      `json:"product_updates_opt_in"`
 	CreatedAt               time.Time `json:"created_at"`
 }

@@ -1,5 +1,15 @@
 'use client';
 
+import {
+  ArrowRight,
+  Gift,
+  ListOrdered,
+  MessageSquare,
+  Package,
+  Quote,
+  UserRound,
+} from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getApiBaseUrl } from '../lib/apiUrl';
@@ -46,9 +56,12 @@ export default function WaitlistForm() {
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [productUpdatesOptIn, setProductUpdatesOptIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [doneMessage, setDoneMessage] = useState<string | null>(null);
+  /** 0: contacto, 1: operación, 2: envío — solo vista mobile (md+ muestra todo). */
+  const [mobileStep, setMobileStep] = useState(0);
 
   const canSubmit = useMemo(() => {
     if (loading) return false;
@@ -69,6 +82,58 @@ export default function WaitlistForm() {
     fullName,
     companyName,
     loading,
+  ]);
+
+  const MOBILE_STEP_COUNT = 3;
+
+  const advanceMobileStep = useCallback(() => {
+    setError(null);
+    if (mobileStep === 0) {
+      if (!emailLooksValid(email)) {
+        setError('Ingresá un correo electrónico válido.');
+        return;
+      }
+      if (!nonEmptyTrimmed(fullName)) {
+        setError('Ingresá tu nombre.');
+        return;
+      }
+      if (!nonEmptyTrimmed(companyName)) {
+        setError('Ingresá el nombre de tu empresa u organización.');
+        return;
+      }
+      setMobileStep(1);
+      return;
+    }
+    if (mobileStep === 1) {
+      if (!deliveryNotesPerDay) {
+        setError(
+          'Elegí el rango que mejor representa tus remitos por día.',
+        );
+        return;
+      }
+      if (!processingMode) {
+        setError('Elegí cómo procesás los remitos hoy.');
+        return;
+      }
+      const whTrim = warehouseCountInput.trim();
+      if (!warehouseCountValid(warehouseCountInput)) {
+        setError(
+          whTrim === ''
+            ? 'Indicá cuántos depósitos tenés (podés poner 0).'
+            : 'La cantidad de depósitos debe ser un número entre 0 y 50.000.',
+        );
+        return;
+      }
+      setMobileStep(2);
+    }
+  }, [
+    mobileStep,
+    email,
+    fullName,
+    companyName,
+    deliveryNotesPerDay,
+    processingMode,
+    warehouseCountInput,
   ]);
 
   const submit = useCallback(
@@ -138,6 +203,7 @@ export default function WaitlistForm() {
               processingMode === 'digital' ? digitalApplication.trim() : '',
             logistics_pain_points: logisticsPainPoints.trim(),
             warehouse_count: wh,
+            product_updates_opt_in: productUpdatesOptIn,
           }),
         });
         const data = (await res.json().catch(() => ({}))) as {
@@ -176,6 +242,7 @@ export default function WaitlistForm() {
           setEmail('');
           setFullName('');
           setCompanyName('');
+          setProductUpdatesOptIn(false);
         }
       } catch {
         setError('Error de red. Revisá tu conexión e intentá de nuevo.');
@@ -194,265 +261,537 @@ export default function WaitlistForm() {
       digitalApplication,
       warehouseCountInput,
       logisticsPainPoints,
+      productUpdatesOptIn,
     ],
   );
 
+  const checkboxOptionClass =
+    'flex cursor-pointer items-start gap-2 rounded-lg border border-gray-200 px-2.5 py-2 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/60 md:gap-3 md:px-3 md:py-3';
+
   const radioClass =
-    'flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 px-3 py-2.5 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/60';
+    'flex cursor-pointer items-start gap-2 rounded-lg border border-gray-200 px-2.5 py-2 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/60 md:gap-3 md:px-3 md:py-3';
+  const iconTileClass =
+    'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 md:h-9 md:w-9';
+  const eyebrowClass =
+    'text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-600 md:text-xs md:tracking-[0.2em]';
+  const sectionTitleClass =
+    'text-sm font-semibold text-gray-900 md:text-base';
+  const sectionDescClass =
+    'mt-1 text-xs leading-snug text-gray-600 md:text-sm md:leading-relaxed';
+  const questionLabelClass =
+    'block text-xs font-semibold leading-snug text-gray-900 md:text-sm';
+  const legendClass = `${questionLabelClass} mb-1.5 md:mb-2`;
+  const fieldLabelClass = `${questionLabelClass} mb-1 md:mb-1.5`;
+  const optionTextClass =
+    'text-xs leading-snug text-gray-700 md:text-sm md:leading-relaxed';
+  const finePrintClass = 'text-xs leading-relaxed text-gray-500';
+  const inputClass =
+    'w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 md:px-3 md:py-2.5';
+  const fieldHintClass = `mt-1.5 ${finePrintClass}`;
 
   return (
     <form
       onSubmit={submit}
-      className="flex flex-col gap-6"
+      className="flex flex-col"
       noValidate
       aria-describedby={error ? 'waitlist-form-alert' : undefined}
     >
-      {planHint === 'pyme' || planHint === 'empresa' ? (
-        <p className="rounded-lg border border-blue-100 bg-blue-50/80 px-3 py-2 text-sm text-blue-900">
-          Interés registrado para el plan{' '}
-          <span className="font-semibold">
-            {planHint === 'pyme' ? 'PyME' : 'Empresa'}
-          </span>
-          .
-        </p>
-      ) : null}
+      <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-stretch md:gap-10 lg:gap-12">
+        <div className="hidden md:block md:border-r md:border-gray-200 md:pr-10 lg:pr-12">
+          <header className="md:sticky md:top-6">
+            <div className="space-y-2.5">
+              <p className={eyebrowClass}>Acceso anticipado</p>
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                Unite a la lista de espera
+              </h1>
+              <p className={`max-w-sm ${sectionDescClass} mt-0`}>
+                Enterate primero cuando abramos las suscripciones.
+              </p>
+            </div>
 
-      <fieldset className="space-y-3">
-        <legend className="mb-1 text-sm font-medium text-gray-900">
-          ¿En qué rango está el promedio de remitos de entrega por día?{' '}
-          <span className="text-red-600">*</span>
-        </legend>
-        <div className="flex flex-col gap-2">
-          {DELIVERY_NOTES_PER_DAY_OPTIONS.map((opt) => (
-            <label key={opt.value} className={radioClass}>
-              <input
-                type="radio"
-                name="delivery_notes_per_day_band"
-                value={opt.value}
-                checked={deliveryNotesPerDay === opt.value}
-                onChange={() => setDeliveryNotesPerDay(opt.value)}
-                className="mt-1 h-4 w-4 shrink-0 text-blue-600"
-              />
-              <span className="text-sm text-gray-800">{opt.label}</span>
-            </label>
-          ))}
+            <ul className="mt-8 space-y-4 border-t border-gray-100 pt-8">
+              <li className="flex items-start gap-3">
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600"
+                  aria-hidden
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 pt-0.5">
+                  <span className={`block ${sectionTitleClass}`}>
+                    Primero en la fila
+                  </span>
+                  <span className={`block ${sectionDescClass}`}>
+                    Obtené acceso anticipado antes de abrir al público.
+                  </span>
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600"
+                  aria-hidden
+                >
+                  <Gift className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 pt-0.5">
+                  <span className={`block ${sectionTitleClass}`}>
+                    Beneficios para miembros fundadores
+                  </span>
+                  <span className={`block ${sectionDescClass}`}>
+                    Descuentos especiales y ventajas para nuestros primeros
+                    clientes.
+                  </span>
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600"
+                  aria-hidden
+                >
+                  <MessageSquare className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 pt-0.5">
+                  <span className={`block ${sectionTitleClass}`}>
+                    Ayudanos a dar forma al producto
+                  </span>
+                  <span className={`block ${sectionDescClass}`}>
+                    Tu feedback nos ayudará a construir lo que realmente
+                    necesitás.
+                  </span>
+                </span>
+              </li>
+            </ul>
+
+            <blockquote className="mt-8 rounded-xl border border-gray-100 bg-gray-50/90 p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100/80 text-blue-600"
+                  aria-hidden
+                >
+                  <Quote className="h-4 w-4" />
+                </span>
+                <p className="min-w-0">
+                  <span className={`block ${sectionDescClass} mt-0`}>
+                    Lo estamos construyendo para equipos como el tuyo. Contanos
+                    un poco sobre vos para que podamos hacerlo aún mejor.
+                  </span>
+                  <span className={`mt-3 block ${questionLabelClass}`}>
+                    — El equipo
+                  </span>
+                </p>
+              </div>
+            </blockquote>
+          </header>
         </div>
-      </fieldset>
 
-      <fieldset className="space-y-3">
-        <legend className="mb-1 text-sm font-medium text-gray-900">
-          ¿Cómo procesás los remitos hoy? <span className="text-red-600">*</span>
-        </legend>
-        <div className="flex flex-col gap-2">
-          {PROCESSING_MODE_OPTIONS.map((opt) => (
-            <label key={opt.value} className={radioClass}>
+        <div className="md:hidden">
+          <div className="space-y-1 text-left">
+            <p className={eyebrowClass}>Acceso anticipado</p>
+            <h1 className="text-2xl font-bold leading-tight tracking-tight text-gray-900">
+              Unite a la lista de espera
+            </h1>
+            <p className={`${sectionDescClass} mt-0 max-w-none`}>
+              Enterate primero cuando abramos las suscripciones.
+            </p>
+          </div>
+          <ul className="mt-3 grid grid-cols-3 gap-1.5 border-t border-gray-100 pt-3">
+            <li className="flex min-w-0 flex-col items-center gap-1 rounded-lg border border-gray-100 bg-gray-50/80 px-1 py-2 text-center">
+              <span
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600"
+                aria-hidden
+              >
+                <ListOrdered className="h-3 w-3" />
+              </span>
+              <span className="text-[10px] font-semibold leading-[1.15] text-gray-900">
+                Primero en la fila
+              </span>
+            </li>
+            <li className="flex min-w-0 flex-col items-center gap-1 rounded-lg border border-gray-100 bg-gray-50/80 px-1 py-2 text-center">
+              <span
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600"
+                aria-hidden
+              >
+                <Gift className="h-3 w-3" />
+              </span>
+              <span className="text-[10px] font-semibold leading-[1.15] text-gray-900">
+                Beneficios fundadores
+              </span>
+            </li>
+            <li className="flex min-w-0 flex-col items-center gap-1 rounded-lg border border-gray-100 bg-gray-50/80 px-1 py-2 text-center">
+              <span
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600"
+                aria-hidden
+              >
+                <MessageSquare className="h-3 w-3" />
+              </span>
+              <span className="text-[10px] font-semibold leading-[1.15] text-gray-900">
+                Formá el producto
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="flex min-w-0 flex-col">
+          {planHint === 'pyme' || planHint === 'empresa' ? (
+            <p className="mb-3 rounded-lg border border-blue-100 bg-blue-50/80 px-2.5 py-2 text-xs text-blue-900 md:mb-6 md:px-3 md:py-2.5 md:text-sm">
+              Interés registrado para el plan{' '}
+              <span className="font-semibold">
+                {planHint === 'pyme' ? 'PyME' : 'Empresa'}
+              </span>
+              .
+            </p>
+          ) : null}
+
+          {error ? (
+            <p
+              id="waitlist-form-alert"
+              role="alert"
+              className="mb-2 rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-xs text-red-800 md:mb-4 md:px-3 md:py-2.5 md:text-sm"
+            >
+              {error}
+            </p>
+          ) : null}
+
+          {doneMessage ? (
+            <p
+              role="status"
+              className="mb-2 rounded-lg border border-green-200 bg-green-50 px-2.5 py-2 text-xs text-green-900 md:mb-4 md:px-3 md:py-2.5 md:text-sm"
+            >
+              {doneMessage}
+            </p>
+          ) : null}
+
+          <section
+            className={`space-y-3 md:space-y-5 ${mobileStep !== 0 ? 'max-md:hidden' : ''}`}
+          >
+            <div className="flex items-start gap-2 md:gap-3">
+              <span className={iconTileClass} aria-hidden>
+                <UserRound className="h-4 w-4" />
+              </span>
+              <div>
+                <h2 className={sectionTitleClass}>Tus datos de contacto</h2>
+                <p className={sectionDescClass}>
+                  Los usamos para avisarte cuando haya acceso.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 md:gap-5">
+              <div>
+                <label htmlFor="waitlist-email" className={fieldLabelClass}>
+                  Correo electrónico <span className="text-red-600">*</span>
+                </label>
+                <input
+                  id="waitlist-email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  maxLength={WAITLIST_FIELD_MAX.email}
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="waitlist-name" className={fieldLabelClass}>
+                  Nombre <span className="text-red-600">*</span>
+                </label>
+                <input
+                  id="waitlist-name"
+                  name="full_name"
+                  type="text"
+                  autoComplete="name"
+                  autoCapitalize="words"
+                  maxLength={WAITLIST_FIELD_MAX.fullName}
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="waitlist-company" className={fieldLabelClass}>
+                  Empresa <span className="text-red-600">*</span>
+                </label>
+                <input
+                  id="waitlist-company"
+                  name="company_name"
+                  type="text"
+                  autoComplete="organization"
+                  maxLength={WAITLIST_FIELD_MAX.companyName}
+                  required
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section
+            className={`space-y-4 border-t border-gray-100 pt-8 max-md:mt-0 max-md:border-t-0 max-md:space-y-3 max-md:pt-0 md:mt-8 md:space-y-6 ${mobileStep !== 1 ? 'max-md:hidden' : ''}`}
+          >
+            <div className="flex items-start gap-2 md:gap-3">
+              <span className={iconTileClass} aria-hidden>
+                <Package className="h-4 w-4" />
+              </span>
+              <div>
+                <h2 className={sectionTitleClass}>Sobre tu operación</h2>
+                <p className={sectionDescClass}>
+                  Estas respuestas nos ayudan a entender tu volumen y tus
+                  prioridades.
+                </p>
+              </div>
+            </div>
+
+            <fieldset className="space-y-2 md:space-y-3">
+              <legend className={legendClass}>
+                ¿En qué rango está el promedio de remitos de entrega por día?{' '}
+                <span className="text-red-600">*</span>
+              </legend>
+              <div className="flex flex-col gap-1.5 md:gap-2">
+                {DELIVERY_NOTES_PER_DAY_OPTIONS.map((opt) => (
+                  <label key={opt.value} className={radioClass}>
+                    <input
+                      type="radio"
+                      name="delivery_notes_per_day_band"
+                      value={opt.value}
+                      checked={deliveryNotesPerDay === opt.value}
+                      onChange={() => setDeliveryNotesPerDay(opt.value)}
+                      className="mt-1 h-4 w-4 shrink-0 text-blue-600"
+                    />
+                    <span className={optionTextClass}>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset className="space-y-2 md:space-y-3">
+              <legend className={legendClass}>
+                ¿Cómo procesás los remitos hoy?{' '}
+                <span className="text-red-600">*</span>
+              </legend>
+              <div className="flex flex-col gap-1.5 md:gap-2">
+                {PROCESSING_MODE_OPTIONS.map((opt) => (
+                  <label key={opt.value} className={radioClass}>
+                    <input
+                      type="radio"
+                      name="processing_mode"
+                      value={opt.value}
+                      checked={processingMode === opt.value}
+                      onChange={() => {
+                        setProcessingMode(opt.value);
+                        if (opt.value === 'manual') {
+                          setDigitalApplication('');
+                        }
+                      }}
+                      className="mt-1 h-4 w-4 shrink-0 text-blue-600"
+                    />
+                    <span className={optionTextClass}>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+              {processingMode === 'digital' ? (
+                <div className="mt-2 md:mt-3">
+                  <label
+                    htmlFor="waitlist-digital-app"
+                    className={fieldLabelClass}
+                  >
+                    ¿Qué aplicación usás? (opcional)
+                  </label>
+                  <input
+                    id="waitlist-digital-app"
+                    name="digital_application"
+                    type="text"
+                    autoComplete="off"
+                    maxLength={WAITLIST_FIELD_MAX.digitalApplication}
+                    value={digitalApplication}
+                    onChange={(e) => setDigitalApplication(e.target.value)}
+                    placeholder="Ej.: Excel, sistema ERP, otra…"
+                    className={inputClass}
+                  />
+                </div>
+              ) : null}
+            </fieldset>
+
+            <div>
+              <label htmlFor="waitlist-warehouses" className={fieldLabelClass}>
+                ¿Cuántos depósitos tenés hoy?{' '}
+                <span className="text-red-600">*</span>
+              </label>
               <input
-                type="radio"
-                name="processing_mode"
-                value={opt.value}
-                checked={processingMode === opt.value}
-                onChange={() => {
-                  setProcessingMode(opt.value);
-                  if (opt.value === 'manual') {
-                    setDigitalApplication('');
-                  }
+                id="waitlist-warehouses"
+                name="warehouse_count"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                maxLength={WAITLIST_FIELD_MAX.warehouseDigits}
+                required
+                value={warehouseCountInput}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, '');
+                  setWarehouseCountInput(
+                    digitsOnly.slice(0, WAITLIST_FIELD_MAX.warehouseDigits),
+                  );
                 }}
-                className="mt-1 h-4 w-4 shrink-0 text-blue-600"
+                className={`${inputClass} max-w-[12rem]`}
               />
-              <span className="text-sm text-gray-800">{opt.label}</span>
+              <p className={fieldHintClass}>
+                Podés ingresar 0 si aún no tenés depósitos.
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="waitlist-logistics-pain"
+                className={fieldLabelClass}
+              >
+                ¿Cuáles son hoy tus mayores problemas en la logística en
+                Argentina? (opcional)
+              </label>
+              <textarea
+                id="waitlist-logistics-pain"
+                name="logistics_pain_points"
+                rows={3}
+                maxLength={WAITLIST_FIELD_MAX.logisticsPainPoints}
+                autoComplete="off"
+                value={logisticsPainPoints}
+                onChange={(e) => setLogisticsPainPoints(e.target.value)}
+                placeholder="Ej.: costos, demoras, visibilidad de stock, documentación, última milla…"
+                className={`${inputClass} min-h-[4rem] resize-y md:min-h-[5.5rem]`}
+              />
+              <p className={fieldHintClass}>
+                Hasta {WAITLIST_FIELD_MAX.logisticsPainPoints} caracteres.
+              </p>
+            </div>
+          </section>
+
+          <section
+            className={`space-y-3 border-t border-gray-100 pt-8 max-md:mt-0 max-md:border-t-0 max-md:pt-0 md:mt-8 md:space-y-4 ${mobileStep !== 2 ? 'max-md:hidden' : ''}`}
+          >
+            {!canSubmit && !loading && !doneMessage ? (
+              <p
+                className={`text-xs leading-snug text-gray-500 md:text-sm md:leading-relaxed ${mobileStep < 2 ? 'max-md:hidden' : ''}`}
+              >
+                {getApiBaseUrl()
+                  ? 'Completá las preguntas obligatorias, el rango de remitos por día, la cantidad de depósitos, nombre, empresa y tu correo para enviar.'
+                  : 'Falta configurar NEXT_PUBLIC_API_URL: el envío no está disponible hasta que esté la URL de la API.'}
+              </p>
+            ) : null}
+
+            <label className={checkboxOptionClass}>
+              <input
+                type="checkbox"
+                name="product_updates_opt_in"
+                checked={productUpdatesOptIn}
+                onChange={(e) => setProductUpdatesOptIn(e.target.checked)}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300 text-blue-600 focus:ring-blue-500/30"
+              />
+              <span className="min-w-0">
+                <span className={`block ${questionLabelClass}`}>
+                  Quiero recibir novedades del producto y acceso anticipado.
+                </span>
+                <span className={`block ${sectionDescClass}`}>
+                  Sin spam; podés darte de baja cuando quieras.
+                </span>
+              </span>
             </label>
-          ))}
+
+            <button
+              type="submit"
+              disabled={!canSubmit || loading}
+              title={
+                loading
+                  ? undefined
+                  : !getApiBaseUrl()
+                    ? 'Falta configurar NEXT_PUBLIC_API_URL'
+                    : !canSubmit
+                      ? 'Completá todos los campos obligatorios'
+                      : undefined
+              }
+              className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 md:py-3.5 md:text-base"
+            >
+              {loading ? 'Enviando…' : 'Unirme a la lista'}
+            </button>
+
+            <p className="hidden text-center text-xs leading-relaxed text-gray-500 sm:text-sm md:block">
+              Al enviar, aceptás nuestra{' '}
+              <Link
+                href="/privacidad"
+                className="font-medium text-blue-600 underline-offset-2 hover:underline"
+              >
+                Política de privacidad
+              </Link>{' '}
+              y el tratamiento de tus datos para gestionar tu solicitud en la
+              lista de espera.
+            </p>
+          </section>
+
+          <div className="mt-4 flex flex-col gap-3 md:hidden">
+            {mobileStep < MOBILE_STEP_COUNT - 1 ? (
+              <button
+                type="button"
+                onClick={advanceMobileStep}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+              >
+                Siguiente
+                <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+              </button>
+            ) : null}
+
+            <div
+              className="flex justify-center gap-2"
+              aria-label="Paso del formulario"
+            >
+              {Array.from({ length: MOBILE_STEP_COUNT }, (_, i) => (
+                <span
+                  key={i}
+                  aria-current={i === mobileStep ? 'step' : undefined}
+                  className={`h-2 w-2 rounded-full transition-colors ${i === mobileStep ? 'bg-blue-600' : 'bg-gray-300'}`}
+                />
+              ))}
+            </div>
+
+            <p className="text-center text-xs leading-relaxed text-gray-500">
+              Al enviar, aceptás nuestra{' '}
+              <Link
+                href="/privacidad"
+                className="font-medium text-blue-600 underline-offset-2 hover:underline"
+              >
+                Política de privacidad
+              </Link>{' '}
+              y el tratamiento de tus datos para gestionar tu solicitud en la
+              lista de espera.
+            </p>
+
+            <blockquote className="rounded-lg border border-gray-100 bg-gray-50/90 p-3 md:hidden">
+              <div className="flex items-start gap-2">
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-100/80 text-blue-600"
+                  aria-hidden
+                >
+                  <Quote className="h-3.5 w-3.5" />
+                </span>
+                <p className="min-w-0">
+                  <span className={`block ${sectionDescClass} mt-0`}>
+                    Lo estamos construyendo para equipos como el tuyo. Contanos
+                    un poco sobre vos para que podamos hacerlo aún mejor.
+                  </span>
+                  <span className={`mt-2 block ${questionLabelClass}`}>
+                    — El equipo
+                  </span>
+                </p>
+              </div>
+            </blockquote>
+          </div>
         </div>
-        {processingMode === 'digital' ? (
-          <div className="mt-2">
-            <label
-              htmlFor="waitlist-digital-app"
-              className="mb-1.5 block text-sm font-medium text-gray-700"
-            >
-              ¿Qué aplicación usás? (opcional)
-            </label>
-            <input
-              id="waitlist-digital-app"
-              name="digital_application"
-              type="text"
-              autoComplete="off"
-              maxLength={WAITLIST_FIELD_MAX.digitalApplication}
-              value={digitalApplication}
-              onChange={(e) => setDigitalApplication(e.target.value)}
-              placeholder="Ej.: Excel, sistema ERP, otra…"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            />
-          </div>
-        ) : null}
-      </fieldset>
-
-      <div>
-        <label
-          htmlFor="waitlist-warehouses"
-          className="mb-1.5 block text-sm font-medium text-gray-900"
-        >
-          ¿Cuántos depósitos tenés hoy? <span className="text-red-600">*</span>
-        </label>
-        <input
-          id="waitlist-warehouses"
-          name="warehouse_count"
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          autoComplete="off"
-          maxLength={WAITLIST_FIELD_MAX.warehouseDigits}
-          required
-          value={warehouseCountInput}
-          onChange={(e) => {
-            const digitsOnly = e.target.value.replace(/\D/g, '');
-            setWarehouseCountInput(
-              digitsOnly.slice(0, WAITLIST_FIELD_MAX.warehouseDigits),
-            );
-          }}
-          className="w-full max-w-[12rem] rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-        />
-        <p className="mt-1 text-xs text-gray-500">
-          Podés ingresar 0 si aún no tenés depósitos.
-        </p>
       </div>
-
-      <div>
-        <label
-          htmlFor="waitlist-logistics-pain"
-          className="mb-1.5 block text-sm font-medium text-gray-900"
-        >
-          ¿Cuáles son hoy tus mayores problemas en la logística en Argentina? (opcional)
-        </label>
-        <textarea
-          id="waitlist-logistics-pain"
-          name="logistics_pain_points"
-          rows={4}
-          maxLength={WAITLIST_FIELD_MAX.logisticsPainPoints}
-          autoComplete="off"
-          value={logisticsPainPoints}
-          onChange={(e) => setLogisticsPainPoints(e.target.value)}
-          placeholder="Ej.: costos, demoras, visibilidad de stock, documentación, última milla…"
-          className="w-full min-h-[5.5rem] resize-y rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-        />
-        <p className="mt-1 text-xs text-gray-500">
-          Hasta {WAITLIST_FIELD_MAX.logisticsPainPoints} caracteres.
-        </p>
-      </div>
-
-      <div className="border-t border-gray-100 pt-2">
-        <p className="mb-4 text-sm font-medium text-gray-700">
-          Tus datos de contacto
-        </p>
-        <div className="flex flex-col gap-5">
-          <div>
-            <label
-              htmlFor="waitlist-email"
-              className="mb-1.5 block text-sm font-medium text-gray-700"
-            >
-              Correo electrónico <span className="text-red-600">*</span>
-            </label>
-            <input
-              id="waitlist-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              maxLength={WAITLIST_FIELD_MAX.email}
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="waitlist-name"
-              className="mb-1.5 block text-sm font-medium text-gray-700"
-            >
-              Nombre <span className="text-red-600">*</span>
-            </label>
-            <input
-              id="waitlist-name"
-              name="full_name"
-              type="text"
-              autoComplete="name"
-              autoCapitalize="words"
-              maxLength={WAITLIST_FIELD_MAX.fullName}
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="waitlist-company"
-              className="mb-1.5 block text-sm font-medium text-gray-700"
-            >
-              Empresa <span className="text-red-600">*</span>
-            </label>
-            <input
-              id="waitlist-company"
-              name="company_name"
-              type="text"
-              autoComplete="organization"
-              maxLength={WAITLIST_FIELD_MAX.companyName}
-              required
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            />
-          </div>
-        </div>
-      </div>
-
-      {error ? (
-        <p
-          id="waitlist-form-alert"
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-        >
-          {error}
-        </p>
-      ) : null}
-
-      {doneMessage ? (
-        <p
-          role="status"
-          className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900"
-        >
-          {doneMessage}
-        </p>
-      ) : null}
-
-      {!canSubmit && !loading && !doneMessage ? (
-        <p className="text-center text-xs text-gray-500">
-          {getApiBaseUrl()
-            ? 'Completá las preguntas obligatorias, el rango de remitos por día, la cantidad de depósitos, nombre, empresa y tu correo para enviar.'
-            : 'Falta configurar NEXT_PUBLIC_API_URL: el envío no está disponible hasta que esté la URL de la API.'}
-        </p>
-      ) : null}
-
-      <button
-        type="submit"
-        disabled={!canSubmit || loading}
-        title={
-          loading
-            ? undefined
-            : !getApiBaseUrl()
-              ? 'Falta configurar NEXT_PUBLIC_API_URL'
-              : !canSubmit
-                ? 'Completá todos los campos obligatorios'
-                : undefined
-        }
-        className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {loading ? 'Enviando…' : 'Unirme a la lista'}
-      </button>
     </form>
   );
 }

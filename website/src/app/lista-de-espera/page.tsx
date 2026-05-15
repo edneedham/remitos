@@ -11,17 +11,8 @@ export const metadata: Metadata = {
 
 export default function WaitlistPage() {
   return (
-    <div className="bg-gray-50 px-4 py-12 sm:py-16">
-      <div className="mx-auto w-full max-w-md sm:max-w-xl lg:max-w-3xl xl:max-w-4xl rounded-2xl border border-gray-200 bg-white px-5 py-8 shadow-sm sm:px-8 sm:py-10 lg:px-10 lg:py-12">
-        <header className="mb-8 space-y-2 text-left">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-            Lista de espera
-          </h1>
-          <p className="text-sm leading-relaxed text-gray-600 sm:text-base">
-            Todavía no estamos aceptando nuevas cuentas. Dejanos tus datos y te
-            contactamos cuando podamos darte acceso.
-          </p>
-        </header>
+    <div className="min-h-svh bg-white md:min-h-0 md:bg-gray-50 md:px-4 md:py-12 lg:py-16">
+      <div className="w-full max-md:max-w-none px-3 pb-6 pt-4 sm:px-4 md:mx-auto md:max-w-xl md:rounded-2xl md:border md:border-gray-200 md:bg-white md:px-8 md:py-10 md:shadow-sm lg:max-w-3xl lg:px-10 lg:py-12 xl:max-w-4xl">
         <Suspense
           fallback={
             <div className="flex justify-center py-10">
