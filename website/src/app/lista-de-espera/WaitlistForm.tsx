@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowRight,
   Gift,
   ListOrdered,
   MessageSquare,
@@ -59,6 +60,8 @@ export default function WaitlistForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [doneMessage, setDoneMessage] = useState<string | null>(null);
+  /** 0: contacto, 1: operación, 2: envío — solo vista mobile (md+ muestra todo). */
+  const [mobileStep, setMobileStep] = useState(0);
 
   const canSubmit = useMemo(() => {
     if (loading) return false;
@@ -79,6 +82,58 @@ export default function WaitlistForm() {
     fullName,
     companyName,
     loading,
+  ]);
+
+  const MOBILE_STEP_COUNT = 3;
+
+  const advanceMobileStep = useCallback(() => {
+    setError(null);
+    if (mobileStep === 0) {
+      if (!emailLooksValid(email)) {
+        setError('Ingresá un correo electrónico válido.');
+        return;
+      }
+      if (!nonEmptyTrimmed(fullName)) {
+        setError('Ingresá tu nombre.');
+        return;
+      }
+      if (!nonEmptyTrimmed(companyName)) {
+        setError('Ingresá el nombre de tu empresa u organización.');
+        return;
+      }
+      setMobileStep(1);
+      return;
+    }
+    if (mobileStep === 1) {
+      if (!deliveryNotesPerDay) {
+        setError(
+          'Elegí el rango que mejor representa tus remitos por día.',
+        );
+        return;
+      }
+      if (!processingMode) {
+        setError('Elegí cómo procesás los remitos hoy.');
+        return;
+      }
+      const whTrim = warehouseCountInput.trim();
+      if (!warehouseCountValid(warehouseCountInput)) {
+        setError(
+          whTrim === ''
+            ? 'Indicá cuántos depósitos tenés (podés poner 0).'
+            : 'La cantidad de depósitos debe ser un número entre 0 y 50.000.',
+        );
+        return;
+      }
+      setMobileStep(2);
+    }
+  }, [
+    mobileStep,
+    email,
+    fullName,
+    companyName,
+    deliveryNotesPerDay,
+    processingMode,
+    warehouseCountInput,
   ]);
 
   const submit = useCallback(
@@ -211,24 +266,27 @@ export default function WaitlistForm() {
   );
 
   const checkboxOptionClass =
-    'flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 px-3 py-3 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/60';
+    'flex cursor-pointer items-start gap-2 rounded-lg border border-gray-200 px-2.5 py-2 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/60 md:gap-3 md:px-3 md:py-3';
 
   const radioClass =
-    'flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 px-3 py-3 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/60';
+    'flex cursor-pointer items-start gap-2 rounded-lg border border-gray-200 px-2.5 py-2 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/60 md:gap-3 md:px-3 md:py-3';
   const iconTileClass =
-    'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600';
+    'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 md:h-9 md:w-9';
   const eyebrowClass =
-    'text-xs font-semibold uppercase tracking-[0.2em] text-blue-600';
-  const sectionTitleClass = 'text-base font-semibold text-gray-900';
-  const sectionDescClass = 'mt-1 text-sm leading-relaxed text-gray-600';
+    'text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-600 md:text-xs md:tracking-[0.2em]';
+  const sectionTitleClass =
+    'text-sm font-semibold text-gray-900 md:text-base';
+  const sectionDescClass =
+    'mt-1 text-xs leading-snug text-gray-600 md:text-sm md:leading-relaxed';
   const questionLabelClass =
-    'block text-sm font-semibold leading-snug text-gray-900';
-  const legendClass = `${questionLabelClass} mb-2`;
-  const fieldLabelClass = `${questionLabelClass} mb-1.5`;
-  const optionTextClass = 'text-sm leading-relaxed text-gray-700';
+    'block text-xs font-semibold leading-snug text-gray-900 md:text-sm';
+  const legendClass = `${questionLabelClass} mb-1.5 md:mb-2`;
+  const fieldLabelClass = `${questionLabelClass} mb-1 md:mb-1.5`;
+  const optionTextClass =
+    'text-xs leading-snug text-gray-700 md:text-sm md:leading-relaxed';
   const finePrintClass = 'text-xs leading-relaxed text-gray-500';
   const inputClass =
-    'w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30';
+    'w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 md:px-3 md:py-2.5';
   const fieldHintClass = `mt-1.5 ${finePrintClass}`;
 
   return (
@@ -238,8 +296,8 @@ export default function WaitlistForm() {
       noValidate
       aria-describedby={error ? 'waitlist-form-alert' : undefined}
     >
-      <div className="flex flex-col gap-8 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-stretch md:gap-10 lg:gap-12">
-        <div className="md:border-r md:border-gray-200 md:pr-10 lg:pr-12">
+      <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-stretch md:gap-10 lg:gap-12">
+        <div className="hidden md:block md:border-r md:border-gray-200 md:pr-10 lg:pr-12">
           <header className="md:sticky md:top-6">
             <div className="space-y-2.5">
               <p className={eyebrowClass}>Acceso anticipado</p>
@@ -326,9 +384,56 @@ export default function WaitlistForm() {
           </header>
         </div>
 
+        <div className="md:hidden">
+          <div className="space-y-1 text-left">
+            <p className={eyebrowClass}>Acceso anticipado</p>
+            <h1 className="text-2xl font-bold leading-tight tracking-tight text-gray-900">
+              Unite a la lista de espera
+            </h1>
+            <p className={`${sectionDescClass} mt-0 max-w-none`}>
+              Enterate primero cuando abramos las suscripciones.
+            </p>
+          </div>
+          <ul className="mt-3 grid grid-cols-3 gap-1.5 border-t border-gray-100 pt-3">
+            <li className="flex min-w-0 flex-col items-center gap-1 rounded-lg border border-gray-100 bg-gray-50/80 px-1 py-2 text-center">
+              <span
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600"
+                aria-hidden
+              >
+                <ListOrdered className="h-3 w-3" />
+              </span>
+              <span className="text-[10px] font-semibold leading-[1.15] text-gray-900">
+                Primero en la fila
+              </span>
+            </li>
+            <li className="flex min-w-0 flex-col items-center gap-1 rounded-lg border border-gray-100 bg-gray-50/80 px-1 py-2 text-center">
+              <span
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600"
+                aria-hidden
+              >
+                <Gift className="h-3 w-3" />
+              </span>
+              <span className="text-[10px] font-semibold leading-[1.15] text-gray-900">
+                Beneficios fundadores
+              </span>
+            </li>
+            <li className="flex min-w-0 flex-col items-center gap-1 rounded-lg border border-gray-100 bg-gray-50/80 px-1 py-2 text-center">
+              <span
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600"
+                aria-hidden
+              >
+                <MessageSquare className="h-3 w-3" />
+              </span>
+              <span className="text-[10px] font-semibold leading-[1.15] text-gray-900">
+                Formá el producto
+              </span>
+            </li>
+          </ul>
+        </div>
+
         <div className="flex min-w-0 flex-col">
           {planHint === 'pyme' || planHint === 'empresa' ? (
-            <p className="mb-6 rounded-lg border border-blue-100 bg-blue-50/80 px-3 py-2.5 text-sm text-blue-900">
+            <p className="mb-3 rounded-lg border border-blue-100 bg-blue-50/80 px-2.5 py-2 text-xs text-blue-900 md:mb-6 md:px-3 md:py-2.5 md:text-sm">
               Interés registrado para el plan{' '}
               <span className="font-semibold">
                 {planHint === 'pyme' ? 'PyME' : 'Empresa'}
@@ -337,8 +442,29 @@ export default function WaitlistForm() {
             </p>
           ) : null}
 
-          <section className="space-y-5">
-            <div className="flex items-start gap-3">
+          {error ? (
+            <p
+              id="waitlist-form-alert"
+              role="alert"
+              className="mb-2 rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-xs text-red-800 md:mb-4 md:px-3 md:py-2.5 md:text-sm"
+            >
+              {error}
+            </p>
+          ) : null}
+
+          {doneMessage ? (
+            <p
+              role="status"
+              className="mb-2 rounded-lg border border-green-200 bg-green-50 px-2.5 py-2 text-xs text-green-900 md:mb-4 md:px-3 md:py-2.5 md:text-sm"
+            >
+              {doneMessage}
+            </p>
+          ) : null}
+
+          <section
+            className={`space-y-3 md:space-y-5 ${mobileStep !== 0 ? 'max-md:hidden' : ''}`}
+          >
+            <div className="flex items-start gap-2 md:gap-3">
               <span className={iconTileClass} aria-hidden>
                 <UserRound className="h-4 w-4" />
               </span>
@@ -349,7 +475,7 @@ export default function WaitlistForm() {
                 </p>
               </div>
             </div>
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-3 md:gap-5">
               <div>
                 <label htmlFor="waitlist-email" className={fieldLabelClass}>
                   Correo electrónico <span className="text-red-600">*</span>
@@ -407,8 +533,10 @@ export default function WaitlistForm() {
             </div>
           </section>
 
-          <section className="mt-8 space-y-6 border-t border-gray-100 pt-8">
-            <div className="flex items-start gap-3">
+          <section
+            className={`space-y-4 border-t border-gray-100 pt-8 max-md:mt-0 max-md:border-t-0 max-md:space-y-3 max-md:pt-0 md:mt-8 md:space-y-6 ${mobileStep !== 1 ? 'max-md:hidden' : ''}`}
+          >
+            <div className="flex items-start gap-2 md:gap-3">
               <span className={iconTileClass} aria-hidden>
                 <Package className="h-4 w-4" />
               </span>
@@ -421,12 +549,12 @@ export default function WaitlistForm() {
               </div>
             </div>
 
-            <fieldset className="space-y-3">
+            <fieldset className="space-y-2 md:space-y-3">
               <legend className={legendClass}>
                 ¿En qué rango está el promedio de remitos de entrega por día?{' '}
                 <span className="text-red-600">*</span>
               </legend>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5 md:gap-2">
                 {DELIVERY_NOTES_PER_DAY_OPTIONS.map((opt) => (
                   <label key={opt.value} className={radioClass}>
                     <input
@@ -443,12 +571,12 @@ export default function WaitlistForm() {
               </div>
             </fieldset>
 
-            <fieldset className="space-y-3">
+            <fieldset className="space-y-2 md:space-y-3">
               <legend className={legendClass}>
                 ¿Cómo procesás los remitos hoy?{' '}
                 <span className="text-red-600">*</span>
               </legend>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5 md:gap-2">
                 {PROCESSING_MODE_OPTIONS.map((opt) => (
                   <label key={opt.value} className={radioClass}>
                     <input
@@ -469,7 +597,7 @@ export default function WaitlistForm() {
                 ))}
               </div>
               {processingMode === 'digital' ? (
-                <div className="mt-3">
+                <div className="mt-2 md:mt-3">
                   <label
                     htmlFor="waitlist-digital-app"
                     className={fieldLabelClass}
@@ -530,13 +658,13 @@ export default function WaitlistForm() {
               <textarea
                 id="waitlist-logistics-pain"
                 name="logistics_pain_points"
-                rows={4}
+                rows={3}
                 maxLength={WAITLIST_FIELD_MAX.logisticsPainPoints}
                 autoComplete="off"
                 value={logisticsPainPoints}
                 onChange={(e) => setLogisticsPainPoints(e.target.value)}
                 placeholder="Ej.: costos, demoras, visibilidad de stock, documentación, última milla…"
-                className={`${inputClass} min-h-[5.5rem] resize-y`}
+                className={`${inputClass} min-h-[4rem] resize-y md:min-h-[5.5rem]`}
               />
               <p className={fieldHintClass}>
                 Hasta {WAITLIST_FIELD_MAX.logisticsPainPoints} caracteres.
@@ -544,28 +672,13 @@ export default function WaitlistForm() {
             </div>
           </section>
 
-          <section className="mt-8 space-y-4 border-t border-gray-100 pt-8">
-            {error ? (
-              <p
-                id="waitlist-form-alert"
-                role="alert"
-                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
-              >
-                {error}
-              </p>
-            ) : null}
-
-            {doneMessage ? (
-              <p
-                role="status"
-                className="rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-900"
-              >
-                {doneMessage}
-              </p>
-            ) : null}
-
+          <section
+            className={`space-y-3 border-t border-gray-100 pt-8 max-md:mt-0 max-md:border-t-0 max-md:pt-0 md:mt-8 md:space-y-4 ${mobileStep !== 2 ? 'max-md:hidden' : ''}`}
+          >
             {!canSubmit && !loading && !doneMessage ? (
-              <p className="text-sm leading-relaxed text-gray-500">
+              <p
+                className={`text-xs leading-snug text-gray-500 md:text-sm md:leading-relaxed ${mobileStep < 2 ? 'max-md:hidden' : ''}`}
+              >
                 {getApiBaseUrl()
                   ? 'Completá las preguntas obligatorias, el rango de remitos por día, la cantidad de depósitos, nombre, empresa y tu correo para enviar.'
                   : 'Falta configurar NEXT_PUBLIC_API_URL: el envío no está disponible hasta que esté la URL de la API.'}
@@ -602,12 +715,12 @@ export default function WaitlistForm() {
                       ? 'Completá todos los campos obligatorios'
                       : undefined
               }
-              className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3.5 text-base font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 md:py-3.5 md:text-base"
             >
               {loading ? 'Enviando…' : 'Unirme a la lista'}
             </button>
 
-            <p className="text-center text-xs leading-relaxed text-gray-500 sm:text-sm">
+            <p className="hidden text-center text-xs leading-relaxed text-gray-500 sm:text-sm md:block">
               Al enviar, aceptás nuestra{' '}
               <Link
                 href="/privacidad"
@@ -619,6 +732,64 @@ export default function WaitlistForm() {
               lista de espera.
             </p>
           </section>
+
+          <div className="mt-4 flex flex-col gap-3 md:hidden">
+            {mobileStep < MOBILE_STEP_COUNT - 1 ? (
+              <button
+                type="button"
+                onClick={advanceMobileStep}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+              >
+                Siguiente
+                <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+              </button>
+            ) : null}
+
+            <div
+              className="flex justify-center gap-2"
+              aria-label="Paso del formulario"
+            >
+              {Array.from({ length: MOBILE_STEP_COUNT }, (_, i) => (
+                <span
+                  key={i}
+                  aria-current={i === mobileStep ? 'step' : undefined}
+                  className={`h-2 w-2 rounded-full transition-colors ${i === mobileStep ? 'bg-blue-600' : 'bg-gray-300'}`}
+                />
+              ))}
+            </div>
+
+            <p className="text-center text-xs leading-relaxed text-gray-500">
+              Al enviar, aceptás nuestra{' '}
+              <Link
+                href="/privacidad"
+                className="font-medium text-blue-600 underline-offset-2 hover:underline"
+              >
+                Política de privacidad
+              </Link>{' '}
+              y el tratamiento de tus datos para gestionar tu solicitud en la
+              lista de espera.
+            </p>
+
+            <blockquote className="rounded-lg border border-gray-100 bg-gray-50/90 p-3 md:hidden">
+              <div className="flex items-start gap-2">
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-100/80 text-blue-600"
+                  aria-hidden
+                >
+                  <Quote className="h-3.5 w-3.5" />
+                </span>
+                <p className="min-w-0">
+                  <span className={`block ${sectionDescClass} mt-0`}>
+                    Lo estamos construyendo para equipos como el tuyo. Contanos
+                    un poco sobre vos para que podamos hacerlo aún mejor.
+                  </span>
+                  <span className={`mt-2 block ${questionLabelClass}`}>
+                    — El equipo
+                  </span>
+                </p>
+              </div>
+            </blockquote>
+          </div>
         </div>
       </div>
     </form>
