@@ -48,6 +48,8 @@ const steps: Step[] = [
   },
 ];
 
+const MOBILE_MAX_WIDTH_MQ = '(max-width: 767px)';
+
 function HowItWorksStep({ step, index }: { step: Step; index: number }) {
   const ref = useRef<HTMLElement | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
@@ -79,6 +81,7 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
     if (prefersReduce) {
       gsap.set([headerRef.current, visualRef.current], {
         x: 0,
+        y: 0,
         opacity: 1,
       });
       gsap.set(textRef.current, { opacity: 1 });
@@ -87,8 +90,44 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
 
     ensureGsapScrollTrigger();
 
+    const isMobile = window.matchMedia(MOBILE_MAX_WIDTH_MQ).matches;
     const slideFromX = visualOnRight ? 48 : -48;
     const ctx = gsap.context(() => {
+      if (isMobile) {
+        gsap.set([headerRef.current, visualRef.current], {
+          x: 0,
+          y: 22,
+          opacity: 0,
+        });
+        gsap.set(textRef.current, { opacity: 0, x: 0, y: 0 });
+
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: ref.current,
+            start: 'top 82%',
+            toggleActions: 'play none none reverse',
+            invalidateOnRefresh: true,
+          },
+        });
+
+        tl.to([headerRef.current, visualRef.current], {
+          y: 0,
+          opacity: 1,
+          duration: 0.72,
+          ease: 'power3.out',
+          stagger: 0.1,
+        }).to(
+          textRef.current,
+          {
+            opacity: 1,
+            duration: 0.55,
+            ease: 'power1.out',
+          },
+          0.18,
+        );
+        return;
+      }
+
       gsap.set([headerRef.current, visualRef.current], {
         x: slideFromX,
         opacity: 0,
@@ -101,6 +140,7 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
           start: 'top 72%',
           end: 'top 38%',
           toggleActions: 'play none none reverse',
+          invalidateOnRefresh: true,
         },
       });
 
@@ -127,27 +167,27 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
   return (
     <article
       ref={ref}
-      className="relative min-h-[88vh] snap-start py-10 md:min-h-screen"
+      className="relative min-h-0 py-8 md:min-h-screen md:py-10 md:snap-start"
     >
       <header
         ref={headerRef}
-        className={`mb-8 ${
+        className={`mb-5 md:mb-8 ${
           isPdfStep
             ? 'w-full text-left'
             : visualOnRight
-              ? 'text-right md:ml-auto md:w-[58%]'
+              ? 'text-left md:ml-auto md:w-[58%] md:text-right'
               : 'text-left md:w-[58%]'
         }`}
       >
-        <p className="mb-3 text-2xl font-semibold tracking-wide text-blue-600 sm:text-3xl">
+        <p className="mb-2 text-xl font-semibold tracking-wide text-blue-600 md:mb-3 md:text-2xl lg:text-3xl">
           {step.id}
         </p>
-        <h3 className="text-4xl font-bold leading-tight text-gray-900 sm:text-5xl lg:text-5xl">
+        <h3 className="text-2xl font-bold leading-tight text-gray-900 sm:text-3xl md:text-4xl lg:text-5xl">
           {step.title}
         </h3>
       </header>
 
-      <div className={`grid grid-cols-1 items-center gap-8 md:gap-14 ${stepGridCols}`}>
+      <div className={`grid grid-cols-1 items-center gap-5 md:gap-8 lg:gap-14 ${stepGridCols}`}>
         <div
           ref={visualRef}
           className={`min-w-0 max-md:flex max-md:w-full max-md:justify-center ${visualGridPlacement} ${
@@ -170,7 +210,7 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
                 alt="Pantalla de historial de repartos en la app"
                 width={286}
                 height={611}
-                className="mx-auto h-auto w-[286px] max-w-[calc(100vw-2rem)] rounded-[28px] shadow-[0_10px_24px_rgba(0,0,0,0.22)] md:absolute md:left-0 md:right-auto md:top-1/2 md:mx-0 md:max-w-none md:-translate-y-1/2"
+                className="mx-auto h-auto w-[220px] max-w-full md:absolute md:left-0 md:right-auto md:top-1/2 md:mx-0 md:w-[286px] md:max-w-none md:-translate-y-1/2"
               />
             </div>
           ) : (
@@ -179,7 +219,7 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
               alt={step.imageAlt}
               width={286}
               height={611}
-              className={`h-auto w-[286px] ${visualAlignClass}`}
+              className={`h-auto w-[220px] max-w-full md:w-[286px] ${visualAlignClass}`}
             />
           )}
         </div>
@@ -189,7 +229,7 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
           className={`min-w-0 ${textGridPlacement} ${isPdfStep ? 'max-md:order-2 md:order-1 max-md:mt-2' : ''}`}
         >
           <p
-            className={`w-full max-w-none text-2xl leading-relaxed text-gray-600 sm:text-3xl lg:text-4xl lg:leading-snug ${textAlignClass}`}
+            className={`w-full max-w-none text-lg leading-relaxed text-gray-600 sm:text-xl md:text-2xl lg:text-4xl lg:leading-snug ${textAlignClass}`}
           >
             {step.description}
           </p>
@@ -202,24 +242,24 @@ function HowItWorksStep({ step, index }: { step: Step; index: number }) {
 export default function HowItWorksSection() {
   return (
     <section
-      className="border-b border-gray-200 bg-gray-50 py-20 px-4 sm:px-6 lg:px-8"
+      className="overflow-x-clip border-b border-gray-200 bg-gray-50 py-12 px-4 sm:px-6 md:py-20 lg:px-8"
       aria-labelledby="how-it-works-heading"
     >
       <div className="mx-auto w-full max-w-5xl">
-        <div className="mb-6 w-full max-w-content-prose text-left md:mb-14">
+        <div className="mb-8 w-full max-w-content-prose text-left md:mb-14">
           <h2
             id="how-it-works-heading"
-            className="mb-4 text-4xl font-bold text-gray-900 sm:mb-6 sm:text-5xl lg:text-5xl"
+            className="mb-3 text-3xl font-bold text-gray-900 sm:mb-4 sm:text-4xl md:mb-6 md:text-5xl lg:text-5xl"
           >
             Cómo funciona, paso a paso
           </h2>
-          <p className="text-xl leading-relaxed text-gray-600 sm:text-2xl lg:text-3xl">
+          <p className="text-lg leading-relaxed text-gray-600 sm:text-xl md:text-2xl lg:text-3xl">
             Un flujo de trabajo simple para pasar del remito a una operación lista
             para ruta y cierre administrativo.
           </p>
         </div>
 
-        <div className="snap-y snap-mandatory">
+        <div className="md:snap-y md:snap-mandatory">
           {steps.map((step, index) => (
             <HowItWorksStep key={step.id} step={step} index={index} />
           ))}
