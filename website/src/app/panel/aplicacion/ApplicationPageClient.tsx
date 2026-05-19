@@ -43,7 +43,7 @@ export default function ApplicationPageClient() {
   const didAutoStartTransfer = useRef(false);
 
   useEffect(() => {
-    setDevicePlatform(detectDevicePlatform());
+    queueMicrotask(() => setDevicePlatform(detectDevicePlatform()));
   }, []);
 
   useEffect(() => {
@@ -57,8 +57,10 @@ export default function ApplicationPageClient() {
 
   useEffect(() => {
     if (status === 'config_error') {
-      setLoadError(configError);
-      setEntitlementLoading(false);
+      queueMicrotask(() => {
+        setLoadError(configError);
+        setEntitlementLoading(false);
+      });
       return;
     }
     if (status !== 'ready') {
@@ -66,9 +68,11 @@ export default function ApplicationPageClient() {
     }
 
     if (bootstrapEntitlement) {
-      setEntitlement(bootstrapEntitlement);
-      setEntitlementLoading(false);
-      setLoadError(null);
+      queueMicrotask(() => {
+        setEntitlement(bootstrapEntitlement);
+        setEntitlementLoading(false);
+        setLoadError(null);
+      });
       return;
     }
 
@@ -101,9 +105,11 @@ export default function ApplicationPageClient() {
       setEntitlementLoading(false);
     }
 
-    setEntitlementLoading(true);
-    setLoadError(null);
-    void load();
+    queueMicrotask(() => {
+      setEntitlementLoading(true);
+      setLoadError(null);
+      void load();
+    });
     return () => {
       cancelled = true;
     };

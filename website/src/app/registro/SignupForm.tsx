@@ -82,14 +82,24 @@ export default function SignupForm({
     password,
     passwordConfirm,
   });
-  accountValuesRef.current = {
+
+  useEffect(() => {
+    accountValuesRef.current = {
+      companyName,
+      companyCode,
+      companyCuit,
+      email,
+      password,
+      passwordConfirm,
+    };
+  }, [
     companyName,
     companyCode,
     companyCuit,
     email,
     password,
     passwordConfirm,
-  };
+  ]);
 
   const accountDebounceTimersRef = useRef<
     Partial<Record<SignupAccountField, ReturnType<typeof setTimeout>>>

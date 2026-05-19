@@ -71,7 +71,9 @@ export function PanelNotificationsProvider({
 
   /** Bell badge: one small request on mount + when the window regains focus (no full list until the bell opens). */
   useEffect(() => {
-    void refreshUnreadBadge();
+    queueMicrotask(() => {
+      void refreshUnreadBadge();
+    });
   }, [refreshUnreadBadge]);
 
   useEffect(() => {
@@ -96,7 +98,9 @@ export function PanelNotificationsProvider({
   /** Full list when the user opens the panel (lazy load). */
   useEffect(() => {
     if (!open) return;
-    void refresh();
+    queueMicrotask(() => {
+      void refresh();
+    });
   }, [open, refresh]);
 
   const toggleOpen = useCallback(() => {

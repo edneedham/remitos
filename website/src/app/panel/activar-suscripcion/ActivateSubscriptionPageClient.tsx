@@ -69,15 +69,19 @@ export default function ActivateSubscriptionPageClient() {
 
   useEffect(() => {
     if (!ready || useMockPayment || !publicKey) {
-      setBrickAmountArs(null);
-      setPricingError(null);
-      setPricingMeta(null);
+      queueMicrotask(() => {
+        setBrickAmountArs(null);
+        setPricingError(null);
+        setPricingMeta(null);
+      });
       return;
     }
     let cancelled = false;
-    setBrickAmountArs(null);
-    setPricingError(null);
-    setPricingMeta(null);
+    queueMicrotask(() => {
+      setBrickAmountArs(null);
+      setPricingError(null);
+      setPricingMeta(null);
+    });
     (async () => {
       const res = await fetchWithWebAuth(
         `/auth/me/plan-pricing?plan_id=${encodeURIComponent(planId)}`,
@@ -103,8 +107,10 @@ export default function ActivateSubscriptionPageClient() {
 
   useEffect(() => {
     if (status === 'config_error') {
-      setError(configError);
-      setReady(true);
+      queueMicrotask(() => {
+        setError(configError);
+        setReady(true);
+      });
       return;
     }
     if (status !== 'ready' || !profile) {
