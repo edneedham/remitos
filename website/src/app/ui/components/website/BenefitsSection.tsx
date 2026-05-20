@@ -445,10 +445,10 @@ export default function BenefitsSection() {
               </p>
             </div>
 
-            <div className="justify-self-center md:col-start-2 md:row-start-1 md:justify-self-end md:[visibility:hidden]">
+            <div className="justify-self-center md:col-start-2 md:row-start-1 md:justify-self-end">
               <div
                 ref={screenshotRef}
-                className="relative w-fit shrink-0 overflow-hidden rounded-2xl p-4"
+                className="relative w-fit shrink-0 overflow-hidden rounded-2xl p-4 md:[visibility:hidden]"
               >
                 <Image
                   src="/screenshots/dashboard.png"
